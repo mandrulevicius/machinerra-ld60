@@ -90,7 +90,7 @@ function level(d: Float32Array, rms = 0.1, peak = 0.8) {
 }
 
 /** A surface's group: this loudness and spread, a cap of two at once (steps are routine: they sit back in the mix). */
-const GROUP = { max: 2, vary: 0.1, gainVary: 0.2, priority: 1, reverb: 0.15, gain: 0.06 };
+const GROUP = { max: 2, vary: 0.1, gainVary: 0.2, priority: 1, reverb: 0.15, gain: 0.03 };
 
 /** The sound's name to play for a surface (`sfx.play(stepSound(s))`). */
 export const stepSound = (s: Surface) => `step-${s}`;

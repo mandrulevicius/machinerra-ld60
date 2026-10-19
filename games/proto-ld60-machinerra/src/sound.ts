@@ -23,6 +23,9 @@ export const AUDIO: AudioManifest = {
 };
 
 /** The hub's song: also the title's, a mission's results' and the ascent's. */
+/** Every sfx's level under the player's slider (`audio.trimSfx`): the mix sat too loud over the music (Minos). A guess. */
+export const SFX_TRIM = 0.6;
+
 export const HUB_MUSIC = 'rimti';
 /** A boss in sight. */
 export const BOSS_MUSIC = 'boss';

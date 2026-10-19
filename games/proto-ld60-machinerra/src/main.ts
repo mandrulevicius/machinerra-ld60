@@ -16,7 +16,7 @@ import { titleArt } from './titleart';
 import { guideTab, openGuide } from './guideview';
 import { CREDITS, STUDIO } from './credits';
 import { PLAY_SCENES, tickPlaytime } from './hub/playtime';
-import { AUDIO, HUB_MUSIC, TONE, playMusic } from './sound';
+import { AUDIO, HUB_MUSIC, SFX_TRIM, TONE, playMusic } from './sound';
 import './theme.css';
 import './style.css';
 
@@ -73,6 +73,7 @@ bootGame({
   tabs: [{ id: 'oracle', label: 'Oracle', build: guideTab }],
   menuItems: [{ id: 'guide', label: "The Oracle's guide", run: openGuide }],
 }).then((game) => {
+  audioFor(game).trimSfx(SFX_TRIM);
   // The run's play time (hub/playtime.ts, the outro's time to finish): every frame a game scene runs.
   game.events.on('step', (_t: number, delta: number) => {
     if (PLAY_SCENES.some((k) => game.scene.isActive(k))) tickPlaytime(delta);

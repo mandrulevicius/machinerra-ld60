@@ -971,6 +971,8 @@ export class Audio {
   private listeners = new Set<(v: Volumes) => void>();
   readonly save: Save<Volumes>;
   private vol: Volumes;
+  /** The game's own level for its sfx under the player's slider (`trimSfx`): 1 unless the game's mix runs hot. */
+  private sfxTrim = 1;
   /** Master scale while nobody is looking: 0.25 while `document.hidden`. `?bgvol=0.25` (any value, 1 = off) also counts an unfocused page as background: the Claude app's browser pane always reports visible, never focused, even when hidden or behind another tab, so an agent play-testing there passes it. */
   private bgvol = 0.25;
   private watchFocus = false;
@@ -1039,6 +1041,12 @@ export class Audio {
     return () => this.listeners.delete(fn);
   }
 
+  /** Scale every sfx of this game (0..1) under the player's sfx volume, which stays as saved. */
+  trimSfx(k: number) {
+    this.sfxTrim = clamp01(k);
+    this.apply();
+  }
+
   private apply(first = false) {
     const sm = this.game.sound;
     sm.volume = this.vol.master * (document.hidden || (this.watchFocus && !document.hasFocus()) ? this.bgvol : 1);
@@ -1048,10 +1056,10 @@ export class Audio {
     const music = this.vol.music * clamp01(musicSlot.value.gain ?? 1);
     if (first) {
       this.musicBus.gain.value = music;
-      this.sfxBus.gain.value = this.vol.sfx;
+      this.sfxBus.gain.value = this.vol.sfx * this.sfxTrim;
     } else {
       this.musicBus.gain.setTargetAtTime(music, t, 0.015); // no zipper noise while dragging a slider
-      this.sfxBus.gain.setTargetAtTime(this.vol.sfx, t, 0.015);
+      this.sfxBus.gain.setTargetAtTime(this.vol.sfx * this.sfxTrim, t, 0.015);
     }
   }
 

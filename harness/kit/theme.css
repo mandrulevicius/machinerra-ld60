@@ -1,0 +1,36 @@
+/* Game-side tokens the UI components don't have. theme.ts reads these together with the --ui-* tokens,
+   so each theme's CSS stays the one source for DOM and Phaser. A theme that omits one gets the :root value. */
+:root {                     /* greybox defaults, like tokens.css */
+  --kit-bg: #303030;          /* camera background */
+  --kit-ink: #111111;         /* line art strokes */
+  --kit-paper: #d8d8d8;       /* line art fill */
+  --kit-line: 6px;            /* line art stroke width in game pixels */
+  --kit-ambient: #505050;     /* ambient light tint (multiplied by the light rig's level) */
+  --kit-fx-1: var(--ui-c-accent);   /* effect palette: particles, lights */
+  --kit-fx-2: var(--ui-c-warn);
+  --kit-fx-3: var(--ui-c-good);
+}
+/* samples */
+[data-theme="clean"] {
+  --kit-bg: #14161c;
+  --kit-paper: #ffffff;
+  --kit-ambient: #3a4050;
+}
+[data-theme="pixel"] {
+  --kit-bg: #181033;
+  --kit-ink: #000000;
+  --kit-paper: #fff6d5;
+  --kit-line: 8px;
+  --kit-ambient: #3a2a70;
+  --kit-fx-3: #3be0ff;
+}
+[data-theme="fantasy"] {
+  --kit-bg: #2a1a0e;
+  --kit-ink: #2a1608;
+  --kit-paper: #f3e6c0;
+  --kit-line: 5px;
+  --kit-ambient: #5a4020;
+  --kit-fx-1: #ffb347;
+  --kit-fx-2: #e05030;
+  --kit-fx-3: #ffe9a0;
+}

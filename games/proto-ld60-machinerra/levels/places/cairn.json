@@ -1,0 +1,15 @@
+{
+  "name": "The Farthest Cairn",
+  "band": [40,70],
+  "clear": 3,
+  "apart": 6,
+  "noHive": 6,
+  "tags": ["cairn","far","quest"],
+  "presence": {"quest":"expeditioner.story.3"},
+  "entities": [
+    {"id":"cairn-1","type":"cairn","x":0,"y":0},
+    {"id":"flag-1","type":"flag","x":22,"y":-6},
+    {"id":"dune-behind","type":"band","x":0,"y":-60,"props":{"ground":"dune","length":260,"width":60,"bend":20,"rough":0.5,"seed":241}},
+    {"id":"ground-top","type":"blob","x":0,"y":6,"props":{"ground":"hardpan","rx":70,"ry":50,"rough":0.35,"seed":242}}
+  ]
+}

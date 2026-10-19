@@ -1,0 +1,24 @@
+{
+  "name": "Where Hornets Go",
+  "band": [20,45],
+  "clear": 4,
+  "apart": 7,
+  "noHive": 10,
+  "tags": ["wings","hornets","rest","gasket"],
+  "entities": [
+    {"id":"stump-1","type":"stump","x":0,"y":0},
+    {"id":"wing-1","type":"wing","x":-38,"y":22},
+    {"id":"wing-2","type":"wing","x":30,"y":30},
+    {"id":"wing-3","type":"wing","x":52,"y":-12},
+    {"id":"wing-4","type":"wing","x":-56,"y":-18},
+    {"id":"wing-5","type":"wing","x":10,"y":48},
+    {"id":"wing-6","type":"wing","x":-20,"y":-40},
+    {"id":"carcass-1","type":"carcass","x":-84,"y":40},
+    {"id":"carcass-2","type":"carcass","x":78,"y":46},
+    {"id":"carcass-3","type":"carcass","x":70,"y":-52},
+    {"id":"carcass-4","type":"carcass","x":-74,"y":-58},
+    {"id":"dune-north","type":"band","x":0,"y":-128,"props":{"ground":"dune","length":360,"width":70,"bend":-40,"rough":0.5,"seed":31}},
+    {"id":"dune-south","type":"band","x":0,"y":132,"props":{"ground":"dune","length":360,"width":70,"bend":40,"rough":0.5,"seed":32}},
+    {"id":"ground-hollow","type":"blob","x":0,"y":4,"props":{"ground":"hardpan","rx":120,"ry":84,"rough":0.5,"seed":33}}
+  ]
+}

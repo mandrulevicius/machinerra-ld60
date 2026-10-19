@@ -1,0 +1,10 @@
+{
+  "name": "Bellows's Wreck",
+  "band": [10,40],
+  "clear": 2,
+  "apart": 4,
+  "tags": ["landing","rescue"],
+  "entities": [
+    {"id":"wreck-1","type":"wreck","x":0,"y":0}
+  ]
+}

@@ -1,0 +1,317 @@
+/* The D-hub's HUD and station panels: brass on soot iron, warmer and quieter than the mission HUD (theme: machinerra). */
+.hb-where { position: absolute; left: 16px; top: 14px; text-shadow: var(--ui-text-shadow); }
+.hb-where__ship { font-size: var(--ui-fs-sm); letter-spacing: 0.2em; text-transform: uppercase; color: var(--ui-c-text-dim); }
+.hb-where__room { font-family: var(--ui-font-display); font-size: var(--ui-fs-lg); color: var(--brass-hi); }
+.hb-where__me { all: unset; display: block; margin-top: 2px; font-size: var(--ui-fs-sm); font-style: italic; color: var(--ui-c-text-dim); cursor: default; }
+.hb-where__me.is-titled { color: var(--brass); }
+.hb-where__me[title]:not([title=""]) { cursor: pointer; }
+.hb-where__me[title]:not([title=""]):hover { color: var(--brass-hi); }
+.hb-stores { position: absolute; right: 16px; top: 14px; display: flex; gap: 14px; align-items: center; font-weight: 700; font-size: 15px; padding: 6px 12px; border-radius: var(--ui-radius); background: rgb(20 14 9 / 0.72); border: 1px solid var(--ui-c-border); }
+.hb-stores > span { display: inline-flex; align-items: center; gap: 6px; }
+.hb-stores .mc-barrel { width: 12px; height: 16px; }
+/* Attention (P33): the room and the stores rest; a changed room or count brings them forward for a few seconds. */
+.hb-where[data-w], .hb-stores[data-w] { transition: opacity 400ms; }
+.hb-where[data-w="rest"] { opacity: 0.55; }
+.hb-stores[data-w="rest"] { opacity: 0.6; }
+.hb-stores { pointer-events: auto; }
+.hb-stores:hover { opacity: 1; }
+.hb-prompt { position: absolute; left: 50%; bottom: 110px; transform: translateX(-50%) translateY(8px); padding: 6px 14px; border-radius: var(--ui-radius); background: rgb(20 14 9 / 0.82); border: 2px solid var(--brass); font-size: var(--ui-fs-md); font-weight: 700; opacity: 0; transition: opacity 160ms, transform 160ms; white-space: nowrap; }
+.hb-notice { position: absolute; left: 50%; top: 46%; transform: translateX(-50%); padding: 5px 14px; border-radius: var(--ui-radius); background: rgb(20 14 9 / 0.82); border: 2px solid var(--brass); font-size: var(--ui-fs-md); font-weight: 700; opacity: 0; transition: opacity 300ms; white-space: nowrap; pointer-events: none; }
+.hb-notice.is-on { opacity: 1; }
+.hb-prompt.is-on { opacity: 1; transform: translateX(-50%); }
+.hb-say--npc { background: linear-gradient(170deg, rgb(48 36 24 / 0.95), rgb(24 18 12 / 0.95)); border-color: var(--brass); }
+.hb-say--npc .mc-oracle__eye { border-color: var(--brass); background: radial-gradient(circle, #2a1a0a 30%, #4a3a28 70%); }
+.has-oracle-face .hb-say--npc .mc-oracle__eye i { display: block; }
+.hb-say--npc .mc-oracle__eye i { background: radial-gradient(circle, #fff, var(--amber) 50%, transparent 72%); box-shadow: 0 0 14px var(--amber); }
+.hb-say--npc .mc-oracle__name { color: var(--brass-hi); }
+.hb-say--npc .mc-oracle__text { font-family: var(--ui-font-body); font-size: var(--ui-fs-md); color: var(--ui-c-text); }
+
+.hb-backdrop { pointer-events: auto; }
+/* A click that redraws the open panel swaps in a fresh copy: no entrance, so it does not blink. */
+.hb-backdrop.is-again { animation: none; }
+.hb-backdrop.is-still, .hb-backdrop.is-still * { transition: none; }
+.hb-panel { width: 780px; max-width: 780px; max-height: 680px; overflow: auto; padding: 14px 18px; gap: 10px; }
+.hb-panel .ui-panel__title { font-size: var(--ui-fs-md); }
+.hb-panel .ui-dialog__actions .ui-btn { min-height: 2.2em; padding: 4px 16px; }
+.hb-panel__head { display: flex; justify-content: space-between; align-items: baseline; }
+.hb-panel__close { font-size: var(--ui-fs-sm); color: var(--ui-c-text-dim); }
+.hb-panel__body { display: flex; flex-direction: column; gap: 10px; }
+.hb-note { margin: 0; font-size: var(--ui-fs-md); }
+.hb-note--dim { color: var(--ui-c-text-dim); font-size: var(--ui-fs-sm); }
+.hb-note--warn { color: var(--ui-c-warn); }
+.hb-row { display: flex; justify-content: space-between; font-size: var(--ui-fs-md); }
+.hb-map, .hb-city { display: block; width: 100%; border: 3px solid var(--brass); border-radius: var(--ui-radius); box-shadow: 0 0 0 3px var(--soot); }
+.hb-panel[data-kind="command"] { width: 960px; max-width: 96vw; max-height: calc(100% - 16px); display: flex; flex-direction: column; overflow: hidden; }
+/* Past three lands the table widens so each keeps its width. */
+.hb-panel[data-kind="command"]:has(.hb-lt:nth-child(4)) { width: 1220px; }
+/* Only the lands scroll if a tall visit still overflows; the head, the chart, the calls and the lift button stay in view. */
+.hb-panel[data-kind="command"] .hb-panel__body { flex: 1; min-height: 0; overflow: hidden; }
+/* The course table: the opened lands across the top (the picked one lit), the chart and the picked land's brief below. */
+.hb-course { display: flex; flex-direction: column; gap: 12px; flex: 1; min-height: 0; }
+.hb-course .hb-course__chart { flex: none; }
+.hb-course .hb-note { font-size: var(--ui-fs-sm); }
+.hb-lands { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; flex: 0 1 auto; min-height: 0; overflow-y: auto; padding: 2px; }
+.hb-lt { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 2px solid var(--ui-c-border); border-radius: var(--ui-radius); background: rgb(20 14 9 / 0.6); cursor: pointer; font-size: var(--ui-fs-sm); transition: border-color 120ms, background 120ms, transform 120ms; }
+.hb-lt:hover { border-color: var(--brass-hi); transform: translateY(-2px); }
+.hb-lt:focus-visible { outline: 2px solid var(--ui-c-focus); outline-offset: 2px; }
+.hb-lt.is-on { border-color: var(--amber); background: linear-gradient(170deg, rgb(74 58 40 / 0.9), rgb(32 24 16 / 0.9)); box-shadow: 0 0 0 2px var(--soot), 0 0 14px rgb(224 160 64 / 0.35); }
+.hb-lt__head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.hb-lt__land { font-family: var(--ui-font-display); font-size: var(--ui-fs-lg); color: var(--brass-hi); line-height: 1.1; }
+.hb-lt.is-on .hb-lt__land { color: var(--amber); }
+.hb-lt__tier { padding: 0 8px; border: 1px solid var(--brass); border-radius: 999px; color: var(--brass-hi); font-weight: 700; white-space: nowrap; }
+.hb-lt__sec { margin-top: 2px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ui-c-text-dim); font-size: var(--ui-fs-sm); border-bottom: 1px solid var(--ui-c-border); }
+.hb-lt__anomaly { display: flex; flex-direction: column; gap: 1px; }
+.hb-lt__anomaly b { color: var(--amber); font-size: var(--ui-fs-md); }
+.hb-lt__anomaly.is-plain b { color: var(--ui-c-text); }
+.hb-lt__anomaly .hb-lt__when { color: var(--ui-c-text-dim); font-size: 0.85em; font-style: normal; text-transform: uppercase; letter-spacing: 0.06em; }
+.hb-lt__anomaly span { color: var(--ui-c-text-dim); }
+.hb-lt__rich i, .hb-lt__found i { font-style: normal; color: var(--ui-c-text-dim); margin-right: 4px; }
+.hb-lt__stranded b, .hb-lt__rich b { color: var(--brass-hi); }
+.hb-lt .hb-foes { flex-direction: column; flex-wrap: nowrap; gap: 3px; align-items: stretch; }
+/* A foe on a land: one line when it fits, else its name above its ▲▼ (never a name broken mid-word). */
+.hb-lt .hb-foe { display: flex; flex-wrap: wrap; column-gap: 8px; row-gap: 0; padding: 1px 8px; border-radius: 8px; line-height: 1.25; }
+.hb-lt .hb-foe > * { white-space: nowrap; }
+.hb-foe__dim { color: var(--ui-c-text-dim); font-style: italic; }
+.hb-lt__slots { display: flex; gap: 8px; align-items: center; }
+.hb-lt__slots:not(:has(:not([hidden]))) { display: none; }
+.hb-panel[data-kind="command"]:has(.hb-lt:nth-child(4)) .hb-course__chart .hb-map { max-height: 96px; }
+.hb-course__more { margin-right: auto; align-self: center; }
+.hb-cards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; }
+.hb-card { display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 2px solid var(--ui-c-border); border-radius: var(--ui-radius); background: rgb(20 14 9 / 0.6); cursor: pointer; font-size: var(--ui-fs-sm); transition: border-color 120ms, background 120ms, transform 120ms; }
+.hb-card:hover { border-color: var(--brass-hi); transform: translateY(-2px); }
+.hb-card:focus-visible { outline: 2px solid var(--ui-c-focus); outline-offset: 2px; }
+.hb-card.is-on { border-color: var(--amber); background: linear-gradient(170deg, rgb(74 58 40 / 0.9), rgb(32 24 16 / 0.9)); box-shadow: 0 0 0 2px var(--soot), 0 0 14px rgb(224 160 64 / 0.35); }
+.hb-pips { display: flex; flex-direction: column; gap: 2px; font-size: var(--ui-fs-sm); }
+.hb-pipline { display: inline-flex; align-items: center; }
+.hb-pip { display: inline-block; width: 10px; height: 10px; margin-right: 3px; transform: rotate(45deg); background: var(--amber); }
+.hb-course__chart { display: grid; grid-template-columns: 260px 1fr; gap: 14px; align-items: stretch; min-width: 0; }
+.hb-course__chart .hb-map { height: 100%; min-height: 120px; max-height: 160px; object-fit: cover; }
+.hb-course__info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.hb-course__calls { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.hb-course__calls .hb-h { margin: 0 6px 0 0; font-size: var(--ui-fs-sm); }
+.hb-course__calls .hb-land { min-height: 1.9em; padding: 2px 10px; font-size: var(--ui-fs-sm); }
+.hb-land { justify-content: flex-start; text-align: left; white-space: nowrap; min-height: 2.2em; padding: 4px 12px; font-size: var(--ui-fs-md); }
+.hb-foes { display: flex; flex-wrap: wrap; gap: 6px; }
+.hb-foe { display: inline-flex; gap: 8px; align-items: baseline; padding: 2px 10px; border: 1px solid var(--ui-c-border); border-radius: 999px; background: rgb(20 14 9 / 0.6); font-size: var(--ui-fs-sm); }
+.hb-foe--boss { border-color: var(--amber); }
+.hb-foe--boss b { color: var(--amber); }
+.hb-foe__weak { color: #9fd38a; }
+.hb-foe__resist { color: var(--ui-c-text-dim); }
+/* A land's soft counters (P22): the icon, the counter, and the kinds that carry it. */
+.hb-counters { display: flex; flex-direction: column; gap: 2px; font-size: var(--ui-fs-sm); }
+.hb-counter { display: flex; align-items: center; flex-wrap: wrap; column-gap: 6px; padding: 0 8px; line-height: 1.3; }
+.hb-counter__icon { flex: none; }
+.hb-counter__on { color: var(--ui-c-text-dim); }
+.hb-h { margin: 0 0 8px; font-family: var(--ui-font-display); font-weight: 400; font-size: var(--ui-fs-md); color: var(--brass-hi); }
+.hb-cols { display: grid; grid-template-columns: 1.3fr 1fr; gap: 24px; }
+.hb-parts { display: grid; grid-template-columns: 56px 1fr; gap: 8px 12px; align-items: center; }
+.hb-part { position: relative; width: 56px; height: 56px; display: grid; place-items: center; }
+.hb-part img { width: 40px; image-rendering: auto; }
+.hb-part__name { display: flex; flex-direction: column; font-weight: 700; }
+.hb-part__name small { font-weight: 500; color: var(--ui-c-text-dim); }
+.hb-bots { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.hb-bots li { display: flex; justify-content: space-between; padding: 4px 8px; border-radius: 4px; background: rgb(0 0 0 / 0.25); }
+.hb-bots span { color: var(--ui-c-text-dim); }
+.hb-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.hb-card { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; text-align: left; white-space: normal; height: auto; padding: 14px; }
+.hb-card span { font-family: var(--ui-font-body); font-weight: 500; font-size: var(--ui-fs-sm); letter-spacing: 0; }
+.hb-panel .ui-btn[disabled] { opacity: 0.45; cursor: not-allowed; }
+.hb-card.is-selected { outline: 3px solid var(--ui-c-accent); }
+
+/* The deck map (the City Planner's draft): build and redraw panels. */
+.hb-dm-wrap { display: grid; grid-template-columns: 420px 1fr; gap: 18px; align-items: start; }
+.hb-dm-side { display: flex; flex-direction: column; gap: 10px; }
+.hb-lotpick { display: flex; flex-direction: column; gap: 8px; }
+.hb-card--lot { padding: 10px 12px; }
+.hb-dm { display: block; width: 420px; height: 420px; border: 3px solid var(--brass); border-radius: var(--ui-radius); box-shadow: 0 0 0 3px var(--soot); background: #1b2a33; }
+.hb-dm text { font-family: var(--ui-font-body); text-anchor: middle; pointer-events: none; }
+.hb-dm-deck { fill: #24323b; stroke: #6e5a3e; stroke-width: 6; }
+.hb-dm-room { fill: #4a3826; stroke: #8a6c44; stroke-width: 6; }
+.hb-dm-room__t { fill: #e8d3a6; font-size: 52px; font-weight: 700; }
+.hb-dm-walk { fill: #5c4a33; opacity: 0.8; }
+.hb-dm-lot__r { fill: transparent; stroke: #4e6470; stroke-width: 4; stroke-dasharray: 18 12; }
+.hb-dm .hb-dm-n { fill: #8aa0aa; font-size: 54px; font-weight: 700; text-anchor: start; }
+.hb-dm-lot.is-open .hb-dm-lot__r { fill: rgb(240 207 122 / 0.08); stroke: #c9a45e; }
+.hb-dm-lot.is-built .hb-dm-lot__r { fill: #6b5333; stroke: #e0b868; stroke-dasharray: none; }
+.hb-dm-lot.is-built .hb-dm-n { fill: #f0cf7a; }
+.hb-dm-who { fill: #fff2d0; font-size: 54px; font-weight: 700; }
+.hb-dm-free { fill: #c9a45e; font-size: 48px; font-style: italic; }
+.hb-dm-lot.is-pick { cursor: pointer; }
+.hb-dm-lot.is-pick:hover .hb-dm-lot__r { fill: rgb(240 207 122 / 0.3); stroke: #ffe09a; }
+.hb-dm-lot.is-sel .hb-dm-lot__r { stroke: #ffb640; stroke-width: 12; stroke-dasharray: none; fill: rgb(255 182 64 / 0.35); }
+.hb-dm-me { fill: #ffb640; stroke: #2a1a0a; stroke-width: 8; }
+
+/* The zoom-out after a mission. */
+.hb-ascent { position: absolute; left: 0; right: 0; bottom: 60px; text-align: center; font-family: var(--ui-font-display); font-size: var(--ui-fs-xl); color: var(--brass-hi); text-shadow: var(--ui-text-shadow); opacity: 0; transition: opacity 900ms; }
+.hb-ascent small { display: block; font-family: var(--ui-font-body); font-size: var(--ui-fs-md); color: var(--ui-c-scene-text); }
+.hb-ascent.is-on { opacity: 1; }
+.hb-part--unique { border-color: #f0cf7a; box-shadow: 0 0 12px rgb(240 207 122 / 0.45), inset 0 0 8px rgb(240 207 122 / 0.25); }
+.hb-part--unique.is-empty { box-shadow: none; opacity: 0.55; }
+.hb-part__q { font-family: var(--ui-font-display); font-size: 26px; color: #f0cf7a; }
+.hb-part__name--unique { color: #ffe9a8; }
+.hb-part__name em { font-weight: 400; font-style: italic; font-size: 13px; color: var(--ui-c-text-dim); max-width: 38ch; margin-top: 2px; }
+
+/* The cut scenes (cutscene.ts): letterbox bars slide in, a caption over the bottom bar. */
+.hb-cut { position: absolute; inset: 0; z-index: 60; pointer-events: auto; cursor: pointer; }
+.hb-cut__bar { position: absolute; left: 0; right: 0; height: 11%; background: #050407; transition: transform 0.4s ease; }
+.hb-cut__bar--top { top: 0; transform: translateY(-100%); }
+.hb-cut__bar--bottom { bottom: 0; transform: translateY(100%); }
+.hb-cut.is-on .hb-cut__bar { transform: none; }
+.hb-cut__cap { position: absolute; left: 50%; bottom: 13%; transform: translateX(-50%); max-width: min(760px, 90%); padding: 10px 18px 12px; background: rgb(10 8 14 / 0.82); border: 1px solid rgb(240 207 122 / 0.5); border-radius: 6px; color: #f4efe6; font-family: var(--ui-font); font-size: 18px; line-height: 1.4; text-align: center; }
+.hb-cut__who { display: block; font-family: var(--ui-font-display); font-size: 14px; letter-spacing: 0.08em; text-transform: uppercase; color: #f0cf7a; margin-bottom: 2px; }
+.hb-cut__cap[data-who='evil'] { border-color: rgb(150 70 255 / 0.7); }
+.hb-cut__cap[data-who='evil'] .hb-cut__who { color: #c090ff; }
+.hb-cut__cap[data-who='princess'] .hb-cut__who { color: #ff9fd0; }
+.hb-cut__more { display: block; margin-top: 4px; font-size: 11px; color: var(--ui-c-text-dim); }
+
+/* The outro (outro.ts): black, a card at a time, the credits rolling up, the studio's name. */
+.hb-outro { position: absolute; inset: 0; z-index: 70; pointer-events: auto; cursor: pointer; background: #050407; opacity: 0; transition: opacity 1.2s ease; color: #f4efe6; font-family: var(--ui-font); overflow: hidden; }
+.hb-outro.is-on { opacity: 1; }
+.hb-outro__stage { position: absolute; inset: 0; }
+.hb-outro__beat { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; text-align: center; opacity: 0; transition: opacity 0.7s ease; }
+.hb-outro__beat.is-on { opacity: 1; }
+.hb-outro__beat p { margin: 0; }
+.hb-outro__big { font-family: var(--ui-font-display); font-size: 44px; letter-spacing: 0.02em; color: #f0cf7a; text-shadow: 0 0 24px rgb(240 207 122 / 0.25); }
+.hb-outro__label { font-family: var(--ui-font-display); font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ui-c-text-dim); }
+.hb-outro__studio { font-family: var(--ui-font-display); font-size: 58px; letter-spacing: 0.04em; color: #f4efe6; text-shadow: 0 0 30px rgb(61 242 255 / 0.25); }
+.hb-outro__beat--roll { justify-content: flex-start; }
+.hb-outro__scroll { display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 100vh; animation-name: hb-outro-roll; animation-timing-function: linear; animation-fill-mode: forwards; }
+.hb-outro__scroll p { display: flex; flex-direction: column; gap: 2px; font-size: 20px; }
+.hb-outro__scroll b { font-family: var(--ui-font-display); font-weight: normal; font-size: 26px; color: #f0cf7a; }
+.hb-outro__scroll span { color: var(--ui-c-text-dim); }
+.hb-outro__scroll .hb-outro__label:first-child { font-size: 30px; color: #f4efe6; margin-bottom: 24px; }
+@keyframes hb-outro-roll { from { transform: translateY(0); } to { transform: translateY(-100%); } }
+.hb-outro__more { position: absolute; left: 0; right: 0; bottom: 5%; text-align: center; font-size: 12px; color: var(--ui-c-text-dim); }
+
+/* Station panels with tabs (the Trader's Buy / Sell / Specials): the tab pane scrolls, the panel keeps its height. */
+.hb-panel[data-kind="offer"]:has(.hb-tabs) { height: 600px; display: flex; flex-direction: column; overflow: hidden; }
+.hb-panel[data-kind="offer"]:has(.hb-tabs) .hb-panel__body { flex: 1; min-height: 0; }
+.hb-story { flex: none; display: flex; align-items: center; gap: 10px; margin: 2px 0 8px; font-size: var(--ui-fs-sm); color: var(--ui-c-text-dim); }
+.hb-story__teeth { display: inline-flex; gap: 4px; }
+.hb-tooth { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ui-c-border, #8a6a3a); background: transparent; }
+.hb-tooth.is-lit { background: var(--ui-c-accent, #f0b848); border-color: var(--ui-c-accent, #f0b848); }
+.hb-note--intro { font-size: var(--ui-fs-sm); color: var(--ui-c-text-dim); font-style: italic; }
+.hb-tabs { flex: none; }
+.hb-tabs .ui-tab { padding: 4px 16px; }
+.hb-tabpanel { flex: 1; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
+.hb-tabpanel[hidden] { display: none; }
+.hb-panel__body > .hb-offers { overflow: auto; }
+
+/* An NPC's offers: one compact row each, the state on the right. */
+.hb-offers { display: flex; flex-direction: column; gap: 6px; }
+.hb-offer { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border: 1px solid var(--brass); border-radius: 6px; background: rgb(20 14 9 / 0.6); }
+.hb-offer__what { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.hb-offer__what b { font-family: var(--ui-font-display); font-weight: 400; color: var(--brass-hi); }
+.hb-offer__what span { font-size: var(--ui-fs-sm); }
+.hb-offer em { flex: none; max-width: 40%; text-align: right; font-style: normal; font-size: var(--ui-fs-sm); font-weight: 700; color: var(--amber); }
+.hb-offer.is-owned { border-color: var(--ui-c-border); }
+.hb-offer.is-owned em { color: #9fd38a; }
+/* A teacher's recipes (stations/recipes.ts): a scrolling list, an icon at the left of each row. */
+.hb-recipes { max-height: 52vh; overflow: auto; }
+.hb-recipe img { flex: none; width: 36px; height: 36px; }
+.hb-offer--locked { border-style: dashed; border-color: var(--ui-c-border); opacity: 0.65; }
+.hb-offer--locked em { color: var(--ui-c-text-dim); font-weight: 400; }
+
+/* The Trader's stall: compact rows, the purse above each list. */
+.hb-shop__h { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: var(--ui-fs-sm); color: var(--ui-c-text-dim); }
+.hb-shop__h b { flex: none; color: var(--amber); }
+.hb-shop { display: flex; flex-direction: column; gap: 4px; }
+.hb-shop__row { display: flex; align-items: center; gap: 10px; padding: 3px 8px; border: 1px solid var(--ui-c-border); border-radius: 6px; background: rgb(20 14 9 / 0.6); }
+.hb-shop__row img { width: 30px; height: 30px; object-fit: contain; }
+.hb-shop__what { flex: 1; display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
+.hb-shop__what small { color: var(--ui-c-text-dim); font-size: var(--ui-fs-sm); }
+.hb-shop__row .ui-btn { min-height: 1.9em; min-width: 9em; padding: 2px 12px; font-size: var(--ui-fs-sm); }
+.hb-shop__row[class*="q-"] { border-color: var(--q); }
+.hb-shop__row[class*="q-"] b { color: var(--q); }
+
+/* The workshop (panels.ts workshopBody): a row per robot, chassis part or body to build; its buttons on the right. */
+.hb-panel[data-kind="workshop"] { width: 860px; max-width: 96vw; height: 640px; display: flex; flex-direction: column; overflow: hidden; }
+.hb-panel[data-kind="workshop"] .hb-panel__body { flex: 1; min-height: 0; }
+.hb-row--mid { align-items: center; gap: 12px; }
+.hb-wbots { display: flex; flex-direction: column; gap: 6px; }
+.hb-wbot { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border: 1px solid var(--ui-c-border); border-radius: 6px; background: rgb(20 14 9 / 0.6); }
+.hb-wbot.is-field { border-color: var(--brass); }
+.hb-wbot.is-wreck { border-style: dashed; opacity: 0.85; }
+.hb-wbot.is-wreck .hb-wbot__face { filter: grayscale(1) brightness(0.6); }
+.hb-wbot.is-locked .hb-wbot__face { filter: brightness(0.25); }
+.hb-wbot__face { flex: none; width: 44px; height: 52px; object-fit: contain; }
+.hb-wbot__what { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.hb-wbot__what b { font-family: var(--ui-font-display); font-weight: 400; color: var(--brass-hi); }
+.hb-wbot__what span { font-size: var(--ui-fs-sm); }
+.hb-wbot__what em { color: var(--ui-c-warn); font-style: normal; }
+.hb-wbot__what small { font-size: var(--ui-fs-sm); color: var(--ui-c-text-dim); }
+.hb-wbot__do { flex: none; display: flex; gap: 6px; align-items: center; }
+.hb-wbtn { display: flex; flex-direction: column; align-items: center; min-height: 2.2em; padding: 3px 12px; line-height: 1.15; }
+.hb-wbtn small { font-family: var(--ui-font-body); font-size: 12px; font-weight: 500; letter-spacing: 0; opacity: 0.85; }
+.hb-wgroup { display: flex; flex-direction: column; gap: 4px; }
+.hb-spectag { font-style: normal; color: var(--amber); }
+/* The promote picker under a robot's row: three specs of its type; a locked one shows its deed gauge. */
+.hb-spec { padding: 6px 12px 8px; border: 1px solid var(--ui-c-border); border-radius: 6px; background: rgb(20 14 9 / 0.4); }
+.hb-spec .hb-note { margin: 0 0 6px; }
+.hb-spec__cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.hb-spec__card { display: flex; flex-direction: column; gap: 3px; padding: 6px 8px; border: 1px solid var(--brass); border-radius: 6px; line-height: 1.2; }
+.hb-spec__card b { font-family: var(--ui-font-display); font-weight: 400; color: var(--brass-hi); }
+.hb-spec__card em { font-style: normal; font-size: var(--ui-fs-sm); color: var(--amber); }
+.hb-spec__card > span:not(.hb-gauge) { font-size: var(--ui-fs-sm); flex: 1; }
+.hb-spec__card .hb-wbtn { align-self: flex-start; }
+.hb-spec__card small { font-size: var(--ui-fs-sm); color: var(--ui-c-text-dim); }
+.hb-spec__card.is-locked { border-color: var(--ui-c-border); }
+.hb-spec__card.is-locked b { color: var(--ui-c-text-dim); }
+/* A deed gauge: a thin bar filled to --fill. */
+.hb-gauge { display: block; height: 6px; border-radius: 3px; background: rgb(0 0 0 / 0.5); border: 1px solid var(--ui-c-border); overflow: hidden; }
+.hb-gauge i { display: block; height: 100%; width: var(--fill, 0%); background: var(--amber); }
+.hb-gauge.is-full i { background: var(--brass-hi); }
+/* The Deeds tab: a row per type, its three gauges side by side. */
+.hb-deeds { display: flex; flex-direction: column; gap: 6px; }
+.hb-deed { display: grid; grid-template-columns: 44px 7em repeat(3, 1fr); align-items: center; gap: 12px; padding: 6px 12px; border: 1px solid var(--ui-c-border); border-radius: 6px; background: rgb(20 14 9 / 0.6); }
+.hb-deed__face { width: 36px; height: 42px; object-fit: contain; }
+.hb-deed > b { font-family: var(--ui-font-display); font-weight: 400; color: var(--brass-hi); }
+.hb-deed > b em { font-style: normal; font-size: var(--ui-fs-sm); color: var(--amber); margin-left: 6px; }
+.hb-deed__g { display: flex; flex-direction: column; gap: 2px; font-size: var(--ui-fs-sm); }
+.hb-deed__g small { color: var(--ui-c-text-dim); }
+.hb-deed__g.is-full span { color: var(--brass-hi); }
+.hb-stars { color: var(--amber); font-family: var(--ui-font-body); font-size: var(--ui-fs-sm); letter-spacing: 1px; margin-left: 4px; }
+/* Relics (P19): the old tech in the stores (drag a tile onto a robot's socket) and the socket on each robot's row. */
+.hb-oldtech { margin-bottom: 10px; }
+.hb-relics { display: flex; flex-wrap: wrap; gap: 6px; }
+.hb-relic { position: relative; display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 1px solid var(--brass); border-radius: 6px; background: rgb(20 14 9 / 0.6); cursor: grab; }
+.hb-relic:hover, .hb-relic.is-picked { border-color: var(--brass-hi); background: rgb(60 40 14 / 0.6); }
+.hb-relic.is-picked { box-shadow: 0 0 8px var(--amber); }
+.hb-relic > img { width: 36px; height: 36px; object-fit: contain; }
+.hb-relic__n { position: absolute; right: -5px; bottom: -5px; min-width: 18px; padding: 0 4px; border: 1px solid var(--brass); border-radius: 9px; background: rgb(20 14 9 / 0.95); color: var(--brass-hi); font-size: 12px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
+/* The piece picked up: its words and its Offer and Sell under the icons. */
+.hb-relichold { display: flex; align-items: center; gap: 10px; margin-top: 8px; padding: 6px 10px; border: 1px solid var(--brass-hi); border-radius: 6px; background: rgb(60 40 14 / 0.45); line-height: 1.2; }
+.hb-relichold > img { flex: none; width: 40px; height: 40px; object-fit: contain; }
+/* The hover pop-up: a brass-edged plate on the backdrop, over everything in the panel. */
+.hb-relicpop { position: absolute; z-index: 5; width: max-content; max-width: 260px; padding: 7px 10px; border: 2px solid var(--brass); border-radius: 6px; background: rgb(20 14 9 / 0.96); box-shadow: 0 4px 14px rgb(0 0 0 / 0.6), inset 0 0 0 1px rgb(240 207 122 / 0.12); line-height: 1.25; pointer-events: none; }
+.hb-relic__what b i { font-style: normal; font-family: var(--ui-font); font-size: 0.8em; color: var(--ui-c-text-dim); }
+.hb-relic__what { flex: 1; display: flex; flex-direction: column; min-width: 0; font-size: var(--ui-fs-sm); }
+.hb-relic__what b { font-family: var(--ui-font-display); font-weight: 400; color: var(--brass-hi); }
+.hb-relic__what small { color: var(--ui-c-text-dim); }
+.hb-relic__what em { font-style: normal; color: var(--ui-c-warn); }
+.hb-relic__do { flex: none; display: flex; flex-direction: column; gap: 3px; }
+.hb-relic__do .ui-btn { min-height: 0; padding: 1px 8px; font-size: var(--ui-fs-sm); }
+.hb-socket { flex: none; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 2px dashed var(--ui-c-border); border-radius: 8px; background: rgb(0 0 0 / 0.35); cursor: pointer; }
+.hb-socket > i { width: 10px; height: 10px; border-radius: 50%; background: var(--ui-c-border); }
+.hb-socket > img { width: 34px; height: 34px; object-fit: contain; cursor: grab; }
+.hb-socket.is-full { border-style: solid; border-color: var(--brass); }
+.hb-socket.is-ready, .hb-socket.is-over { border-color: var(--amber); box-shadow: 0 0 8px var(--amber); }
+.hb-socket.is-picked { box-shadow: 0 0 8px var(--brass-hi); }
+
+/* The next land, locked: dim, no hover, no pick (the course table says what opens it). */
+.hb-lt--locked { opacity: 0.45; cursor: default; pointer-events: none; border-style: dashed; }
+
+/* The Rising District (P55 B): the stage gauge, the copper lever, the stage list; and Rebuild's tear-down row. */
+.hb-gauge--big { height: 14px; border-radius: 7px; margin: 6px 0 10px; }
+.hb-gauge--big i { background: linear-gradient(180deg, var(--brass-hi), var(--brass)); }
+.hb-pour { display: flex; align-items: center; gap: 10px; margin: 4px 0 10px; }
+.hb-pour input { flex: 1; accent-color: var(--amber); }
+.hb-pour output { min-width: 3ch; text-align: right; font-weight: 700; }
+.hb-district { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 3px; font-size: var(--ui-fs-sm); }
+.hb-district li { padding: 3px 10px; border: 1px solid var(--ui-c-border); border-radius: var(--ui-radius); background: rgb(20 14 9 / 0.5); opacity: 0.6; }
+.hb-district li.is-now { opacity: 1; border-color: var(--brass-hi); }
+.hb-district li.is-done { opacity: 1; background: rgb(74 58 40 / 0.6); }
+.hb-district em { float: right; font-style: normal; color: var(--brass-hi); }
+.hb-district span { opacity: 0.8; margin-left: 6px; }
+.hb-tears { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+.hb-tear { font-size: var(--ui-fs-sm); }

@@ -1,0 +1,58 @@
+/* Dev sidebar. Its own look (dark, system font), not the game's theme, so it reads the same in every game. */
+.dv {
+  position: fixed; top: 0; right: 0; bottom: 0; z-index: 99997; width: min(360px, 100vw);
+  display: flex; flex-direction: column; box-sizing: border-box;
+  background: #14161bf2; color: #dfe3ea; border-left: 1px solid #fff2;
+  font: 12px/1.4 system-ui, sans-serif; user-select: none;
+}
+.dv[hidden], .dv [hidden] { display: none !important; }
+.dv * { box-sizing: border-box; }
+
+.dv-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 8px; border-bottom: 1px solid #fff2; }
+.dv-tabs .dv-btn { padding: 6px 8px; font-size: 13px; }
+.dv-body { flex: 1; min-height: 0; overflow: auto; padding: 10px; }
+.dv-pane { min-height: 100%; }
+.dv-pane.dv-console { height: 100%; min-height: 0; }
+
+.dv-btn {
+  padding: 2px 8px; font: inherit; color: inherit; background: #2a2f3a;
+  border: 1px solid #fff2; border-radius: 4px; cursor: pointer;
+}
+.dv-btn:hover { background: #363c4a; }
+.dv-btn.dv-on { background: #e0b040; color: #1a1a1a; border-color: #e0b040; }
+
+.dv-stack { display: flex; flex-direction: column; gap: 10px; }
+.dv-group { display: flex; flex-direction: column; gap: 4px; }
+.dv-wrap { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.dv-label { color: #9aa3b2; }
+.dv-check { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.dv-slide { display: flex; gap: 8px; align-items: center; color: #9aa3b2; }
+.dv-slide > span:first-child { width: 84px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dv-slide input { flex: 1; min-width: 0; accent-color: #e0b040; }
+.dv-val { width: 44px; text-align: right; }
+.dv-pre { margin: 0; padding: 6px; background: #0c0d11; border-radius: 4px; white-space: pre-wrap; word-break: break-word; user-select: text; font: 11px/1.4 ui-monospace, Consolas, monospace; }
+.dv-state { max-height: 52vh; overflow: auto; }
+.dv-stat { display: flex; flex-wrap: wrap; gap: 8px; color: #9aa3b2; }
+.dv-stat span:first-child { color: #dfe3ea; font-weight: 600; }
+.dv-note { color: #9aa3b2; user-select: text; }
+.dv-link { color: #8ab4ff; }
+.dv-keys { border-collapse: collapse; }
+.dv-keys td { padding: 2px 8px 2px 0; vertical-align: top; }
+.dv-keys td:first-child { color: #e0b040; white-space: nowrap; }
+
+.dv-console { display: flex; flex-direction: column; gap: 6px; }
+.dv-filters { flex: none; }
+.dv-log { flex: 1; min-height: 0; overflow: auto; background: #0c0d11; border-radius: 4px; padding: 4px; user-select: text; }
+.dv-l { display: flex; gap: 6px; padding: 1px 0; border-bottom: 1px solid #ffffff0d; }
+.dv-l time { flex: none; color: #6c7686; font: 11px ui-monospace, Consolas, monospace; }
+.dv-l pre { margin: 0; flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-word; font: 11px/1.4 ui-monospace, Consolas, monospace; }
+.dv-l-warn pre { color: #f0c060; }
+.dv-err pre { color: #ff7b7b; }
+.dv-l-cmd pre { color: #9fd3ff; }
+.dv-l-cmd.dv-err pre { color: #ff7b7b; }
+.dv-log[data-hide~='error'] .dv-l-error,
+.dv-log[data-hide~='warn'] .dv-l-warn,
+.dv-log[data-hide~='log'] .dv-l-log { display: none; }
+.dv-input { flex: none; display: flex; gap: 4px; }
+.dv-input input { flex: 1; min-width: 0; padding: 4px 6px; color: inherit; background: #0c0d11; border: 1px solid #fff3; border-radius: 4px; font: 12px ui-monospace, Consolas, monospace; user-select: text; }
+.dv-input input:focus { outline: 1px solid #e0b040; }

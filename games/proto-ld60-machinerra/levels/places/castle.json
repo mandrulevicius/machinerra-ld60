@@ -1,0 +1,16 @@
+{
+  "name": "The Harbinger's Castle",
+  "band": [34,80],
+  "clear": 7,
+  "apart": 9,
+  "tags": ["arena","boss"],
+  "entities": [
+    {"id":"keep-1","type":"keep","x":0,"y":0},
+    {"id":"tower-1","type":"tower","x":104,"y":88.32},
+    {"id":"tower-2","type":"tower","x":-104,"y":88.32},
+    {"id":"tower-3","type":"tower","x":-104,"y":-88.32},
+    {"id":"tower-4","type":"tower","x":104,"y":-88.32},
+    {"id":"pit-1","type":"pit","x":-83.2,"y":147.2},
+    {"id":"pit-2","type":"pit","x":83.2,"y":147.2}
+  ]
+}

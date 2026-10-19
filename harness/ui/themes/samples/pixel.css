@@ -1,0 +1,58 @@
+/* SAMPLE, not a style to copy. pixel: chunky retro, hard shadows, no radii. */
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+
+[data-theme="pixel"] {
+  --ui-c-scene-text: #fff6d5;
+  --ui-c-scene-text-dim: #b9b3d6;
+  --ui-c-surface: #2a2150;
+  --ui-c-surface-2: #181033;
+  --ui-c-text: #fff6d5;
+  --ui-c-text-dim: #a79fd0;
+  --ui-c-border: #000000;
+  --ui-c-accent: #ff4f81;
+  --ui-c-accent-hover: #ff7aa0;
+  --ui-c-on-accent: #ffffff;
+  --ui-c-btn: #4a3d99;
+  --ui-c-btn-hover: #6454c4;
+  --ui-c-btn-text: #fff6d5;
+  --ui-c-danger: #ff3b3b;
+  --ui-c-good: #3bdc6b;
+  --ui-c-warn: #ffc21a;
+  --ui-c-focus: #ffee3a;
+  --ui-c-backdrop: rgb(10 5 30 / 0.75);
+  --ui-c-track: #0b0620;
+  --ui-icon-line: #000000;
+  --ui-icon-arcane: #b07cff;
+  --ui-icon-frost: #6cc8ff;
+  --ui-icon-bw: 2px;
+  --ui-icon-shadow: 2px 2px 0 #000000;
+
+  --ui-font-body: "Press Start 2P", ui-monospace, "Courier New", monospace;
+  --ui-fs-sm: 9px;
+  --ui-fs-md: 11px;
+  --ui-fs-lg: 14px;
+  --ui-fs-xl: 22px;
+  --ui-fs-xxl: 44px;
+  --ui-fw-body: 400;
+  --ui-fw-display: 400;
+  --ui-ls-display: 0;
+  --ui-tt-display: uppercase;
+  --ui-lh: 1.7;
+  --ui-text-shadow: 3px 3px 0 #000;
+
+  --ui-radius: 0;
+  --ui-radius-lg: 0;
+  --ui-bw: 4px;
+  --ui-focus-w: 4px;
+  --ui-focus-offset: 0px;
+  --ui-press: 4px;
+  --ui-shadow: 8px 8px 0 #000;
+  --ui-shadow-raised: 0 4px 0 #000;
+  --ui-shadow-pressed: 0 0 0 #000;
+  --ui-menu-marker: "\25B6";
+  --ui-bar-h: 20px;
+
+  --ui-t-fast: 0ms;
+  --ui-t-med: 120ms;
+  --ui-ease: steps(3, end);
+}

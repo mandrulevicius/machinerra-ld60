@@ -1,0 +1,25 @@
+/* Review-page chrome only (switcher bar, stage, placeholder game). Not part of the kit. */
+body { margin: 0; background: #12141b; min-height: 100vh; }
+.pv-bar { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 10px 16px; background: #0a0b10; color: #cfd5e2; font: 14px system-ui, sans-serif; border-bottom: 1px solid #2a2f3d; }
+.pv-bar a { color: #8fb4ff; text-decoration: none; }
+.pv-bar a[aria-current] { color: #fff; font-weight: 700; }
+.pv-bar select { font: inherit; padding: 4px 8px; background: #1b1f2b; color: #fff; border: 1px solid #3a4256; border-radius: 6px; }
+.pv-main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 64px; }
+.pv-section { margin-top: 40px; }
+.pv-section > h2 { font: 700 13px system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: #7f8aa3; border-bottom: 1px solid #2a2f3d; padding-bottom: 6px; margin: 0 0 16px; }
+.pv-row { display: flex; flex-wrap: wrap; gap: 20px 28px; align-items: center; margin-bottom: 16px; }
+.pv-cap { font: 12px system-ui, sans-serif; color: #7f8aa3; width: 100%; margin: 0 0 8px; }
+.pv-scene { position: relative; height: 260px; border-radius: 8px; overflow: hidden; }
+.pv-pad-top { padding-top: 56px; }
+
+.stage-fit { margin: 16px auto; }
+.stage { position: relative; width: 1280px; height: 720px; transform-origin: top left; overflow: hidden; }
+.game-placeholder, .pv-scene { background:
+  linear-gradient(transparent 78%, #2b3a2f 78%),
+  repeating-linear-gradient(0deg, transparent 0 47px, rgb(255 255 255 / .04) 47px 48px),
+  repeating-linear-gradient(90deg, transparent 0 47px, rgb(255 255 255 / .04) 47px 48px),
+  linear-gradient(180deg, #1c2438, #3a2f4f 70%); }
+.game-placeholder { position: absolute; inset: 0; }
+.game-placeholder::after { content: "game canvas"; position: absolute; right: 12px; bottom: 8px; font: 12px monospace; color: rgb(255 255 255 / .25); }
+.game-placeholder i { position: absolute; background: #e9c46a; width: 40px; height: 56px; left: 560px; bottom: 22%; border-radius: 6px; }
+.game-placeholder b { position: absolute; background: #e76f51; width: 36px; height: 36px; border-radius: 50%; }

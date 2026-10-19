@@ -1,0 +1,14 @@
+{
+  "name": "Parable Trail",
+  "band": [16,40],
+  "clear": 2,
+  "apart": 7,
+  "outward": true,
+  "awayFrom": {"places":["core-vault"],"deg":120},
+  "tags": ["parable","ruins","verses"],
+  "entities": [
+    {"id":"ruin-1","type":"ruin","x":-288,"y":32,"props":{"ruin":"phone"}},
+    {"id":"ruin-2","type":"ruin","x":0,"y":-80,"props":{"ruin":"dish"}},
+    {"id":"ruin-3","type":"ruin","x":304,"y":64,"props":{"ruin":"car"}}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "name": "The Hot Spring",
+  "band": [14,40],
+  "clear": 5,
+  "apart": 7,
+  "noHive": 14,
+  "tags": ["rest","oil","warmth"],
+  "entities": [
+    {"id":"pool-1","type":"pool","x":0,"y":0},
+    {"id":"ground-rim","type":"blob","x":0,"y":4,"props":{"ground":"hardpan","rx":120,"ry":96,"rough":0.4,"seed":31}},
+    {"id":"ground-melt","type":"band","x":-96,"y":64,"rotation":-25,"props":{"ground":"hardpan","length":180,"width":44,"bend":18,"rough":0.55,"seed":32}}
+  ]
+}

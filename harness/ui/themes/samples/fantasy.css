@@ -1,0 +1,55 @@
+/* SAMPLE, not a style to copy. fantasy: warm parchment, ink text, gilded double borders, CSS only. */
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:wght@400;600&display=swap");
+
+[data-theme="fantasy"] {
+  --ui-c-scene-text: #f6e7c1;
+  --ui-c-scene-text-dim: #cdb98a;
+  --ui-c-surface: #ecdcb0;
+  --ui-c-surface-2: #d6c08a;
+  --ui-c-text: #3a2614;
+  --ui-c-text-dim: #7a6140;
+  --ui-c-border: #6b4a1f;
+  --ui-c-accent: #8e2a22;
+  --ui-c-accent-hover: #a83a30;
+  --ui-c-on-accent: #fbeccb;
+  --ui-c-btn: #d9c08a;
+  --ui-c-btn-hover: #e6d09c;
+  --ui-c-btn-text: #3a2614;
+  --ui-c-danger: #b3261e;
+  --ui-c-good: #3f7a3a;
+  --ui-c-warn: #c27c0e;
+  --ui-c-focus: #1f5fbf;
+  --ui-c-backdrop: rgb(20 10 4 / 0.7);
+  --ui-c-track: #4a3520;
+  --ui-icon-c: #c8902a;            /* gilt */
+  --ui-icon-line: #2a1608;
+  --ui-icon-arcane: #6a3a9a;
+  --ui-icon-frost: #2f6f9a;
+
+  --ui-font-body: "Crimson Text", Georgia, "Times New Roman", serif;
+  --ui-font-display: Cinzel, "Palatino Linotype", Georgia, serif;
+  --ui-fs-sm: 14px;
+  --ui-fs-md: 18px;
+  --ui-fs-lg: 23px;
+  --ui-fs-xl: 34px;
+  --ui-fs-xxl: 72px;
+  --ui-fw-display: 700;
+  --ui-ls-display: 0.06em;
+  --ui-tt-display: none;
+  --ui-lh: 1.35;
+  --ui-text-shadow: 0 2px 0 #2a1608, 0 0 14px rgb(0 0 0 / 0.7);
+
+  --ui-radius: 4px;
+  --ui-radius-lg: 8px;
+  --ui-bw: 3px;
+  --ui-focus-offset: 3px;
+  --ui-panel-bg: linear-gradient(160deg, #f3e6c0, #e4d1a0);
+  --ui-shadow: 0 0 0 2px #c9a24a, 0 0 0 5px #6b4a1f, 0 14px 30px rgb(0 0 0 / 0.55);
+  --ui-shadow-raised: inset 0 1px 0 rgb(255 255 255 / 0.5), 0 2px 0 #6b4a1f;
+  --ui-shadow-pressed: inset 0 2px 4px rgb(0 0 0 / 0.35);
+  --ui-menu-marker: "\2766";
+  --ui-bar-h: 20px;
+
+  --ui-t-fast: 150ms;
+  --ui-t-med: 320ms;
+}

@@ -1,0 +1,147 @@
+<!doctype html>
+<!--
+  Live games side by side, each with its own query (variants, tunes, scene), to feel two settings or two prototypes at once.
+    /harness/compare.html?game=<name>&a=<query>&b=<query>[&c=<query>&d=<query>]
+  `game` is the default game; a pane's query may name another with `game=<other>`. Write a query with `;` for `&`
+  (a=t.speed=200;v.feel=snappy) or url-encoded. No pane given: a and b, both empty.
+  Each pane's box shows its current query (it follows the tunes/variants changed in the dev sidebar inside the game) and
+  can be edited: Enter reloads that pane. The page URL follows, so copying it keeps the whole comparison.
+  Clicking a pane focuses it (blue border): keys go there. "Mirror input" copies keyboard events from the focused pane to the others.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Compare</title>
+  <style>
+    :root { color-scheme: dark; --bg: #151a24; --card: #1d2433; --line: #2c3650; --ink: #e6eaf2; --dim: #8e99b3; --accent: #4aa3e0; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 10px 16px; background: var(--bg); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
+    header { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+    header b { font-size: 16px; }
+    header a, header button { color: var(--ink); background: none; border: 1px solid var(--line); border-radius: 6px; padding: 3px 10px; font: inherit; text-decoration: none; cursor: pointer; }
+    header a:hover, header button:hover { border-color: var(--accent); }
+    label.mirror { display: flex; gap: 6px; align-items: center; color: var(--dim); }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .grid.n1 { grid-template-columns: minmax(0, 1fr); max-width: 1000px; }
+    .pane { background: var(--card); border: 2px solid var(--line); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; }
+    .pane.active { border-color: var(--accent); }
+    .bar { display: flex; gap: 8px; align-items: center; padding: 4px 8px; }
+    .bar .tag { font-weight: 700; color: var(--accent); }
+    .bar .game { color: var(--dim); font-size: 12px; white-space: nowrap; }
+    .bar input { flex: 1; min-width: 0; background: #0f131b; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 2px 6px; font: 12px ui-monospace, monospace; }
+    iframe { display: block; width: 100%; aspect-ratio: 16 / 9; border: 0; background: #000; }
+    @media (max-width: 700px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+  </style>
+</head>
+<body>
+  <header>
+    <b>Compare</b>
+    <label class="mirror"><input type="checkbox" id="mirror"> Mirror input</label>
+    <button id="reload">Reload all</button>
+    <button id="copy">Copy link</button>
+    <a href="../games/index.html#harness">← Hub</a>
+  </header>
+  <div class="grid" id="grid"></div>
+  <script src="hub-esc.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const defaultGame = params.get('game') || 'lab';
+    const valid = (g) => /^[\w-]+$/.test(g);
+    const letters = ['a', 'b', 'c', 'd'].filter((l) => params.has(l));
+    if (!letters.length) letters.push('a', 'b');
+
+    const grid = document.getElementById('grid');
+    grid.classList.toggle('n1', letters.length === 1);
+    const panes = letters.map((letter) => {
+      // `;` separates params inside a pane's query (a plain `&` would end the pane's value).
+      const q = new URLSearchParams((params.get(letter) || '').replace(/;/g, '&'));
+      const el = document.createElement('div');
+      el.className = 'pane';
+      el.innerHTML = '<div class="bar"><span class="tag"></span><span class="game"></span><input spellcheck="false" placeholder="query: t.speed=200;v.feel=snappy"></div><iframe allow="autoplay; fullscreen"></iframe>';
+      el.querySelector('.tag').textContent = letter.toUpperCase();
+      grid.append(el);
+      const pane = { letter, el, game: q.get('game') || defaultGame, frame: el.querySelector('iframe'), input: el.querySelector('input'), query: '' };
+      q.delete('game');
+      pane.input.value = q.toString().replace(/%2C/g, ',').replace(/&/g, ';');
+      pane.load = () => {
+        let sub = new URLSearchParams(pane.input.value.replace(/;/g, '&').replace(/^\?/, ''));
+        if (sub.has('game')) { pane.game = sub.get('game'); sub.delete('game'); }
+        if (!valid(pane.game)) pane.game = defaultGame;
+        pane.query = sub.toString().replace(/%2C/g, ',');
+        el.querySelector('.game').textContent = pane.game;
+        pane.frame.src = `../games/${pane.game}/` + (pane.query ? '?' + pane.query : '');
+        syncUrl();
+      };
+      pane.input.addEventListener('keydown', (e) => { e.stopPropagation(); if (e.key === 'Enter') pane.load(); });
+      pane.frame.addEventListener('load', () => attachMirror(pane));
+      return pane;
+    });
+
+    const enc = (s) => encodeURIComponent(s).replace(/%3D/g, '=').replace(/%3B/g, ';').replace(/%2C/g, ',');
+    function paneValue(p) {
+      const q = p.query.replace(/&/g, ';');
+      return p.game === defaultGame ? q : ['game=' + p.game, q].filter(Boolean).join(';');
+    }
+    function syncUrl() {
+      history.replaceState(null, '', `${location.pathname}?game=${enc(defaultGame)}` + panes.map((p) => `&${p.letter}=${enc(paneValue(p))}`).join(''));
+    }
+
+    // Follow each game's own address bar: tunes and variants changed in its dev sidebar appear in the box and the page URL.
+    setInterval(() => {
+      let changed = false;
+      for (const p of panes) {
+        let s;
+        try { s = p.frame.contentWindow.location.search.replace(/^\?/, ''); } catch { continue; }
+        if (p.frame.contentWindow.document.readyState === 'complete' && s !== p.query) {
+          p.query = s;
+          changed = true;
+          if (document.activeElement !== p.input) p.input.value = s.replace(/&/g, ';');
+        }
+      }
+      if (changed) syncUrl();
+    }, 600);
+
+    // Focus: a click inside an iframe blurs this window, so mark that pane. A click on a pane's bar focuses its game.
+    function markActive() {
+      const a = document.activeElement;
+      panes.forEach((p) => p.el.classList.toggle('active', a === p.frame));
+    }
+    addEventListener('blur', () => setTimeout(markActive, 0));
+    addEventListener('focus', () => setTimeout(markActive, 0));
+    panes.forEach((p) => p.el.querySelector('.bar').addEventListener('pointerdown', (e) => {
+      if (e.target !== p.input) setTimeout(() => { p.frame.focus(); p.frame.contentWindow.focus(); markActive(); }, 0);
+    }));
+
+    // Mirror input: keyboard events seen by one pane are replayed in the others (when the box is ticked).
+    const mirror = document.getElementById('mirror');
+    function attachMirror(pane) {
+      const fwd = (e) => {
+        if (!mirror.checked || !e.isTrusted) return;
+        for (const o of panes) {
+          if (o === pane) continue;
+          try {
+            const W = o.frame.contentWindow;
+            W.dispatchEvent(new W.KeyboardEvent(e.type, { key: e.key, code: e.code, keyCode: e.keyCode, which: e.which, repeat: e.repeat, shiftKey: e.shiftKey, ctrlKey: e.ctrlKey, altKey: e.altKey, bubbles: true, cancelable: true }));
+          } catch {}
+        }
+      };
+      try {
+        const w = pane.frame.contentWindow;
+        w.addEventListener('keydown', fwd);
+        w.addEventListener('keyup', fwd);
+        w.addEventListener('focus', markActive); // iframe to iframe focus does not blur this window
+        w.addEventListener('pointerdown', () => setTimeout(markActive, 0));
+      } catch {}
+    }
+
+    document.getElementById('reload').onclick = () => panes.forEach((p) => p.load());
+    document.getElementById('copy').onclick = (e) => {
+      navigator.clipboard?.writeText(location.href).catch(() => {});
+      e.target.textContent = 'Copied';
+      setTimeout(() => (e.target.textContent = 'Copy link'), 1200);
+    };
+    panes.forEach((p) => p.load());
+  </script>
+</body>
+</html>

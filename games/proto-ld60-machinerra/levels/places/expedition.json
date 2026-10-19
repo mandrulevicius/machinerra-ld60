@@ -1,0 +1,22 @@
+{
+  "name": "The Lost Expedition",
+  "band": [30,60],
+  "clear": 5,
+  "apart": 8,
+  "noHive": 10,
+  "tags": ["expedition","husks","fix","sprocket","civilians"],
+  "entities": [
+    {"id":"fire-1","type":"fire","x":0,"y":0},
+    {"id":"husk-1","type":"husk","x":20.7,"y":-53.5},
+    {"id":"husk-2","type":"husk","x":70.0,"y":-0.8},
+    {"id":"husk-3","type":"husk","x":22.6,"y":53.0},
+    {"id":"husk-4","type":"husk","x":-56.0,"y":33.6},
+    {"id":"husk-5","type":"husk","x":-57.2,"y":-32.3},
+    {"id":"hive-1","type":"hive","x":112,"y":-112},
+    {"id":"crate-1","type":"prop","x":72,"y":-128,"props":{"prop":"crate"}},
+    {"id":"crate-2","type":"prop","x":150,"y":-84,"props":{"prop":"crate"}},
+    {"id":"crate-3","type":"prop","x":146,"y":-140,"props":{"prop":"crate"}},
+    {"id":"ground-camp","type":"blob","x":10,"y":-10,"props":{"ground":"hardpan","rx":140,"ry":110,"rough":0.45,"seed":61}},
+    {"id":"ground-drift","type":"blob","x":-130,"y":90,"rotation":-20,"props":{"ground":"dune","rx":80,"ry":40,"rough":0.6,"seed":62}}
+  ]
+}

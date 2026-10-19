@@ -1,0 +1,10 @@
+{
+  "name": "Signal Mast",
+  "band": [28,62],
+  "clear": 3,
+  "apart": 8,
+  "tags": ["landmark","signal"],
+  "entities": [
+    {"id":"mast-1","type":"mast","x":0,"y":0}
+  ]
+}

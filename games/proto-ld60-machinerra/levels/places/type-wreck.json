@@ -1,0 +1,10 @@
+{
+  "name": "A Wreck Worth Mending",
+  "band": [18,60],
+  "clear": 2,
+  "apart": 5,
+  "tags": ["rescue","wreck"],
+  "entities": [
+    {"id":"wreck-1","type":"wreck","x":0,"y":0}
+  ]
+}

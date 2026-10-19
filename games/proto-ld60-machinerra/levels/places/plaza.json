@@ -1,0 +1,17 @@
+{
+  "name": "The Museum Plaza",
+  "band": [28,70],
+  "clear": 6,
+  "apart": 9,
+  "noHive": 9,
+  "tags": ["arena","boss"],
+  "entities": [
+    {"id":"museum-1","type":"museum","x":0,"y":-160},
+    {"id":"fountain-1","type":"fountain","x":0,"y":19.2},
+    {"id":"statue-1","type":"statue","x":-115.2,"y":-51.2},
+    {"id":"statue-2","type":"statue","x":115.2,"y":-51.2},
+    {"id":"car-1","type":"car","x":-134.4,"y":96},
+    {"id":"car-2","type":"car","x":128,"y":108.8},
+    {"id":"car-3","type":"car","x":6.4,"y":166.4}
+  ]
+}

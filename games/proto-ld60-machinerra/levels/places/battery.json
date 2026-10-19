@@ -1,0 +1,20 @@
+{
+  "name": "The Old Battery",
+  "band": [25,50],
+  "clear": 4,
+  "apart": 8,
+  "anchor": {"hive":[12,18]},
+  "bounded": true,
+  "tags": ["gun","carry","blast","hive"],
+  "entities": [
+    {"id":"gun-1","type":"gun","x":0,"y":0},
+    {"id":"depot-1","type":"depot","x":0,"y":236},
+    {"id":"shell-1","type":"prop","x":-30,"y":262,"props":{"prop":"shell"}},
+    {"id":"shell-2","type":"prop","x":-10,"y":262,"props":{"prop":"shell"}},
+    {"id":"shell-3","type":"prop","x":10,"y":262,"props":{"prop":"shell"}},
+    {"id":"shell-4","type":"prop","x":30,"y":262,"props":{"prop":"shell"}},
+    {"id":"sandbags","type":"band","x":0,"y":-76,"props":{"ground":"rock","length":170,"width":34,"bend":-26,"rough":0.1,"seed":91}},
+    {"id":"path","type":"band","x":0,"y":120,"rotation":90,"props":{"ground":"hardpan","length":250,"width":50,"bend":18,"rough":0.4,"seed":92}},
+    {"id":"ground-pad","type":"blob","x":0,"y":0,"props":{"ground":"hardpan","rx":80,"ry":64,"rough":0.3,"seed":93}}
+  ]
+}

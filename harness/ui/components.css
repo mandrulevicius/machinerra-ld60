@@ -1,0 +1,392 @@
+/* Game UI components. Components read tokens only (tokens.css); never raw values.
+   Interactive widgets set pointer-events:auto so they work inside a pointer-events:none overlay. */
+
+[data-theme] {
+  font-family: var(--ui-font-body);
+  font-size: var(--ui-fs-md);
+  font-weight: var(--ui-fw-body);
+  line-height: var(--ui-lh);
+  color: var(--ui-c-scene-text);
+}
+[data-theme] *, [data-theme] *::before, [data-theme] *::after { box-sizing: border-box; }
+[data-theme] :where(button, input) { font: inherit; color: inherit; }
+
+/* The kit's own icons (glyphs/*.svg, shown by .ui-icon as `--icon: var(--ui-glyph-<name>)`): no per-game files. A theme may set its own. */
+:where([data-theme]) {
+  --ui-glyph-speaker-off: url(glyphs/speaker-off.svg);
+  --ui-glyph-speaker-low: url(glyphs/speaker-low.svg);
+  --ui-glyph-speaker-high: url(glyphs/speaker-high.svg);
+}
+
+/* ---- overlay + layout ---- */
+#ui, .ui-overlay { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+#ui-sys { z-index: 5; }   /* title screen and game menu (harness/kit/menus.ts), above #ui, below the dev sidebar */
+.ui-screen { position: absolute; inset: 0; display: flex; pointer-events: none; }
+.ui-screen--center { align-items: center; justify-content: center; }
+.ui-anchor { position: absolute; display: flex; gap: var(--ui-sp-3); padding: var(--ui-sp-4); }
+.ui-anchor--tl { top: 0; left: 0; }
+.ui-anchor--tr { top: 0; right: 0; }
+.ui-anchor--bl { bottom: 0; left: 0; }
+.ui-anchor--br { bottom: 0; right: 0; }
+.ui-anchor--tc { top: 0; left: 50%; transform: translateX(-50%); }
+.ui-anchor--bc { bottom: 0; left: 50%; transform: translateX(-50%); }
+.ui-stack { display: flex; flex-direction: column; gap: var(--ui-sp-3); }
+.ui-row { display: flex; align-items: center; gap: var(--ui-sp-3); }
+.ui-row--wrap { flex-wrap: wrap; }
+
+/* ---- text ---- */
+.ui-title, .ui-heading, .ui-label {
+  font-family: var(--ui-font-display); font-weight: var(--ui-fw-display);
+  letter-spacing: var(--ui-ls-display); text-transform: var(--ui-tt-display); margin: 0;
+}
+.ui-title { font-size: var(--ui-fs-xxl); line-height: 1.05; text-shadow: var(--ui-text-shadow); color: var(--ui-c-scene-text); }
+.ui-heading { font-size: var(--ui-fs-xl); line-height: 1.15; }
+.ui-label { font-size: var(--ui-fs-sm); color: var(--ui-c-text-dim); }
+.ui-text { margin: 0; }
+.ui-dim { color: var(--ui-c-text-dim); }
+.ui-scene-text { color: var(--ui-c-scene-text); text-shadow: var(--ui-text-shadow); }
+
+/* ---- panel / frame ---- */
+.ui-panel {
+  pointer-events: auto; color: var(--ui-c-text); background: var(--ui-panel-bg);
+  border: var(--ui-bw) solid var(--ui-c-border); border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow); padding: var(--ui-sp-4);
+}
+.ui-panel--inset { background: var(--ui-c-surface-2); box-shadow: none; border-radius: var(--ui-radius); }
+.ui-panel__title { font-family: var(--ui-font-display); font-weight: var(--ui-fw-display); font-size: var(--ui-fs-lg); letter-spacing: var(--ui-ls-display); text-transform: var(--ui-tt-display); margin: 0 0 var(--ui-sp-3); }
+
+/* ---- buttons ---- */
+.ui-btn {
+  --_bg: var(--ui-c-btn); --_bgh: var(--ui-c-btn-hover); --_fg: var(--ui-c-btn-text);
+  pointer-events: auto; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--ui-sp-2);
+  min-height: 2.6em; padding: var(--ui-sp-2) var(--ui-sp-4);
+  font-family: var(--ui-font-display); font-weight: var(--ui-fw-display);
+  letter-spacing: var(--ui-ls-display); text-transform: var(--ui-tt-display);
+  color: var(--_fg); background: var(--_bg);
+  border: var(--ui-bw) solid var(--ui-c-border); border-radius: var(--ui-radius);
+  box-shadow: var(--ui-shadow-raised);
+  transition: background var(--ui-t-fast) var(--ui-ease), transform var(--ui-t-fast) var(--ui-ease), box-shadow var(--ui-t-fast) var(--ui-ease);
+}
+.ui-btn--primary { --_bg: var(--ui-c-accent); --_bgh: var(--ui-c-accent-hover); --_fg: var(--ui-c-on-accent); }
+.ui-btn--secondary { --_bg: transparent; --_fg: var(--ui-c-scene-text); text-shadow: var(--ui-text-shadow); }
+.ui-panel .ui-btn--secondary { --_fg: var(--ui-c-text); text-shadow: none; }
+.ui-btn--icon { padding: 0; width: 2.6em; min-width: 2.6em; }
+.ui-btn:is(:hover, .is-hover):not(:disabled, [aria-disabled="true"]) { background: var(--_bgh); }
+.ui-btn--secondary:is(:hover, .is-hover):not(:disabled, [aria-disabled="true"]) { background: var(--ui-c-btn-hover); --_fg: var(--ui-c-btn-text); text-shadow: none; }
+.ui-btn:is(:active, .is-active):not(:disabled, [aria-disabled="true"]) { transform: translateY(var(--ui-press)); box-shadow: var(--ui-shadow-pressed); }
+.ui-btn:disabled, .ui-btn[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; box-shadow: none; filter: grayscale(0.6); }
+:is(.ui-btn, .ui-tab, .ui-slot):is(:focus-visible, .is-focus) {
+  outline: var(--ui-focus-w) solid var(--ui-c-focus); outline-offset: var(--ui-focus-offset);
+}
+
+/* ---- dialog / modal ---- */
+.ui-backdrop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--ui-c-backdrop); pointer-events: auto; animation: ui-fade var(--ui-t-fast) var(--ui-ease) backwards; }
+.ui-dialog { min-width: 320px; max-width: 520px; display: flex; flex-direction: column; gap: var(--ui-sp-3); }
+.ui-dialog--wide { width: 520px; max-width: 100%; max-height: 640px; overflow: auto; gap: var(--ui-sp-4); }   /* settings, save files */
+.ui-dialog > .ui-panel__title { margin: 0; }
+.ui-dialog__body { margin: 0; }
+.ui-dialog__actions { display: flex; justify-content: flex-end; gap: var(--ui-sp-3); margin-top: var(--ui-sp-2); }
+
+/* ---- menu list ---- */
+.ui-menu { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--ui-sp-2); min-width: 280px; }
+.ui-menu__item {
+  pointer-events: auto; cursor: pointer; width: 100%; text-align: left;
+  display: flex; align-items: center; gap: var(--ui-sp-3);
+  padding: var(--ui-sp-2) var(--ui-sp-4); min-height: 2.6em;
+  font-family: var(--ui-font-display); font-weight: var(--ui-fw-display);
+  font-size: var(--ui-fs-lg); letter-spacing: var(--ui-ls-display); text-transform: var(--ui-tt-display);
+  color: var(--ui-c-scene-text); text-shadow: var(--ui-text-shadow);
+  background: transparent; border: var(--ui-bw) solid transparent; border-radius: var(--ui-radius);
+  transition: background var(--ui-t-fast) var(--ui-ease);
+}
+.ui-menu__item::before { content: var(--ui-menu-marker); width: var(--ui-fs-lg); font-size: var(--ui-fs-lg); opacity: 0; color: var(--ui-c-accent); text-shadow: none; }
+.ui-menu__item:is(:hover, :focus, .is-selected, [aria-current="true"]) { background: var(--ui-c-backdrop); border-color: var(--ui-c-border); outline: 0; }
+.ui-menu__item:is(:hover, :focus, .is-selected, [aria-current="true"])::before { opacity: 1; }
+.ui-menu__item--primary { font-size: var(--ui-fs-xl); min-height: 2.2em; }                  /* the main choice of a menu (title: Continue, else New game) */
+.ui-menu__item--split { justify-content: space-between; }                       /* label left, value right (save files) */
+.ui-menu__item--split > :last-child { color: var(--ui-c-text-dim); font-size: var(--ui-fs-md); font-weight: var(--ui-fw-body); }
+:is(.ui-menu--row, .ui-titlescreen[data-layout="bottom"] .ui-menu) { flex-direction: row; align-items: center; gap: var(--ui-sp-4); min-width: 0; }   /* horizontal menu */
+:is(.ui-menu--row, .ui-titlescreen[data-layout="bottom"] .ui-menu) .ui-menu__item { width: auto; white-space: nowrap; }
+:is(.ui-menu--row, .ui-titlescreen[data-layout="bottom"] .ui-menu) .ui-menu__item::before { display: none; }
+.ui-menu__item:is(:disabled, [aria-disabled="true"]) { opacity: 0.4; cursor: not-allowed; }
+.ui-panel .ui-menu__item { color: var(--ui-c-text); text-shadow: none; }
+.ui-panel .ui-menu__item:is(:hover, :focus, .is-selected, [aria-current="true"]) { background: var(--ui-c-surface-2); }
+
+/* ---- HUD ---- */
+.ui-score { display: flex; flex-direction: column; align-items: center; line-height: 1; color: var(--ui-c-scene-text); text-shadow: var(--ui-text-shadow); }
+.ui-score__label { font-size: var(--ui-fs-sm); color: var(--ui-c-scene-text-dim); text-transform: var(--ui-tt-display); letter-spacing: var(--ui-ls-display); }
+.ui-score__value { font-family: var(--ui-font-display); font-weight: var(--ui-fw-display); font-size: var(--ui-fs-xl); font-variant-numeric: tabular-nums; margin-top: var(--ui-sp-2); }
+
+.ui-bar {
+  --value: 50%; --_fill: var(--ui-c-accent);
+  position: relative; width: 220px; height: var(--ui-bar-h);
+  background: var(--ui-c-track); border: var(--ui-bw) solid var(--ui-c-border); border-radius: var(--ui-radius); overflow: hidden;
+}
+.ui-bar__fill { position: absolute; inset: 0 auto 0 0; width: var(--value); background: var(--_fill); transition: width var(--ui-t-med) var(--ui-ease); }
+.ui-bar__text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: var(--ui-fs-sm); line-height: 1; color: #fff; text-shadow: 0 1px 2px #000; }
+.ui-bar--health { --_fill: var(--ui-c-danger); }
+.ui-bar--progress { --_fill: var(--ui-c-good); }
+.ui-bar--timer { --_fill: var(--ui-c-warn); }
+
+.ui-chip {
+  display: inline-flex; align-items: center; gap: var(--ui-sp-2);
+  padding: var(--ui-sp-1) var(--ui-sp-3); color: var(--ui-c-text); background: var(--ui-panel-bg);
+  border: var(--ui-bw) solid var(--ui-c-border); border-radius: var(--ui-radius);
+}
+.ui-chip__icon { color: var(--ui-c-accent); }
+.ui-chip__value { font-family: var(--ui-font-display); font-weight: var(--ui-fw-display); font-variant-numeric: tabular-nums; }
+
+/* ---- tooltip ---- */
+.ui-tip-anchor { position: relative; display: inline-flex; pointer-events: auto; }
+.ui-tooltip {
+  position: absolute; bottom: calc(100% + var(--ui-sp-2)); left: 50%; transform: translateX(-50%);
+  width: max-content; max-width: 240px; padding: var(--ui-sp-1) var(--ui-sp-3);
+  font-size: var(--ui-fs-sm); color: var(--ui-c-text); background: var(--ui-c-surface);
+  border: var(--ui-bw) solid var(--ui-c-border); border-radius: var(--ui-radius); box-shadow: var(--ui-shadow-raised);
+  opacity: 0; visibility: hidden; pointer-events: none; transition: opacity var(--ui-t-fast) var(--ui-ease);
+}
+.ui-tip-anchor:is(:hover, :focus-within, .is-open) > .ui-tooltip { opacity: 1; visibility: visible; }
+
+/* ---- toast ---- */
+.ui-toast-stack { display: flex; flex-direction: column; gap: var(--ui-sp-2); align-items: flex-end; }
+.ui-toast {
+  --_c: var(--ui-c-accent); pointer-events: auto; display: flex; align-items: center; gap: var(--ui-sp-3);
+  min-width: 240px; padding: var(--ui-sp-2) var(--ui-sp-4); color: var(--ui-c-text); background: var(--ui-panel-bg);
+  border: var(--ui-bw) solid var(--ui-c-border); border-left: calc(var(--ui-bw) + 6px) solid var(--_c);
+  border-radius: var(--ui-radius); box-shadow: var(--ui-shadow);
+}
+.ui-toast--good { --_c: var(--ui-c-good); }
+.ui-toast--warn { --_c: var(--ui-c-warn); }
+.ui-toast--danger { --_c: var(--ui-c-danger); }
+.ui-toast__title { font-family: var(--ui-font-display); font-weight: var(--ui-fw-display); }
+
+/* ---- slider ---- */
+.ui-slider { pointer-events: auto; -webkit-appearance: none; appearance: none; width: 220px; height: 28px; background: transparent; cursor: pointer; }
+.ui-slider::-webkit-slider-runnable-track { height: 12px; background: var(--ui-c-track); border: var(--ui-bw) solid var(--ui-c-border); border-radius: var(--ui-radius); }
+.ui-slider::-moz-range-track { height: 12px; background: var(--ui-c-track); border: var(--ui-bw) solid var(--ui-c-border); border-radius: var(--ui-radius); }
+.ui-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 26px; margin-top: calc(-7px - var(--ui-bw)); background: var(--ui-c-accent); border: var(--ui-bw) solid var(--ui-c-border); border-radius: var(--ui-radius); box-shadow: var(--ui-shadow-raised); }
+.ui-slider::-moz-range-thumb { width: 12px; height: 20px; background: var(--ui-c-accent); border: var(--ui-bw) solid var(--ui-c-border); border-radius: var(--ui-radius); box-shadow: var(--ui-shadow-raised); }
+.ui-slider:is(:focus-visible, .is-focus) { outline: var(--ui-focus-w) solid var(--ui-c-focus); outline-offset: var(--ui-focus-offset); }
+.ui-slider:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ---- volume ramp: a triangle (a point at the quiet left, full height at the loud right) filled up to the value, a square speaker handle that grows with it, the percentage above it.
+   <div class="ui-vol" style="--v: .65" data-level="mute|low|high"><span class="ui-vol__pct">65%</span> <svg class="ui-vol__ramp ui-vol__bed|fill|edge">..</svg>
+   <span class="ui-vol__handle"><span class="ui-icon ui-vol__icon"></span></span> <input class="ui-vol__input" type="range"></div>
+   The (invisible) range input on top does the dragging, clicking and keys; its thumb is --_t wide, so the handle's centre and the pointer agree.
+   Sizes are unitless pixels: --_w ramp width, --_r its height at the loud end, --_t the thumb, --_m the handle's minimum size (so it stays
+   grabbable and its icon readable where the triangle is thin). The handle is as tall as the triangle under its centre. ---- */
+.ui-vol {
+  --v: 0.5; --_w: 150; --_r: 34; --_t: 32; --_m: 22; --_gap: 5;
+  --_x: calc(var(--_t) / 2 + var(--v) * (var(--_w) - var(--_t)));                                  /* the handle's centre, px */
+  --_cx: calc(var(--_x) * 1px);
+  --_hs: calc(max(var(--_m), var(--_r) * var(--_x) / var(--_w)) * 1px);                            /* the handle's size = the triangle's height under it, at least --_m */
+  position: relative; flex: none; width: calc(var(--_w) * 1px); height: calc((var(--_r) + var(--_gap)) * 1px + var(--ui-fs-md) * 1.3);
+}
+.ui-vol__pct {
+  position: absolute; bottom: calc(var(--_hs) + var(--_gap) * 1px); left: var(--_cx); transform: translateX(-50%);
+  white-space: nowrap; line-height: 1.3; font-family: var(--ui-font-display); font-weight: var(--ui-fw-display); letter-spacing: var(--ui-ls-display);
+  font-size: var(--ui-fs-md); font-variant-numeric: tabular-nums;
+}
+.ui-vol__ramp { position: absolute; left: 0; bottom: 0; width: 100%; height: calc(var(--_r) * 1px); overflow: visible; }
+.ui-vol__ramp polygon { stroke-linejoin: round; }
+.ui-vol__bed polygon { fill: var(--ui-c-track); }
+.ui-vol__fill { clip-path: inset(0 calc(var(--_w) * 1px - var(--_cx) - var(--v) * var(--_t) / 2 * 1px) 0 0); }   /* ends under the handle, at the far end at full volume */
+.ui-vol__fill polygon { fill: var(--ui-c-accent); }
+.ui-vol__edge polygon { fill: none; stroke: var(--ui-c-border); stroke-width: var(--ui-bw); vector-effect: non-scaling-stroke; }
+.ui-vol__handle {
+  position: absolute; bottom: 0; left: calc(var(--_cx) - var(--_hs) / 2); width: var(--_hs); height: var(--_hs); display: grid; place-items: center; pointer-events: none;
+  color: var(--ui-c-btn-text); text-shadow: none; background: var(--ui-c-btn); border: var(--ui-bw) solid var(--ui-c-border);
+  border-radius: var(--ui-radius); box-shadow: var(--ui-shadow-raised);
+  transition: background var(--ui-t-fast) var(--ui-ease), transform var(--ui-t-fast) var(--ui-ease), box-shadow var(--ui-t-fast) var(--ui-ease);
+}
+.ui-vol__handle > .ui-icon { --ui-icon-size: 74%; aspect-ratio: 1; }
+.ui-vol[data-level="mute"] .ui-vol__icon { --icon: var(--ui-glyph-speaker-off); }
+.ui-vol[data-level="low"] .ui-vol__icon { --icon: var(--ui-glyph-speaker-low); }
+.ui-vol[data-level="high"] .ui-vol__icon { --icon: var(--ui-glyph-speaker-high); }
+.ui-vol__input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; pointer-events: auto; -webkit-appearance: none; appearance: none; background: transparent; }
+.ui-vol__input::-webkit-slider-runnable-track { height: 100%; background: transparent; }
+.ui-vol__input::-moz-range-track { height: 100%; background: transparent; }
+.ui-vol__input::-webkit-slider-thumb { -webkit-appearance: none; width: calc(var(--_t) * 1px); height: calc(var(--_t) * 1px); }
+.ui-vol__input::-moz-range-thumb { width: calc(var(--_t) * 1px); height: calc(var(--_t) * 1px); border: 0; }
+.ui-vol:hover .ui-vol__handle { background: var(--ui-c-btn-hover); }
+.ui-vol:active .ui-vol__handle { transform: translateY(var(--ui-press)); box-shadow: var(--ui-shadow-pressed); }
+.ui-vol:has(:focus-visible) .ui-vol__handle { outline: var(--ui-focus-w) solid var(--ui-c-focus); outline-offset: var(--ui-focus-offset); }
+.ui-panel .ui-vol { --_w: 160; --_r: 34; --_t: 30; }
+
+/* ---- toggle / checkbox: <label class="ui-toggle"><input type="checkbox"><span class="ui-toggle__track"></span>Text</label> ---- */
+.ui-toggle, .ui-check { position: relative; pointer-events: auto; display: inline-flex; align-items: center; gap: var(--ui-sp-3); cursor: pointer; }
+.ui-toggle input, .ui-check input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.ui-toggle__track {
+  position: relative; flex: none; box-sizing: content-box; width: 2.8em; height: 1.5em; background: var(--ui-c-track);
+  border: var(--ui-bw) solid var(--ui-c-border); border-radius: calc(var(--ui-radius) * 3);
+  transition: background var(--ui-t-fast) var(--ui-ease);
+}
+.ui-toggle__track::after {
+  content: ""; position: absolute; top: 2px; bottom: 2px; left: 2px; aspect-ratio: 1;
+  background: var(--ui-c-text-dim); border-radius: var(--ui-radius);
+  transition: transform var(--ui-t-fast) var(--ui-ease), background var(--ui-t-fast) var(--ui-ease);
+}
+.ui-toggle input:checked + .ui-toggle__track { background: var(--ui-c-accent); }
+.ui-toggle input:checked + .ui-toggle__track::after { transform: translateX(1.3em); background: var(--ui-c-on-accent); }
+.ui-check__box {
+  flex: none; box-sizing: content-box; display: grid; place-items: center; width: 1.4em; height: 1.4em; background: var(--ui-c-track);
+  border: var(--ui-bw) solid var(--ui-c-border); border-radius: calc(var(--ui-radius) / 2);
+}
+.ui-check input:checked + .ui-check__box { background: var(--ui-c-accent); }
+.ui-check input:checked + .ui-check__box::after { content: "\2713"; color: var(--ui-c-on-accent); font-size: 0.9em; line-height: 1; }
+:is(.ui-toggle, .ui-check) input:focus-visible + :is(.ui-toggle__track, .ui-check__box) { outline: var(--ui-focus-w) solid var(--ui-c-focus); outline-offset: var(--ui-focus-offset); }
+:is(.ui-toggle, .ui-check):has(input:disabled) { opacity: 0.45; cursor: not-allowed; }
+
+/* ---- tabs ---- */
+.ui-tabs { display: flex; gap: var(--ui-sp-1); border-bottom: var(--ui-bw) solid var(--ui-c-border); }
+.ui-tab {
+  pointer-events: auto; cursor: pointer; padding: var(--ui-sp-2) var(--ui-sp-4);
+  font-family: var(--ui-font-display); font-weight: var(--ui-fw-display); letter-spacing: var(--ui-ls-display); text-transform: var(--ui-tt-display);
+  color: var(--ui-c-text-dim); background: transparent; border: var(--ui-bw) solid transparent; border-bottom: 0;
+  border-radius: var(--ui-radius) var(--ui-radius) 0 0; margin-bottom: calc(var(--ui-bw) * -1);
+}
+.ui-tab:hover { color: var(--ui-c-text); }
+.ui-tab[aria-selected="true"] { color: var(--ui-c-text); background: var(--ui-c-surface-2); border-color: var(--ui-c-border); }
+
+/* ---- inventory grid / slots ---- */
+.ui-grid { --cols: 4; display: grid; grid-template-columns: repeat(var(--cols), 56px); gap: var(--ui-sp-2); }
+.ui-slot {
+  pointer-events: auto; cursor: pointer; position: relative; display: grid; place-items: center; width: 56px; height: 56px; padding: 0;
+  font-size: var(--ui-fs-lg); color: var(--ui-c-text); background: var(--ui-c-surface-2);
+  border: var(--ui-bw) solid var(--ui-c-border); border-radius: var(--ui-radius);
+  transition: border-color var(--ui-t-fast) var(--ui-ease);
+}
+.ui-slot:is(:hover, .is-hover) { border-color: var(--ui-c-accent); }
+.ui-slot.is-selected { border-color: var(--ui-c-accent); box-shadow: 0 0 0 var(--ui-bw) var(--ui-c-accent); }
+.ui-slot.is-empty { opacity: 0.55; }
+.ui-slot__count { position: absolute; right: 4px; bottom: 2px; font-size: var(--ui-fs-sm); line-height: 1; font-weight: var(--ui-fw-display); }
+
+/* ---- icon: a game-icons.net SVG (npm run icons) used as a mask over a gradient of its role colour ----
+   <span class="ui-icon ui-icon--danger" style="--icon: url(icons/skull-crossed-bones.svg)"></span>  (or icon() in harness/ui.ts) */
+.ui-icon {
+  --_c: var(--ui-icon-c, var(--ui-c-warn));
+  position: relative; display: inline-block; flex: none; vertical-align: middle;
+  width: var(--ui-icon-size); height: var(--ui-icon-size);
+  filter: drop-shadow(var(--ui-icon-bw) 0 0 var(--ui-icon-line)) drop-shadow(calc(-1 * var(--ui-icon-bw)) 0 0 var(--ui-icon-line))
+    drop-shadow(0 var(--ui-icon-bw) 0 var(--ui-icon-line)) drop-shadow(0 calc(-1 * var(--ui-icon-bw)) 0 var(--ui-icon-line))
+    drop-shadow(var(--ui-icon-shadow));
+}
+.ui-icon::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(170deg, color-mix(in srgb, var(--_c), white 55%), var(--_c) 50%, color-mix(in srgb, var(--_c), black 45%));
+  -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat;
+}
+.ui-icon--accent { --_c: var(--ui-c-accent); }
+.ui-icon--danger { --_c: var(--ui-c-danger); }
+.ui-icon--good { --_c: var(--ui-c-good); }
+.ui-icon--warn { --_c: var(--ui-c-warn); }
+.ui-icon--arcane { --_c: var(--ui-icon-arcane); }
+.ui-icon--frost { --_c: var(--ui-icon-frost); }
+.ui-slot > .ui-icon { --ui-icon-size: 70%; }
+.ui-btn--icon > .ui-icon, .ui-chip__icon > .ui-icon { --ui-icon-size: 1.3em; }
+
+/* ---- dialogue box ---- */
+.ui-dialogue { position: relative; width: min(760px, 100%); min-height: 120px; padding-top: var(--ui-sp-5); }
+.ui-dialogue__speaker {
+  position: absolute; top: 0; left: var(--ui-sp-4); transform: translateY(-50%); padding: var(--ui-sp-1) var(--ui-sp-4);
+  font-family: var(--ui-font-display); font-weight: var(--ui-fw-display); letter-spacing: var(--ui-ls-display); text-transform: var(--ui-tt-display);
+  color: var(--ui-c-on-accent); background: var(--ui-c-accent); border: var(--ui-bw) solid var(--ui-c-border); border-radius: var(--ui-radius);
+}
+.ui-dialogue__text { margin: 0; font-size: var(--ui-fs-lg); }
+.ui-dialogue__next { position: absolute; right: var(--ui-sp-4); bottom: var(--ui-sp-2); color: var(--ui-c-accent); animation: ui-blink 1s steps(2, start) infinite; }
+@keyframes ui-blink { to { visibility: hidden; } }
+
+/* ---- key hint ---- */
+.ui-key {
+  display: inline-flex; align-items: center; justify-content: center; box-sizing: content-box; min-width: 1.5em; height: 1.5em; padding: 0 0.4em;
+  font-family: var(--ui-font-display); font-weight: var(--ui-fw-display); font-size: var(--ui-fs-sm); line-height: 1;
+  color: var(--ui-c-text); background: var(--ui-c-surface); border: var(--ui-bw) solid var(--ui-c-border);
+  border-radius: var(--ui-radius); box-shadow: var(--ui-shadow-raised);
+}
+.ui-key { text-shadow: none; }
+.ui-hint { display: inline-flex; align-items: center; gap: var(--ui-sp-2); color: var(--ui-c-scene-text); text-shadow: var(--ui-text-shadow); font-size: var(--ui-fs-sm); }
+
+/* ---- stat rows (results) ---- */
+.ui-stat { display: flex; justify-content: space-between; gap: var(--ui-sp-5); padding: var(--ui-sp-1) 0; border-bottom: 1px dashed var(--ui-c-border); }
+.ui-stat:last-child { border-bottom: 0; }
+.ui-stat__value { font-family: var(--ui-font-display); font-weight: var(--ui-fw-display); font-variant-numeric: tabular-nums; }
+
+/* ---- settings rows (game menu, options): <label class="ui-field"><span>Music</span><span class="ui-row"><input class="ui-slider">...</span></label>
+   Every row is one shape, label left and control right, as tall as a button; an on/off setting puts a bare toggle on the right:
+   <label class="ui-field"><span>Shadows</span><span class="ui-toggle"><input type="checkbox"><span class="ui-toggle__track"></span></span></label> ---- */
+.ui-field { display: flex; align-items: center; justify-content: space-between; gap: var(--ui-sp-4); min-height: 2.6em; }
+.ui-field:has(.ui-toggle) { cursor: pointer; }
+.ui-field__value { min-width: 3.2em; text-align: right; color: var(--ui-c-text-dim); font-variant-numeric: tabular-nums; }
+.ui-choices { display: flex; flex-wrap: wrap; gap: var(--ui-sp-2); justify-content: flex-end; }   /* a group of .ui-btn, one primary */
+.ui-note { margin: 0; color: var(--ui-c-text-dim); font-size: var(--ui-fs-sm); }
+.ui-note--warn { color: var(--ui-c-warn); }
+.ui-sep { height: 0; border: 0; border-top: 1px dashed var(--ui-c-border); margin: 0; }
+.ui-tabpanel { display: flex; flex-direction: column; gap: var(--ui-sp-4); min-height: 330px; }
+.ui-scroll { display: flex; flex-direction: column; gap: var(--ui-sp-3); max-height: 360px; overflow: auto; }
+
+/* ---- small buttons ---- */
+.ui-btn--faint { opacity: 0.35; transition: opacity var(--ui-t-fast) var(--ui-ease), background var(--ui-t-fast) var(--ui-ease); }
+.ui-btn--faint:is(:hover, :focus-visible) { opacity: 1; }
+.ui-burger::before { content: ""; display: block; width: 1em; height: 2px; background: currentColor; box-shadow: 0 -0.35em currentColor, 0 0.35em currentColor; }
+
+/* ---- title screen: <div class="ui-titlescreen" data-layout="left|center|bottom"> <div class="ui-titlescreen__head"> + <div class="ui-titlescreen__main"> (.ui-menu, its first item --primary) + .ui-titlescreen__settings (the .ui-vol ramp centred above a label-less quality row, .ui-titlescreen__quality, bottom left) + hints ---- */
+.ui-titlescreen { position: absolute; inset: 0; display: flex; padding: 48px 96px 0; animation: ui-fade var(--ui-t-med) var(--ui-ease) backwards; }
+.ui-titlescreen__head { display: flex; flex-direction: column; gap: var(--ui-sp-3); }
+.ui-titlescreen__main { display: flex; flex: 1; flex-direction: column; justify-content: center; align-items: inherit; padding-bottom: var(--ui-sp-5); }
+.ui-titlescreen .ui-menu { pointer-events: none; }
+.ui-titlescreen.is-leaving { opacity: 0; pointer-events: none; transition: opacity var(--ui-t-med) var(--ui-ease); }   /* the game's title art plays its leave (TitleArt) */
+.ui-titlescreen .ui-menu__item { width: auto; }
+.ui-titlescreen__hints { position: absolute; right: var(--ui-sp-5); bottom: var(--ui-sp-4); display: flex; gap: var(--ui-sp-4); }
+.ui-titlescreen__status { position: absolute; right: var(--ui-sp-5); bottom: calc(var(--ui-sp-4) + var(--ui-fs-sm) * 2.5); }
+/* the settings sit on the scene, not on a panel: scene colours. A grid in the bottom left corner in every layout: the volume ramp centred over the quality buttons (so over "Medium"), the reload note beside them */
+.ui-titlescreen__settings {
+  position: absolute; left: 96px; bottom: var(--ui-sp-5); display: grid; grid-template-columns: auto auto; justify-content: start; align-items: center; text-align: left;
+  gap: var(--ui-sp-3) var(--ui-sp-4); max-width: calc(100% - 192px); color: var(--ui-c-scene-text); text-shadow: var(--ui-text-shadow);
+}
+.ui-titlescreen__settings > .ui-vol { grid-area: 1 / 1; justify-self: center; }
+.ui-titlescreen__quality { display: contents; }
+.ui-titlescreen__quality > * { grid-row: 2; }
+.ui-titlescreen__settings .ui-choices { display: grid; grid-template-columns: 1fr auto 1fr; }   /* Low and High as wide as each other, so Medium is the centre */
+.ui-titlescreen__settings .ui-note { color: var(--ui-c-scene-text-dim); }
+.ui-titlescreen__settings .ui-note--warn { color: var(--ui-c-warn); }
+.ui-titlescreen__settings .ui-btn { text-shadow: none; }
+/* left: the name in the top corner, the settings and the menu below it, the scene visible on the right */
+.ui-titlescreen[data-layout="left"] { flex-direction: column; align-items: flex-start; background: linear-gradient(90deg, var(--ui-c-backdrop), transparent 62%); }
+.ui-titlescreen[data-layout="left"] .ui-menu { min-width: 300px; margin-left: calc(-1 * (var(--ui-sp-4) + var(--ui-bw) + var(--ui-fs-lg) + var(--ui-sp-3))); }   /* item text lines up with the title */
+/* center: everything on the middle axis, the name at the top */
+.ui-titlescreen[data-layout="center"] { flex-direction: column; align-items: center; text-align: center; background: radial-gradient(ellipse at center, var(--ui-c-backdrop), transparent 75%); }
+.ui-titlescreen[data-layout="center"] .ui-menu { align-items: center; }
+.ui-titlescreen[data-layout="center"] .ui-menu__item { justify-content: center; }
+.ui-titlescreen[data-layout="center"] .ui-menu__item::before { display: none; }
+/* bottom: the name at the top centre, the menu row along the bottom, lifted above the settings corner */
+.ui-titlescreen[data-layout="bottom"] { flex-direction: column; align-items: center; text-align: center; padding-bottom: 184px; background: linear-gradient(0deg, var(--ui-c-backdrop), transparent 55%); }
+.ui-titlescreen[data-layout="bottom"] .ui-titlescreen__main { justify-content: flex-end; padding-bottom: 0; }
+
+@keyframes ui-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .ui-backdrop, .ui-titlescreen { animation: none; } }
+
+/* ---- results screen (harness/kit/results.ts): <div class="ui-results" data-layout="center|left|banner" data-tone="win|lose">
+   .ui-results__head (.ui-title) + .ui-panel.ui-results__stats (.ui-stat rows) + .ui-results__actions (.ui-btn) + .ui-results__hints ---- */
+.ui-results { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: var(--ui-sp-4); padding: 0 96px; background: var(--ui-c-backdrop); pointer-events: auto; animation: ui-fade var(--ui-t-med) var(--ui-ease) backwards; }
+.ui-results__head { display: flex; flex-direction: column; gap: var(--ui-sp-2); }
+.ui-results__stats { width: 420px; }
+.ui-results .ui-stat { animation: ui-fade var(--ui-t-med) var(--ui-ease) backwards; animation-delay: calc(var(--lead, 0ms) + var(--i, 0) * var(--stagger, 0ms)); }
+.ui-results__best { margin-right: var(--ui-sp-2); font-size: var(--ui-fs-sm); color: var(--ui-c-warn); }
+.ui-results__actions, .ui-results__hints { display: flex; gap: var(--ui-sp-3); }
+.ui-results__actions { transition: opacity var(--ui-t-med) var(--ui-ease); }
+.ui-results__actions[inert] { opacity: 0; }   /* buttons wait for the count-up, so a mashed key cannot press them */
+.ui-results[data-tone="win"] .ui-title { color: var(--ui-c-accent); }
+.ui-results[data-tone="lose"] .ui-title { color: var(--ui-c-danger); }
+.ui-results[data-layout="center"] { text-align: center; }
+.ui-results[data-layout="left"] { align-items: flex-start; }
+.ui-results[data-layout="banner"] { display: grid; grid-template-columns: 1fr 420px; grid-template-areas: "head stats" "head actions" "head hints"; align-content: center; column-gap: 64px; }
+.ui-results[data-layout="banner"] .ui-results__head { grid-area: head; align-self: center; }
+.ui-results[data-layout="banner"] .ui-results__stats { grid-area: stats; }
+.ui-results[data-layout="banner"] .ui-results__actions { grid-area: actions; }
+.ui-results[data-layout="banner"] .ui-results__hints { grid-area: hints; }
+
+/* ---- transition cover (harness/kit/transition.ts): a low-resolution canvas over the whole stage, above the HUD and menus ---- */
+.ui-cover { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: auto; }
+.ui-cover[data-crisp] { image-rendering: pixelated; }
+@media (prefers-reduced-motion: reduce) { .ui-results, .ui-results .ui-stat { animation: none; } }

@@ -1,0 +1,21 @@
+{
+  "name": "The Kennel",
+  "band": [25,50],
+  "clear": 5,
+  "apart": 8,
+  "noHive": 8,
+  "tags": ["kennel","dog","quest"],
+  "presence": {"oneIn":3,"quest":"dog.1"},
+  "entities": [
+    {"id":"doghouse-1","type":"doghouse","x":0,"y":-44},
+    {"id":"bowl-1","type":"bowl","x":34,"y":-20},
+    {"id":"mound-1","type":"mound","x":-8,"y":38},
+    {"id":"pin-1","type":"pin","x":-150,"y":-10},
+    {"id":"pin-2","type":"pin","x":150,"y":24},
+    {"id":"pin-3","type":"pin","x":10,"y":-150},
+    {"id":"fence-back","type":"band","x":0,"y":-96,"props":{"ground":"rock","length":220,"width":22,"bend":0,"rough":0.1,"seed":201}},
+    {"id":"fence-west","type":"band","x":-108,"y":-20,"rotation":90,"props":{"ground":"rock","length":170,"width":22,"bend":0,"rough":0.1,"seed":202}},
+    {"id":"fence-east","type":"band","x":108,"y":-20,"rotation":90,"props":{"ground":"rock","length":170,"width":22,"bend":0,"rough":0.1,"seed":203}},
+    {"id":"ground-yard","type":"blob","x":0,"y":-10,"props":{"ground":"hardpan","rx":96,"ry":78,"rough":0.3,"seed":204}}
+  ]
+}

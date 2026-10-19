@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup: title screen</title>
+<link rel="stylesheet" href="../all.css">
+</head>
+<body data-probe="Title">
+<div class="stage-fit"><div class="stage">
+<div class="game-placeholder"><i></i></div>
+<div id="ui">
+  <!-- The kit's own title screen (harness/kit/title.ts) is this markup over a live scene. data-layout: left | center | bottom. -->
+  <div class="ui-titlescreen" data-layout="left">
+    <div class="ui-titlescreen__head"><h1 class="ui-title">Game Title</h1></div>
+    <div class="ui-titlescreen__main">
+      <ul class="ui-menu">
+        <li><button class="ui-menu__item ui-menu__item--primary is-selected">Continue</button></li>
+        <li><button class="ui-menu__item">New game</button></li>
+        <li><button class="ui-menu__item">Load</button></li>
+        <li><button class="ui-menu__item">Options</button></li>
+        <li><button class="ui-menu__item">Credits</button></li>
+      </ul>
+    </div>
+    <!-- master volume (a triangle with a speaker handle that grows with it, no text label) centred above quality (no label), over Medium, in the bottom left corner, so a player can set them right after the game loads -->
+    <div class="ui-titlescreen__settings">
+        <div class="ui-vol" style="--v: 0.8" data-level="high"><span class="ui-vol__pct">80%</span><svg class="ui-vol__ramp ui-vol__bed" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,100 100,0 100,100"/></svg><svg class="ui-vol__ramp ui-vol__fill" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,100 100,0 100,100"/></svg><svg class="ui-vol__ramp ui-vol__edge" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,100 100,0 100,100"/></svg><span class="ui-vol__handle"><span class="ui-icon ui-vol__icon"></span></span><input class="ui-vol__input" type="range" min="0" max="1" step="0.05" value="0.8" aria-label="Master volume"></div>
+        <div class="ui-titlescreen__quality"><div class="ui-field" role="group" aria-label="Quality"><span class="ui-choices"><button class="ui-btn">Low</button><button class="ui-btn">Medium</button><button class="ui-btn ui-btn--primary">High</button></span></div></div>
+    </div>
+    <div class="ui-titlescreen__hints">
+      <span class="ui-hint"><kbd class="ui-key">&uarr;</kbd><kbd class="ui-key">&darr;</kbd> Select</span>
+      <span class="ui-hint"><kbd class="ui-key">Enter</kbd> Confirm</span>
+    </div>
+  </div>
+</div>
+</div></div>
+<script src="../preview.js"></script>
+</body>
+</html>

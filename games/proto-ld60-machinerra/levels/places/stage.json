@@ -1,0 +1,18 @@
+{
+  "name": "The Old Stage",
+  "band": [28,70],
+  "clear": 6,
+  "apart": 9,
+  "noHive": 9,
+  "tags": ["arena","boss"],
+  "entities": [
+    {"id":"stage-1","type":"stage","x":0,"y":-38.4},
+    {"id":"tree-1","type":"tree","x":80.64,"y":129.92},
+    {"id":"tree-2","type":"tree","x":-51.2,"y":140.16},
+    {"id":"tree-3","type":"tree","x":-152.96,"y":68.48},
+    {"id":"tree-4","type":"tree","x":-165.12,"y":-43.52},
+    {"id":"tree-5","type":"tree","x":-80.64,"y":-129.92},
+    {"id":"tree-6","type":"tree","x":51.2,"y":-140.16},
+    {"id":"tree-7","type":"tree","x":152.96,"y":-68.48}
+  ]
+}

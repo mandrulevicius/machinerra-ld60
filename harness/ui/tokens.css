@@ -1,0 +1,75 @@
+/* Design tokens: every visual decision the kit makes. The defaults are GREYBOX: a deliberately unfinished grey
+   placeholder, like a greybox level, so nobody mistakes it for a style. A game's look is its own theme
+   (games/<name>/src/theme.css, from its concept and docs/design/); themes/samples/ only show what tokens can do. */
+:root {
+  /* scene = text drawn straight over the game; surface = text inside panels */
+  --ui-c-scene-text: #e6e6e6;
+  --ui-c-scene-text-dim: #a0a0a0;
+  --ui-c-surface: #3a3a3a;
+  --ui-c-surface-2: #2c2c2c;       /* inset: slots, tracks, inputs */
+  --ui-c-text: #e6e6e6;
+  --ui-c-text-dim: #9a9a9a;
+  --ui-c-border: #5c5c5c;
+  --ui-c-accent: #b4b4b4;
+  --ui-c-accent-hover: #c8c8c8;
+  --ui-c-on-accent: #1a1a1a;
+  --ui-c-btn: #4a4a4a;
+  --ui-c-btn-hover: #585858;
+  --ui-c-btn-text: #e6e6e6;
+  --ui-c-danger: #b46464;
+  --ui-c-good: #64a474;
+  --ui-c-warn: #b4a05a;
+  --ui-c-focus: #f0f0f0;
+  --ui-c-backdrop: rgb(0 0 0 / 0.6);
+  --ui-c-track: #242424;
+
+  /* type */
+  --ui-font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --ui-font-display: var(--ui-font-body);
+  --ui-fs-sm: 13px;
+  --ui-fs-md: 16px;
+  --ui-fs-lg: 20px;
+  --ui-fs-xl: 30px;
+  --ui-fs-xxl: 64px;
+  --ui-fw-body: 400;
+  --ui-fw-display: 700;
+  --ui-ls-display: 0.02em;
+  --ui-tt-display: none;
+  --ui-lh: 1.4;
+  --ui-text-shadow: 0 1px 2px rgb(0 0 0 / 0.7);   /* scene text only */
+
+  /* spacing */
+  --ui-sp-1: 4px;
+  --ui-sp-2: 8px;
+  --ui-sp-3: 12px;
+  --ui-sp-4: 20px;
+  --ui-sp-5: 32px;
+
+  /* shape */
+  --ui-radius: 2px;
+  --ui-radius-lg: 4px;
+  --ui-bw: 1px;
+  --ui-focus-w: 3px;
+  --ui-focus-offset: 2px;
+  --ui-press: 1px;                 /* button sink distance when pressed */
+  --ui-panel-bg: var(--ui-c-surface);
+  --ui-shadow: none;               /* panels, dialogs */
+  --ui-shadow-raised: none;            /* buttons */
+  --ui-shadow-pressed: 0 0 0 rgb(0 0 0 / 0);
+  --ui-menu-marker: "\25B8";       /* shown before the focused menu item */
+  --ui-bar-h: 18px;
+
+  /* icons (.ui-icon): never bare white glyphs; a gradient of the role colour, an outline and a shadow */
+  --ui-icon-size: 1.5em;
+  /* --ui-icon-c: default role colour (unset: --ui-c-warn); modifiers pick accent/danger/good/warn/arcane/frost */
+  --ui-icon-arcane: #9c8cb4;
+  --ui-icon-frost: #8ca8b4;
+  --ui-icon-line: rgb(0 0 0 / 0.85);
+  --ui-icon-bw: 1px;               /* outline width */
+  --ui-icon-shadow: 0 2px 3px rgb(0 0 0 / 0.5);
+
+  /* motion */
+  --ui-t-fast: 120ms;
+  --ui-t-med: 240ms;
+  --ui-ease: ease-out;
+}

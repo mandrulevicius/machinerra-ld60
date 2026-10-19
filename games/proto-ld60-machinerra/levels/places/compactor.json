@@ -1,0 +1,18 @@
+{
+  "name": "The Little Compactor",
+  "band": [25,55],
+  "clear": 4,
+  "apart": 7,
+  "noHive": 8,
+  "tags": ["compactor","shoot","quest"],
+  "presence": {"oneIn":3,"quest":"shoot.1"},
+  "entities": [
+    {"id":"compactor-1","type":"compactor","x":0,"y":0},
+    {"id":"cube-1","type":"cube","x":-74,"y":-34},
+    {"id":"cube-2","type":"cube","x":-56,"y":44},
+    {"id":"cube-3","type":"cube","x":66,"y":-44},
+    {"id":"cube-4","type":"cube","x":84,"y":30},
+    {"id":"cube-5","type":"cube","x":6,"y":-76},
+    {"id":"ground-pad","type":"blob","x":0,"y":0,"props":{"ground":"hardpan","rx":104,"ry":80,"rough":0.25,"seed":231}}
+  ]
+}

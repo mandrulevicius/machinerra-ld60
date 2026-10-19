@@ -1,0 +1,17 @@
+{
+  "_": "The arms painted foes already have (P50), each one limb of the drawing: shoulder, elbow, hand, in game px of the foe's box (facing right, feet at the bottom). tools/mob-svg.cjs draws the whole painting from these as it always did, draws the body without them (<kind>-body), and cuts each arm into an upper arm (shoulder to elbow: frame <kind>-arm-<id>-upper, box `up`, pivot the shoulder) and a forearm with whatever is in the hand (<kind>-arm-<id>-lower, box `low`, pivot the elbow); a box is [x0, y0, x1, y1] in the same px. src/arms.ts rigs them. far: drawn behind the body; phase: 0 or 1, the walk's counter-swing (an arm swings against the leg on its side).",
+  "commuter": { "arms": [
+    { "id": "near", "far": false, "phase": 0, "pts": [[19, 17], [21, 24], [21.4, 29]], "w": 2, "up": [16.8, 14.8, 23.2, 26.2], "low": [15.5, 22.6, 26, 35.6] }
+  ] },
+  "officer": { "arms": [
+    { "id": "near", "far": false, "phase": 0, "pts": [[19, 17], [21, 24], [21.4, 29]], "w": 2, "up": [16.8, 14.8, 23.2, 26.2], "low": [17, 22.6, 24.4, 36] }
+  ] },
+  "monkey": { "arms": [
+    { "id": "raised", "far": false, "phase": 1, "pts": [[19, 18], [23, 13], [24, 8]], "w": 1.8, "up": [17.4, 11.4, 24.6, 19.6], "low": [20.8, 0.4, 27.2, 14.6] },
+    { "id": "low", "far": false, "phase": 0, "pts": [[9, 19], [6, 24], [7, 28]], "w": 1.8, "up": [3.4, 17.4, 10.6, 25.6], "low": [3.4, 22.4, 9.6, 29.6] }
+  ] },
+  "mannequin": { "arms": [
+    { "id": "left", "far": false, "phase": 1, "pts": [[6, 15], [3, 24], [4, 30]], "w": 1.9, "up": [1, 13, 8, 26], "low": [1, 22, 6.4, 31.2] },
+    { "id": "right", "far": false, "phase": 0, "pts": [[16, 15], [19, 23], [18, 29]], "w": 1.9, "up": [13.8, 13, 21.2, 25], "low": [15.8, 21.4, 22.6, 38.6] }
+  ] }
+}

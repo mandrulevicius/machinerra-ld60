@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup: in-game HUD</title>
+<link rel="stylesheet" href="../all.css">
+</head>
+<body>
+<div class="stage-fit"><div class="stage">
+<div class="game-placeholder"><i></i></div>
+<div id="ui">
+  <div class="ui-anchor ui-anchor--tl ui-stack" style="gap:var(--ui-sp-2)">
+    <div class="ui-bar ui-bar--health" style="--value:72%;width:260px"><div class="ui-bar__fill"></div><span class="ui-bar__text">72 / 100</span></div>
+    <div class="ui-bar ui-bar--progress" style="--value:40%;width:260px"><div class="ui-bar__fill"></div></div>
+    <div class="ui-row"><span class="ui-chip"><span class="ui-chip__icon"><span class="ui-icon ui-icon--danger" style="--icon: url(../icons/hearts.svg)"></span></span><span class="ui-chip__value">3</span></span><span class="ui-chip"><span class="ui-chip__icon"><span class="ui-icon ui-icon--warn" style="--icon: url(../icons/two-coins.svg)"></span></span><span class="ui-chip__value">128</span></span></div>
+  </div>
+  <div class="ui-anchor ui-anchor--tc">
+    <div class="ui-score"><span class="ui-score__label">Score</span><span class="ui-score__value">012,450</span></div>
+  </div>
+  <div class="ui-anchor ui-anchor--tr ui-toast-stack">
+    <div class="ui-bar ui-bar--timer" style="--value:35%"><div class="ui-bar__fill"></div><span class="ui-bar__text">0:42</span></div>
+    <div class="ui-toast ui-toast--good"><span class="ui-toast__title">Pickup</span> +50 coins</div>
+    <div class="ui-toast ui-toast--warn"><span class="ui-toast__title">Careful</span> Low ammo</div>
+  </div>
+  <div class="ui-anchor ui-anchor--bl ui-stack" style="gap:var(--ui-sp-2)">
+    <span class="ui-hint"><kbd class="ui-key">&larr;</kbd><kbd class="ui-key">&rarr;</kbd> Move</span>
+    <span class="ui-hint"><kbd class="ui-key">Space</kbd> Jump</span>
+    <span class="ui-hint"><kbd class="ui-key">E</kbd> Interact</span>
+  </div>
+  <div class="ui-anchor ui-anchor--bc ui-stack" style="align-items:center;gap:var(--ui-sp-4);width:100%;left:0;transform:none">
+    <div class="ui-panel ui-dialogue">
+      <span class="ui-dialogue__speaker">Old Wizard</span>
+      <p class="ui-dialogue__text">The bridge is out. You will have to find another way across.</p>
+      <span class="ui-dialogue__next">&#9660;</span>
+    </div>
+    <div class="ui-grid" style="--cols:6">
+      <button class="ui-slot is-selected"><span class="ui-icon" style="--icon: url(../icons/crossed-swords.svg)"></span><span class="ui-slot__count">1</span></button>
+      <button class="ui-slot"><span class="ui-icon ui-icon--good" style="--icon: url(../icons/potion-ball.svg)"></span><span class="ui-slot__count">12</span></button>
+      <button class="ui-slot"><span class="ui-icon" style="--icon: url(../icons/crown.svg)"></span></button>
+      <button class="ui-slot is-empty"></button>
+      <button class="ui-slot is-empty"></button>
+      <button class="ui-slot is-empty"></button>
+    </div>
+  </div>
+</div>
+</div></div>
+<script src="../preview.js"></script>
+</body>
+</html>

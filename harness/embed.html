@@ -1,0 +1,98 @@
+<!doctype html>
+<!--
+  Local imitation of an itch.io game page: a tall page with the game in an iframe.
+    /harness/embed.html?game=<name>          loads /games/<name>/ (other query params are passed on: &scene=Audio)
+    &xorigin=1    iframe on [::1] instead of localhost, a different origin: cross-origin like itch (storage, focus and permissions differ)
+    &fs=0         iframe without the fullscreen permission
+    &autoplay=0   iframe without the autoplay permission
+  The box at the top right logs what the HOST page sees: keys that reached it (the game did not have them),
+  scroll changes, fullscreen changes.
+
+  FINDINGS (browser pane, Chromium; itch.io's own page markup is from memory, not checked)
+  1. Keys don't reach the game until it is clicked. Reproduced: with focus on the host page, Space and ArrowDown
+     went to the host (log box) and the game got nothing. A real browser starts with focus on the host; the
+     pane happened to focus the iframe on load, so I blurred it by hand. We can't change itch's page, so the game
+     fixes it: open with a "Click to start" screen (the click focuses the frame and also unlocks audio, so one click does
+     both). A game could also call window.focus() at start: same-origin that moved focus into the iframe;
+     cross-origin (&xorigin=1) not tested because I can't run script in that frame from here.
+  2. Space/arrows scrolling the host page. With focus in the game, Phaser's keyboard.addCapture('SPACE,UP,DOWN,
+     LEFT,RIGHT') makes the keydown defaultPrevented (checked); without it (lab Audio with &capture=0) it is not,
+     and browsers then scroll the host. Synthetic keys have no default action, so the scroll itself was not
+     reproduced. addCapture is global and ignores keys pressed with Ctrl/Alt/Shift. Keys sent while the host has
+     focus scroll it whatever the game does: only point 1 fixes that. Mouse wheel over the game: not tested
+     (Phaser prevents wheel default on its canvas by config `input.mouse.preventDefaultWheel`, default true).
+  3. Fullscreen from inside the iframe needs a user gesture (a key press or click in the game) and, cross-origin,
+     the iframe's allow="fullscreen" / allowfullscreen (the itch page sets it, from memory); same-origin does not
+     need it. Never succeeded in the pane (it answers "Permissions check failed"), so the success path is untested.
+     The failure path found a Phaser trap: see Audio.ts (use scale.fullscreenTarget = the game's parent div, or
+     a failed request leaves a wrapper div and the next toggle throws and stalls the keys). Esc exits fullscreen
+     and also is the lab's menu key.
+  4. Audio unlock inside the iframe works the same: Phaser listens on the iframe's own document.body.
+  5. localStorage: cross-origin iframes lose storage when the browser blocks third-party storage (Safari, Chrome
+     with third-party cookies off). A sandboxed iframe without allow-same-origin would force it, but the game
+     did not load in one (dev server scripts), so the save.ts fallback is covered by its unit tests and by
+     making localStorage throw in the game page instead.
+  6. &xorigin=1 serves the iframe from [::1], a different origin from localhost.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Embed test</title>
+  <style>
+    body { margin: 0; font: 16px/1.5 system-ui, sans-serif; background: #fafafa; color: #222; }
+    header { background: #222; color: #fff; padding: 8px 40px; }
+    main { max-width: 980px; margin: 0 auto; padding: 0 20px 1600px; }
+    section { margin: 20px 0; }
+    .tall { height: 90px; background: repeating-linear-gradient(#eee 0 40px, #e4e4e4 40px 80px); padding: 12px; }
+    iframe { display: block; width: 854px; height: 480px; border: 0; background: #000; }
+    .bar { display: flex; gap: 12px; align-items: center; padding: 8px 0; }
+    button { font: inherit; padding: 4px 12px; }
+    #log { position: fixed; top: 8px; right: 8px; width: 380px; max-height: 40vh; overflow: auto; margin: 0;
+      background: rgba(0, 0, 0, .85); color: #8fe3a3; font: 12px/1.4 monospace; padding: 8px; white-space: pre-wrap; z-index: 9; }
+  </style>
+</head>
+<body>
+  <pre id="log"></pre>
+  <header><a href="../games/index.html#harness" style="color:#8fb4ff">← Hub</a><h1 style="margin:0;font-size:20px">Embed test page</h1><div id="info"></div></header>
+  <main>
+    <section class="tall"><h2>About this game</h2><p>Filler so the page scrolls: if Space or the arrow keys move this page while you play, the game has a scrolling problem.</p></section>
+    <section>
+      <div id="frame"></div>
+      <div class="bar"><button id="fsbtn">Fullscreen (host button, like itch's)</button><span id="focus"></span></div>
+    </section>
+    <section class="tall"><h2>Comments</h2><p>More filler.</p></section>
+  </main>
+
+  <script src="hub-esc.js"></script>
+  <script>
+    const q = new URLSearchParams(location.search);
+    const game = q.get('game') || 'lab';
+    const flag = (k, def) => (q.has(k) ? q.get(k) !== '0' : def);
+    const pass = new URLSearchParams(q);
+    for (const k of ['game', 'xorigin', 'fs', 'autoplay']) pass.delete(k);
+
+    const host = flag('xorigin', false) ? location.origin.replace('localhost', '[::1]') : location.origin;
+    const src = `${host}/games/${game}/${pass.size ? '?' + pass : ''}`;
+    const iframe = document.createElement('iframe');
+    iframe.src = src;
+    iframe.allow = ['autoplay', 'fullscreen *', 'gamepad'].filter((p) => (p.startsWith('autoplay') ? flag('autoplay', true) : p.startsWith('fullscreen') ? flag('fs', true) : true)).join('; ');
+    iframe.allowFullscreen = flag('fs', true);
+    document.getElementById('frame').append(iframe);
+
+    const logEl = document.getElementById('log');
+    const log = (m) => { logEl.textContent += `${(performance.now() / 1000).toFixed(1).padStart(6)}s ${m}\n`; logEl.scrollTop = 1e9; };
+    document.getElementById('info').textContent = `iframe src: ${src}   allow="${iframe.allow}"`;
+    log('page loaded; focus is on the host page, not the game');
+
+    // Keys that reach the HOST are keys the game did not get.
+    addEventListener('keydown', (e) => log(`HOST got key ${e.code}${e.defaultPrevented ? ' (prevented)' : ''}`));
+    let lastY = 0;
+    addEventListener('scroll', () => { if (Math.abs(scrollY - lastY) > 0) { log(`HOST scrolled to ${Math.round(scrollY)}`); lastY = scrollY; } });
+    document.addEventListener('fullscreenchange', () => log(`fullscreen: ${document.fullscreenElement ? document.fullscreenElement.tagName : 'exited'}`));
+    const focusEl = document.getElementById('focus');
+    setInterval(() => { focusEl.textContent = `focus is on: ${document.activeElement === iframe ? 'the game iframe' : document.activeElement.tagName} (document.hasFocus=${document.hasFocus()})`; }, 300);
+    document.getElementById('fsbtn').onclick = () => iframe.requestFullscreen().catch((e) => log(`host fullscreen failed: ${e.message}`));
+  </script>
+</body>
+</html>

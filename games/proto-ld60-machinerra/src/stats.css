@@ -1,0 +1,31 @@
+/* The stats screen (the inventory's Stats tab): lists in the inventory's brass on soot iron; quality colours are the inventory's (--q). */
+.inv__body--stats { grid-template-columns: 290px 1fr 340px; }
+.st-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.st-who .inv__h:first-child { margin-top: 0; }
+
+/* One line per entry: its kind's icon (a worn piece shows its own art), its name, and its number. */
+.st-list, .st-row ul, .st-type ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.st-part { display: flex; align-items: center; gap: 8px; padding: 2px 6px; border-radius: 4px; border-left: 3px solid transparent; font-size: var(--ui-fs-sm); font-weight: 700; }
+.st-part .ui-icon { width: 20px; height: 20px; flex: none; }
+.st-ico { width: 24px; height: 24px; flex: none; object-fit: contain; }
+.st-part__name { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+.st-part__name small { font-weight: 500; color: var(--ui-c-text-dim); }
+.st-part__name i { font-style: normal; color: var(--ui-c-text-dim); }
+.st-part[class*="q-"] .st-part__name { color: var(--q); }
+.st-part b { font-variant-numeric: tabular-nums; color: var(--ui-c-text); }
+.st-part b.is-good { color: var(--ui-c-good); }
+.st-part b.is-bad { color: var(--ui-c-warn); }
+/* Hover lights an entry everywhere it appears: the row, the damage types, the list of what is on it. */
+.st-part.is-lit { background: color-mix(in srgb, var(--ui-c-accent) 18%, transparent); border-left-color: var(--ui-c-accent); }
+
+/* A stat: its name and value on a header line, what changes it below. */
+.st-row, .st-type { padding: 6px 8px 8px; border-radius: 6px; background: color-mix(in srgb, var(--ui-c-track) 55%, transparent); }
+.st-row header, .st-type header { display: flex; align-items: baseline; gap: 12px; margin-bottom: 2px; }
+.st-row h4, .st-type h4 { margin: 0; flex: 1; font-family: var(--ui-font-body); font-weight: 700; font-size: var(--ui-fs-md); color: var(--ui-c-text); }
+.st-row h4 small { font-weight: 500; font-size: var(--ui-fs-sm); color: var(--ui-c-text-dim); }
+.st-value { font-size: var(--ui-fs-sm); color: var(--ui-c-text-dim); font-weight: 600; text-align: right; }
+.st-value b { font-family: var(--ui-font-display); font-weight: 400; font-size: var(--ui-fs-md); color: var(--ui-c-accent); font-variant-numeric: tabular-nums; }
+.st-value s { color: var(--ui-c-text-dim); font-weight: 500; }
+.st-value small { display: block; font-weight: 500; }
+.st-rows, .st-types { gap: 8px; }
+.st-types .inv__h + .inv__dim { margin: 0; }

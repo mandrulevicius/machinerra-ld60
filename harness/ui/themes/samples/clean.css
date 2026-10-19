@@ -1,0 +1,30 @@
+/* SAMPLE, not a style to copy: modern flat (the kit's old defaults). Shows what the tokens can do. */
+[data-theme="clean"] {
+  --ui-c-scene-text: #f2f4f8;
+  --ui-c-scene-text-dim: #aab2c0;
+  --ui-c-surface: #1e2330;
+  --ui-c-surface-2: #151922;
+  --ui-c-text: #eef1f6;
+  --ui-c-text-dim: #98a2b3;
+  --ui-c-border: #3a4256;
+  --ui-c-accent: #4d8dff;
+  --ui-c-accent-hover: #6ea1ff;
+  --ui-c-on-accent: #ffffff;
+  --ui-c-btn: #2b3245;
+  --ui-c-btn-hover: #38415a;
+  --ui-c-btn-text: #eef1f6;
+  --ui-c-danger: #ee5d5d;
+  --ui-c-good: #4cc38a;
+  --ui-c-warn: #f0b84a;
+  --ui-c-focus: #ffd24d;
+  --ui-c-backdrop: rgb(6 8 14 / 0.65);
+  --ui-c-track: #11141b;
+  --ui-text-shadow: 0 2px 6px rgb(0 0 0 / 0.6);
+  --ui-radius: 10px;
+  --ui-radius-lg: 14px;
+  --ui-shadow: 0 10px 30px rgb(0 0 0 / 0.45);
+  --ui-shadow-raised: 0 1px 2px rgb(0 0 0 / 0.3);
+  --ui-shadow-pressed: 0 0 0 rgb(0 0 0 / 0);
+  --ui-icon-arcane: #b07cff;
+  --ui-icon-frost: #6cc8ff;
+}

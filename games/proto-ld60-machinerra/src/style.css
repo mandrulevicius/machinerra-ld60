@@ -1,0 +1,271 @@
+/* Machinerra HUD and map: brass frames on soot iron (theme: machinerra). */
+#ui {
+  --brass: #c8963c;
+  --brass-hi: #f0cf7a;
+  --soot: #1d1a17;
+  --amber: #ffb640;
+  /* Colour is a signal (house.ts): red marks only what threatens the Communicator or his robots, cyan what is ours (FRIEND). */
+  --danger: #ff3048;
+  --friend: #3df2ff;
+  --cyan: var(--friend);
+  --red: var(--danger);
+}
+#ui button, .mc-map, .mc-chip, .mc-mapbtn { pointer-events: auto; }
+.mc-hud { position: absolute; inset: 0; pointer-events: none; font-family: var(--ui-font-body); color: var(--ui-c-text); }
+
+/* ---- bars ---- */
+.mc-bar { position: relative; height: 18px; background: var(--soot); border: 2px solid var(--brass); border-radius: 9px; overflow: hidden; box-shadow: 0 2px 0 #000; }
+.mc-bar__fill { position: absolute; inset: 0 auto 0 0; transition: width 120ms linear; }
+.mc-bar span { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; font-weight: 700; text-shadow: 0 1px 0 #000; }
+/* Oil: a robot's lifeblood, black and glossy in a pale glass tube. Steam: white, puffy. */
+.mc-bar--hp, .mc-bar--steam { background: #8a7c6a; height: 20px; }
+.mc-bar--hp span, .mc-bar--steam span { justify-content: start; padding-left: 10px; font-size: 13px; }
+.mc-bar--hp .mc-bar__fill { background: linear-gradient(#4a4440 0%, #14100c 35%, #050403 100%); box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.25); }
+.mc-bar--hp span { color: #f4e2bc; }
+.mc-bar--hp.is-low { border-color: var(--ui-c-danger); animation: mc-pulse 1s ease-in-out infinite; }
+.mc-bar--steam { background: #4a4038; }
+.mc-bar--steam .mc-bar__fill { background: linear-gradient(#ffffff, #d8d4cc); transition: width 60ms linear; }
+.mc-bar--steam span { color: #2a241e; text-shadow: 0 1px 0 rgb(255 255 255 / 0.7); }
+.mc-bar--steam.is-empty { animation: mc-shake 0.3s; border-color: var(--ui-c-danger); }
+@keyframes mc-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+.mc-bar--oil { width: 340px; height: 22px; border-radius: 11px; }
+.mc-bar--oil .mc-bar__fill { background: repeating-linear-gradient(110deg, #2a1e14 0 8px, #3a2a1a 8px 16px); box-shadow: inset 0 3px 0 rgba(255, 182, 64, 0.35); }
+.mc-bar--oil span { color: var(--brass-hi); }
+
+/* ---- the Communicator ---- */
+.mc-me { position: absolute; left: 14px; top: 14px; display: flex; gap: 10px; align-items: center; }
+.mc-me__face { width: 54px; height: 54px; border-radius: 50%; border: 3px solid var(--brass); background: radial-gradient(circle at 40% 35%, #e09a62, #8a4a26); display: grid; place-items: center; box-shadow: 0 3px 0 #000; }
+.mc-me__face.has-art { background: #2a1a12 50% 80% / 125% auto no-repeat; }
+.mc-me__face.has-art span { display: none; }
+.mc-bar[hidden] { display: none; }
+.mc-me__face span { width: 30px; height: 10px; border-radius: 5px; background: linear-gradient(#fff3c4, var(--amber)); box-shadow: 0 0 10px var(--amber); border: 2px solid var(--soot); }
+.mc-me__weapon { font-family: var(--ui-font-body, inherit); font-size: 13px; color: var(--ui-text, #f4e2bc); opacity: 0.8; margin-left: 6px; }
+.mc-me__col { display: flex; flex-direction: column; gap: 4px; width: 310px; }
+.mc-me__name { font-family: var(--ui-font-display); font-size: 18px; color: var(--brass-hi); text-shadow: var(--ui-text-shadow); }
+
+/* ---- oil and objective ---- */
+.mc-oil { position: absolute; left: 50%; top: 14px; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.mc-oil__row { display: flex; align-items: center; gap: 8px; }
+.mc-cog { width: 22px; height: 22px; flex: none; border-radius: 50%; border: 2px solid var(--soot); box-shadow: 0 2px 0 #000; }
+.mc-cog { background: repeating-conic-gradient(#c8963c 0 15deg, #7a5a22 15deg 30deg); }
+.mc-stock { display: none; font-size: 13px; font-weight: 700; color: #e8d6b0; padding: 2px 10px; border-radius: 6px; background: rgb(20 14 9 / 0.72); border: 1px solid #7a5a22; }
+.mc-stock.is-on { display: block; }
+.mc-barrel { width: 22px; height: 28px; border-radius: 4px; border: 2px solid var(--soot); background: linear-gradient(90deg, #8a4a26, #e09a62 45%, #8a4a26); box-shadow: inset 0 6px 0 -3px var(--soot), inset 0 -6px 0 -3px var(--soot); }
+.mc-obj { font-size: 17px; font-weight: 700; padding: 4px 14px; border-radius: 6px; background: rgb(20 14 9 / 0.72); border: 1px solid #7a5a22; text-shadow: 0 1px 0 #000; max-width: 640px; text-align: center; }
+.mc-track { display: none; flex-direction: column; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; max-width: 640px; text-align: center; color: #e8d6b0; text-shadow: 0 1px 0 #000; }
+.mc-track.is-on { display: flex; }
+.mc-track__line { padding: 1px 10px; border-radius: 5px; background: rgb(20 14 9 / 0.6); border: 1px solid #5a4418; opacity: 0.9; }
+.mc-obj.is-urgent { color: #ffd0c0; border-color: var(--ui-c-danger); animation: mc-pulse 1s ease-in-out infinite; }
+@keyframes mc-pulse { 50% { box-shadow: 0 0 14px rgb(224 80 58 / 0.7); } }
+
+.mc-salvage { display: none; font-size: 14px; font-weight: 700; color: #9ff6ff; padding: 2px 10px; border-radius: 6px; background: rgb(10 30 34 / 0.75); border: 1px solid #2a8a94; }
+.mc-salvage.is-on { display: block; }
+
+/* ---- the Oracle ---- */
+.mc-oracle { position: absolute; left: 14px; bottom: 14px; width: 470px; display: flex; gap: 12px; padding: 12px 14px; border-radius: 10px; background: linear-gradient(170deg, rgb(26 34 40 / 0.94), rgb(12 16 20 / 0.94)); border: 2px solid #6a8a94; box-shadow: 0 0 0 2px var(--soot), 0 10px 24px rgb(0 0 0 / 0.5); opacity: 0; transform: translateY(12px); transition: opacity 300ms, transform 300ms; }
+.mc-oracle.is-on { opacity: 1; transform: none; }
+.mc-oracle.is-quiet { opacity: 0.45; }
+.mc-oracle[data-tone="warn"] { border-color: var(--amber); }
+.mc-oracle[data-tone="urgent"] { border-color: var(--ui-c-danger); }
+.mc-oracle__eye { flex: none; width: 52px; height: 52px; border-radius: 50%; background: radial-gradient(circle, #0a1418 30%, #2a3a40 70%); border: 2px solid #8ab0bc; display: grid; place-items: center; }
+.mc-oracle__eye { background-image: var(--oracle-face, none), radial-gradient(circle, #0a1418 30%, #2a3a40 70%); background-size: cover; background-position: center; }
+.has-oracle-face .mc-oracle__eye i { display: none; }
+.mc-oracle[data-tone="urgent"] .mc-oracle__eye { border-color: var(--red); box-shadow: 0 0 12px var(--red); }
+.mc-oracle__eye i { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle, #fff, var(--cyan) 50%, transparent 72%); box-shadow: 0 0 14px var(--cyan); animation: mc-eye 3.2s ease-in-out infinite; }
+.mc-oracle[data-tone="urgent"] .mc-oracle__eye i { background: radial-gradient(circle, #fff, var(--red) 50%, transparent 72%); box-shadow: 0 0 14px var(--red); }
+@keyframes mc-eye { 0%, 100% { transform: translateX(-5px); } 50% { transform: translateX(5px); } }
+/* The Princess on the antenna (P58): her own small panel above the Oracle's, her face, a lilac rim. */
+.mc-oracle--her { bottom: 118px; width: 400px; padding: 8px 12px; border-color: #b89ad8; }
+.mc-oracle--her .mc-oracle__eye { width: 40px; height: 40px; background-image: var(--princess-face, none), radial-gradient(circle, #2a2030 30%, #3a3048 70%); background-size: contain, cover; background-repeat: no-repeat; border-color: #c8b0e8; }
+.mc-oracle--her .mc-oracle__name { color: #c8b0e8; }
+.mc-oracle--her .mc-oracle__text { font-size: 14px; min-height: 0; }
+.mc-oracle__name { font-family: "Share Tech Mono", monospace; font-size: 13px; letter-spacing: 0.2em; color: #8ab0bc; text-transform: uppercase; }
+.mc-oracle__text { font-family: "Share Tech Mono", monospace; font-size: 16px; line-height: 1.35; color: #dff4f8; min-height: 44px; }
+
+/* ---- the crew roster ---- */
+.mc-roster { position: absolute; right: 14px; bottom: 14px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.mc-mapbtn { font: inherit; font-weight: 700; font-size: 15px; color: var(--brass-hi); background: var(--ui-c-btn); border: 2px solid var(--brass); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.mc-mapbtn:hover { background: var(--ui-c-btn-hover); }
+.mc-roster__list { display: flex; flex-direction: column; gap: 3px; }
+.mc-chip { display: grid; grid-template-columns: 20px 20px 70px 56px; grid-template-rows: auto 5px; align-items: center; gap: 0 6px; padding: 3px 8px 4px; border-radius: 6px; background: rgb(20 14 9 / 0.8); border-left: 4px solid var(--crew); font-size: 14px; pointer-events: none; }
+.mc-chip__crew { font-weight: 700; color: var(--crew); text-align: center; }
+.mc-chip__role { width: 18px; height: 18px; border-radius: 50%; background: var(--brass); color: var(--soot); font-weight: 700; font-size: 10px; display: grid; place-items: center; }
+.mc-chip__state { font-size: 12px; color: var(--ui-c-text-dim); }
+.mc-chip__hp { grid-column: 1 / -1; height: 3px; background: #000; border-radius: 2px; overflow: hidden; }
+.mc-chip__hp { height: 5px !important; background: #8a7c6a !important; outline: 1px solid #d8c8a8; }
+.mc-chip__hp i { display: block; height: 100%; background: #0c0a08; }
+.mc-chip.is-dead { opacity: 0.45; text-decoration: line-through; }
+
+/* ---- banner ---- */
+.mc-banner { position: absolute; left: 0; right: 0; top: 34%; text-align: center; font-family: var(--ui-font-display); font-size: 54px; color: var(--brass-hi); text-shadow: 0 3px 0 #000, 0 0 30px rgb(255 140 40 / 0.6); opacity: 0; pointer-events: none; }
+.mc-banner.is-on { animation: mc-banner 2.6s ease-out forwards; }
+@keyframes mc-banner { 0% { opacity: 0; transform: scale(1.3); } 12% { opacity: 1; transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ---- the map ---- */
+.mc-map { position: absolute; inset: 0; display: none; gap: 16px; padding: 22px; background: rgb(8 6 4 / 0.9); align-items: flex-start; justify-content: center; font-family: var(--ui-font-body); color: var(--ui-c-text); }
+.mc-map.is-open { display: flex; }
+.mc-map__frame { display: flex; flex-direction: column; gap: 6px; }
+.mc-map__title { font-family: var(--ui-font-display); font-size: 24px; color: var(--brass-hi); display: flex; justify-content: space-between; align-items: baseline; }
+.mc-map__title span { font-family: var(--ui-font-body); font-size: 15px; color: var(--ui-c-text-dim); }
+.mc-map__title span.is-warn { color: var(--amber); }
+.mc-map canvas { width: 820px; height: 615px; border: 3px solid var(--brass); border-radius: 6px; box-shadow: 0 0 0 3px var(--soot); cursor: crosshair; background: #120e0a; }
+.mc-map__legend { display: flex; gap: 14px; font-size: 13px; color: var(--ui-c-text-dim); }
+.lg::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 5px; vertical-align: -1px; border-radius: 2px; }
+.lg--lift::before { background: var(--brass); }
+.lg--seep::before { background: #000; border: 2px solid var(--amber); border-radius: 50%; width: 8px; height: 6px; }
+.lg--nest::before { background: var(--red); }
+.lg--ruin::before { background: #8a4a26; }
+.lg--signal::before { background: #3df2ff; }
+.lg--area::before { background: transparent; border: 2px dashed #d9a24a; border-radius: 50%; width: 8px; height: 8px; }
+.lg--hornet::before { background: var(--danger); width: 5px; height: 5px; }
+.mc-crews { width: 320px; display: flex; flex-direction: column; gap: 8px; }
+.mc-crews__title { font-family: var(--ui-font-display); font-size: 24px; color: var(--brass-hi); }
+.mc-crews__help { font-size: 14px; color: var(--ui-c-text-dim); }
+.mc-crews__list { display: flex; flex-direction: column; gap: 8px; }
+.mc-crew { border: 2px solid #4a3a28; border-left: 6px solid var(--crew); border-radius: 8px; padding: 6px 8px; background: rgb(40 30 20 / 0.85); cursor: pointer; }
+.mc-crew.is-active { border-color: var(--crew); box-shadow: 0 0 12px color-mix(in srgb, var(--crew) 50%, transparent); }
+.mc-crew__head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+.mc-crew__head b { color: var(--crew); font-size: 17px; }
+.mc-crew__head span { font-size: 13px; color: var(--ui-c-text-dim); margin-left: auto; }
+.mc-crew__all { margin-left: 8px; padding: 1px 8px; border-radius: 10px; background: #1d1712; border: 1px solid #5e4a32; color: var(--ui-c-text-dim); font: inherit; font-size: 12px; cursor: pointer; }
+.mc-crew__all:hover { border-color: var(--brass); color: var(--ui-c-text); }
+.mc-crew__all.is-on { border-color: #fff; color: #fff; }
+.mc-crew__bots { display: flex; flex-wrap: wrap; gap: 5px; min-height: 28px; }
+.mc-crew__empty { font-size: 13px; color: #7a6a58; font-style: italic; }
+.mc-bot { position: relative; display: flex; align-items: center; gap: 5px; padding: 3px 8px 5px 4px; border-radius: 14px; background: #1d1712; border: 2px solid #5e4a32; font-size: 14px; cursor: grab; overflow: hidden; user-select: none; }
+.mc-bot:hover { border-color: var(--brass); }
+.mc-bot.is-selected { border-color: #fff; background: #3a2f24; }
+.mc-bot__role { width: 18px; height: 18px; border-radius: 50%; background: var(--brass); color: var(--soot); font-weight: 700; font-size: 10px; display: grid; place-items: center; }
+.mc-bot i { position: absolute; left: 0; bottom: 0; height: 3px; background: #f4e2bc; }
+.mc-evac { background: #12353c !important; border-color: var(--friend) !important; color: #d8f8ff !important; margin-top: 6px; }
+.mc-close { margin-top: 2px; }
+
+/* ---- the day: the dial, the dusk vignette, washes, the queen's bar ---- */
+.mc-dusk { position: absolute; inset: 0; opacity: 0; background: radial-gradient(ellipse at 50% 55%, transparent 42%, rgb(10 6 34 / 0.55) 78%, rgb(6 3 20 / 0.85) 100%); }
+.mc-wash { position: absolute; inset: 0; opacity: 0; background: radial-gradient(ellipse at center, transparent 35%, var(--wash, #fff) 140%); }
+.mc-wash.is-on { animation: mc-wash 1.6s ease-out forwards; }
+@keyframes mc-wash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
+.mc-clock { position: absolute; right: 14px; top: 10px; display: flex; flex-direction: column; align-items: center; filter: drop-shadow(0 3px 0 rgb(0 0 0 / 0.6)); }
+.mc-clock__phase { margin-top: -6px; font-family: var(--ui-font-display); font-size: 17px; color: var(--brass-hi); text-shadow: var(--ui-text-shadow); }
+.mc-clock__next { font-family: "Share Tech Mono", monospace; font-size: 13px; color: #d8c8a8; padding: 1px 8px; border-radius: 4px; background: rgb(20 14 9 / 0.72); }
+.mc-weather { display: none; margin-top: 3px; min-width: 150px; font-family: "Share Tech Mono", monospace; font-size: 12px; color: #ffd98a; text-align: center; text-shadow: var(--ui-text-shadow); }
+.mc-weather.is-on { display: block; }
+.mc-weather__bar { height: 4px; margin-top: 2px; border-radius: 2px; background: rgb(20 14 9 / 0.78); overflow: hidden; }
+.mc-weather__bar i { display: block; height: 100%; width: 100%; background: #ffb640; }
+.mc-weather[data-phase="on"] { color: #ffd0c0; }
+.mc-weather[data-phase="on"] .mc-weather__bar i { background: #d9704a; }
+.mc-clock[data-phase="evening"] .mc-clock__phase { color: #d9a0ff; }
+.mc-clock[data-phase="midnight"] .mc-clock__phase { color: #ff6a78; }
+.mc-clock[data-phase="midnight"] .mc-clock__next { color: #ffd0c0; background: rgb(90 14 20 / 0.85); }
+.mc-clock[data-phase="midnight"] svg, .mc-clock.is-soon svg { animation: mc-clockpulse 1s ease-in-out infinite; }
+.mc-clock[data-phase="midnight"] { --pulse: 255 48 72; }
+.mc-clock.is-soon { --pulse: 255 182 64; }
+@keyframes mc-clockpulse { 50% { filter: drop-shadow(0 0 10px rgb(var(--pulse) / 0.9)); } }
+.mc-boss { position: absolute; left: 50%; top: 128px; width: 460px; transform: translateX(-50%); display: none; flex-direction: column; align-items: center; gap: 3px; }
+.mc-boss.is-on { display: flex; }
+.mc-boss__name { font-family: var(--ui-font-display); font-size: 20px; color: #ffb0c0; text-shadow: 0 2px 0 #000, 0 0 14px rgb(255 32 96 / 0.7); }
+.mc-bar--boss { width: 100%; height: 16px; background: #2a1020; border-color: #b04060; }
+.mc-bar--boss .mc-bar__fill { background: linear-gradient(#ff5080, #a01040); box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.3); transition: width 160ms linear; }
+.mc-boss.is-rage .mc-bar--boss { animation: mc-pulse 0.7s ease-in-out infinite; border-color: #ff3048; }
+
+/* ---- leeway: the oil reserve (cans beside the oil bar) and D-city air support (bottom centre) ---- */
+.mc-hprow { display: flex; align-items: flex-end; gap: 10px; }
+.mc-hprow .mc-bar { flex: 1; margin-bottom: 2px; }
+.mc-spare { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; }
+.mc-spare__label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #c8b890; text-shadow: 0 1px 0 #000; }
+.mc-spare__row { display: flex; align-items: center; gap: 4px; }
+.mc-spare__glyph { color: var(--brass-hi); filter: drop-shadow(0 1px 0 #000); }
+.mc-can { position: relative; width: 17px; height: 23px; margin-top: 5px; border-radius: 3px 3px 4px 4px; border: 2px solid var(--brass); background: linear-gradient(90deg, #7a6a4c, #c9ab62 45%, #8a7648); box-shadow: 0 2px 0 #000; }
+.mc-can::before { content: ""; position: absolute; left: 3px; top: -8px; width: 5px; height: 6px; background: var(--brass); border-radius: 1px; box-shadow: 0 0 0 1px #000; }
+.mc-can b { position: absolute; left: 0; right: 0; bottom: 0; height: 0; border-radius: 0 0 2px 2px; background: linear-gradient(#4a4440, #050403); box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.25); transition: height 200ms; }
+.mc-spare.is-gain .mc-can { animation: mc-gain 0.6s; }
+.mc-spare.is-spent { animation: mc-shake 0.4s; }
+.mc-spare.is-spent .mc-can { border-color: var(--ui-c-danger); }
+@keyframes mc-gain { 40% { transform: translateY(-4px); border-color: var(--brass-hi); box-shadow: 0 0 10px var(--amber); } }
+
+.mc-support { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 6px 14px 6px 10px; border-radius: 10px; background: rgb(20 14 9 / 0.82); border: 2px solid var(--brass); color: var(--brass-hi); box-shadow: 0 3px 0 #000; transition: opacity 300ms; }
+.mc-support__name { font-family: var(--ui-font-display); font-size: 16px; line-height: 1; }
+.mc-support__key { font-size: 13px; color: var(--ui-c-text-dim); margin-top: 3px; }
+.mc-support__state { font-family: "Share Tech Mono", monospace; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; min-width: 74px; text-align: right; }
+.mc-support[data-state="ready"] { box-shadow: 0 3px 0 #000, 0 0 12px rgb(240 207 122 / 0.35); }
+.mc-support[data-state="inbound"] { border-color: var(--friend); color: #d8f8ff; animation: mc-pulse 0.7s ease-in-out infinite; }
+.mc-support[data-state="spent"] { opacity: 0.45; filter: grayscale(0.7); border-color: #5e4a32; }
+
+/* ---- command mode: cold steel against the warm dusk, so it can never be mistaken for play ---- */
+.mc-cmd { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.35s ease-out; font-family: var(--ui-font-body); }
+.mc-cmd.is-on { opacity: 1; }
+.mc-cmd__vig { position: absolute; inset: 0; background: radial-gradient(ellipse at center, rgb(40 90 140 / 0.1) 30%, rgb(8 22 40 / 0.7) 100%), repeating-linear-gradient(0deg, rgb(120 190 235 / 0.035) 0 1px, transparent 1px 4px); box-shadow: inset 0 0 0 4px rgb(200 150 60 / 0.6), inset 0 0 0 7px rgb(20 16 12 / 0.7), inset 0 0 110px rgb(70 150 215 / 0.28); }
+.mc-cmd__plate { position: absolute; top: 96px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; padding: 5px 16px 6px; background: rgb(20 16 12 / 0.88); border: 2px solid var(--brass); border-radius: 6px; box-shadow: 0 2px 0 #000, 0 0 18px rgb(86 180 233 / 0.4); white-space: nowrap; }
+.mc-cmd__plate b { font-family: var(--ui-font-display); font-size: 22px; letter-spacing: 0.14em; color: #8fd0f4; text-shadow: 0 0 10px rgb(86 180 233 / 0.7); }
+.mc-cmd__plate span { font-size: 14px; color: var(--ui-c-text-dim); }
+.mc-cmd__plate em { font-style: normal; font-size: 13px; color: var(--brass-hi); }
+.mc-cmd__dial { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--brass); background: radial-gradient(circle at 50% 30%, #bfe8ff, #2a6a96); box-shadow: 0 0 8px rgb(86 180 233 / 0.8); position: relative; }
+.mc-cmd__dial::after { content: ''; position: absolute; left: 50%; top: 50%; width: 2px; height: 5px; margin: -5px 0 0 -1px; background: #14100c; transform-origin: 50% 100%; transform: rotate(0deg); transition: transform 0.08s steps(2); }
+.mc-cmd__dial.is-tock::after { transform: rotate(180deg); }
+.mc-cmd__help { position: absolute; top: 142px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+.mc-cmd__help span { padding: 3px 10px; background: rgb(20 16 12 / 0.8); border: 1px solid #4a3a28; border-radius: 12px; font-size: 13px; color: var(--ui-c-text-dim); }
+.mc-cmd__box { position: absolute; display: none; pointer-events: none; border: 2px solid #8fd0f4; background: rgb(86 180 233 / 0.14); box-shadow: 0 0 0 1px #14100c, inset 0 0 0 1px #14100c; }
+.mc-cmd__box.is-on { display: block; }
+.mc-cmd__sel { position: absolute; left: 50%; bottom: 78px; transform: translateX(-50%); display: none; gap: 6px; align-items: center; pointer-events: none; padding: 4px 10px; background: rgb(20 16 12 / 0.85); border: 2px solid var(--brass); border-radius: 14px; font-size: 14px; color: var(--ui-c-text); white-space: nowrap; }
+.mc-cmd__sel.is-on { display: flex; }
+.mc-cmd__toast { position: absolute; left: 50%; bottom: 118px; transform: translateX(-50%); padding: 4px 14px; background: rgb(20 16 12 / 0.9); border: 2px solid var(--brass); border-radius: 14px; font-size: 15px; font-weight: 600; opacity: 0; transition: opacity 0.25s; pointer-events: none; white-space: nowrap; }
+.mc-cmd__toast.is-on { opacity: 1; }
+.mc-cmd__sel b { color: var(--brass-hi); margin-right: 4px; }
+.mc-cmd__sel i { font-style: normal; font-weight: 700; font-size: 11px; width: 16px; height: 16px; border-radius: 50%; display: inline-grid; place-items: center; background: var(--crew); color: #14100c; margin: 0 4px 0 6px; }
+
+/* Down a dungeon (Play as the Dungeon scene): its own UI layer over the land's hidden one; no day dial. */
+.mc-dungeon-ui { position: absolute; inset: 0; }
+.mc-dungeon-ui.is-dungeon .mc-clock { display: none; }
+
+/*
+ * ---- attention (P33, attention.ts; design.md "Attention is a budget") ----
+ * An element with nothing new to say rests (`data-w="rest"`: quiet, its numbers hidden); it comes forward (`up`) when its value
+ * changes, turns urgent or is hovered. Colour and size are spent on the Oil bar running low (`alarm`), the dial at evening and midnight, and the fight.
+ */
+.mc-bar[data-w], .mc-spare[data-w], .mc-clock[data-w], .mc-stock[data-w], .mc-salvage[data-w], .mc-obj[data-w], .mc-chip[data-w] { transition: opacity 400ms, height 220ms, transform 400ms; }
+.mc-bar--hp[data-w="rest"] { height: 14px; opacity: 0.9; }
+.mc-bar--steam[data-w="rest"] { height: 11px; opacity: 0.7; }
+.mc-bar[data-w="rest"] span { opacity: 0; }
+.mc-bar span { transition: opacity 240ms; }
+.mc-bar--hp[data-w="alarm"] { height: 28px; border-color: var(--red); box-shadow: 0 2px 0 #000, 0 0 16px rgb(255 48 72 / 0.55); animation: mc-pulse 0.9s ease-in-out infinite; }
+.mc-bar--hp[data-w="alarm"] span { font-size: 15px; }
+.mc-spare[data-w="rest"] { opacity: 0.55; }
+.mc-spare[data-w="rest"] .mc-spare__label { opacity: 0; }
+.mc-spare__label { transition: opacity 240ms; }
+.mc-clock[data-w="rest"] { opacity: 0.72; transform: scale(0.78); transform-origin: 100% 0; }
+.mc-clock[data-w="rest"] .mc-clock__next { opacity: 0; }
+.mc-clock__next { transition: opacity 240ms; }
+.mc-stock[data-w="rest"], .mc-salvage[data-w="rest"] { opacity: 0.55; }
+.mc-stock[data-w="up"], .mc-salvage[data-w="up"] { border-color: var(--brass-hi); }
+.mc-obj[data-w="rest"] { opacity: 0.5; }
+.mc-support[data-state="ready"]:not(.is-hover) { opacity: 0.62; transform: translateX(-50%) scale(0.92); transform-origin: 50% 100%; box-shadow: 0 3px 0 #000; }
+.mc-support[data-state="inbound"] { box-shadow: 0 3px 0 #000, 0 0 16px rgb(255 48 72 / 0.5); }
+.mc-chip[data-w="rest"] { opacity: 0.55; }
+.mc-chip[data-w="rest"] .mc-chip__state { opacity: 0; }
+.mc-roster__list.is-hover .mc-chip { opacity: 1; }
+.mc-roster__list.is-hover .mc-chip .mc-chip__state { opacity: 1; }
+.mc-mapbtn { opacity: 0.6; transition: opacity 200ms; }
+.mc-mapbtn:hover { opacity: 1; }
+.mc-oracle.is-quiet .mc-oracle__name { display: none; }
+.mc-oracle.is-quiet .mc-oracle__text { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; min-height: 0; }
+/* Oil low: the screen's edge reddens the lower it runs, and beats under a quarter. */
+.mc-alarm { position: absolute; inset: 0; opacity: var(--a, 0); pointer-events: none; background: radial-gradient(ellipse at 50% 50%, transparent 62%, rgb(185 16 30 / 0.65) 100%); transition: opacity 300ms; }
+.mc-alarm.is-urgent { animation: mc-heartbeat 1.1s ease-in-out infinite; }
+@keyframes mc-heartbeat { 0%, 40%, 100% { filter: brightness(0.85); } 12% { filter: brightness(1.5); } 26% { filter: brightness(1.15); } }
+@media (prefers-reduced-motion: reduce) { .mc-alarm.is-urgent, .mc-bar--hp[data-w="alarm"] { animation: none; } }
+
+/*
+ * ---- results: what came up the lift ----
+ * The list is long (the haul, the crew, the deeds), so it runs in two columns and the whole screen fits 720 px.
+ */
+.ui-results__stats { width: min(880px, 100%); box-sizing: border-box; column-count: 2; column-gap: 40px; }
+.ui-results__stats .ui-stat { break-inside: avoid; }
+.ui-results__stats .ui-stat__value { text-align: right; }
+
+/* The junk card (level 1's first find): the old thing's name flips to what the colony reads it as (`junkview.ts`). */
+.mc-junkcard { position: absolute; left: 50%; top: 22%; width: 240px; height: 74px; margin-left: -120px; perspective: 600px; pointer-events: none; opacity: 0; transition: opacity 300ms; }
+.mc-junkcard.is-on { opacity: 1; }
+.mc-junkcard__in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform 600ms; }
+.mc-junkcard.is-flipped .mc-junkcard__in { transform: rotateX(180deg); }
+.mc-junkcard__face { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; padding: 8px 12px; box-sizing: border-box; font-weight: 700; font-size: 18px; border-radius: 8px; backface-visibility: hidden; color: #2a1c0c; background: linear-gradient(#f2e2b8, #d9bf86); border: 2px solid var(--brass-hi, #d4a85a); }
+.mc-junkcard__face--back { transform: rotateX(180deg); background: linear-gradient(#ffe9a8, #f0c860); }

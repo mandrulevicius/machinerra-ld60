@@ -1,0 +1,16 @@
+{
+  "name": "A Stray",
+  "band": [18,55],
+  "clear": 4,
+  "apart": 7,
+  "noHive": 6,
+  "tags": ["stray","cat","quest"],
+  "presence": {"oneIn":3,"quest":"cat.1"},
+  "entities": [
+    {"id":"stray-1","type":"stray","x":0,"y":0},
+    {"id":"crate-1","type":"prop","x":64,"y":34,"props":{"prop":"crate"}},
+    {"id":"crate-2","type":"prop","x":-56,"y":44,"props":{"prop":"crate"}},
+    {"id":"crate-3","type":"prop","x":22,"y":-62,"props":{"prop":"crate"}},
+    {"id":"ground-nest","type":"blob","x":0,"y":10,"props":{"ground":"hardpan","rx":90,"ry":70,"rough":0.35,"seed":211}}
+  ]
+}

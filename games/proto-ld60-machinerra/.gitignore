@@ -1,0 +1,7 @@
+dist/
+*.zip
+node_modules/
+capture/
+
+# The song as WAV is 72 MB: rebuild it with tools/music.py (the encoded ogg/mp3 in public/audio are committed)
+audio/music/

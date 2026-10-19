@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI components: kitchen sink</title>
+<link rel="stylesheet" href="all.css">
+</head>
+<body>
+<main class="pv-main">
+
+<section class="pv-section">
+  <h2>Text</h2>
+  <div class="pv-row">
+    <h1 class="ui-title">Game Title</h1>
+    <h2 class="ui-heading ui-scene-text">Heading</h2>
+    <p class="ui-text ui-scene-text">Body text over the scene.</p>
+    <p class="ui-text ui-scene-text" style="color:var(--ui-c-scene-text-dim)">Dim scene text.</p>
+  </div>
+  <div class="pv-row">
+    <div class="ui-panel" style="width:420px">
+      <h3 class="ui-panel__title">Panel</h3>
+      <p class="ui-text">Text on a surface. <span class="ui-dim">Dim text.</span></p>
+      <span class="ui-label">Label</span>
+    </div>
+    <div class="ui-panel ui-panel--inset" style="width:220px"><p class="ui-text">Inset panel</p></div>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Buttons</h2>
+  <p class="pv-cap">primary / secondary / default; then hover, active, focus (forced with .is-*), disabled; icon</p>
+  <div class="pv-row">
+    <button class="ui-btn ui-btn--primary">Primary</button>
+    <button class="ui-btn ui-btn--secondary">Secondary</button>
+    <button class="ui-btn">Default</button>
+    <button class="ui-btn ui-btn--primary is-hover">Hover</button>
+    <button class="ui-btn ui-btn--primary is-active">Active</button>
+    <button class="ui-btn ui-btn--primary is-focus">Focus</button>
+    <button class="ui-btn ui-btn--primary" disabled>Disabled</button>
+    <button class="ui-btn" disabled>Disabled</button>
+    <button class="ui-btn ui-btn--icon" aria-label="Settings"><span class="ui-icon" style="--icon: url(icons/cog.svg)"></span></button>
+    <button class="ui-btn ui-btn--icon ui-btn--primary" aria-label="Play"><span class="ui-icon" style="--icon: url(icons/play-button.svg)"></span></button>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Menu list</h2>
+  <p class="pv-cap">Second item is .is-selected; tab through for keyboard focus</p>
+  <div class="pv-row" style="align-items:flex-start">
+    <ul class="ui-menu">
+      <li><button class="ui-menu__item">Play</button></li>
+      <li><button class="ui-menu__item is-selected">Continue</button></li>
+      <li><button class="ui-menu__item">Settings</button></li>
+      <li><button class="ui-menu__item" disabled>Online (soon)</button></li>
+    </ul>
+    <div class="ui-panel">
+      <ul class="ui-menu">
+        <li><button class="ui-menu__item">Resume</button></li>
+        <li><button class="ui-menu__item is-selected">Restart</button></li>
+        <li><button class="ui-menu__item">Quit</button></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Settings rows</h2>
+  <p class="pv-cap">.ui-field, .ui-vol (volume ramp), .ui-choices, .ui-note, .ui-sep, .ui-menu--row, .ui-menu__item--split, .ui-btn--faint + .ui-burger</p>
+  <div class="ui-panel ui-stack" style="width:480px">
+    <div class="ui-field"><span>Master volume</span><div class="ui-vol" style="--v: 0.65" data-level="high"><span class="ui-vol__pct">65%</span><svg class="ui-vol__ramp ui-vol__bed" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,100 100,0 100,100"/></svg><svg class="ui-vol__ramp ui-vol__fill" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,100 100,0 100,100"/></svg><svg class="ui-vol__ramp ui-vol__edge" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,100 100,0 100,100"/></svg><span class="ui-vol__handle"><span class="ui-icon ui-vol__icon"></span></span><input class="ui-vol__input" type="range" min="0" max="1" step="0.05" value="0.65" aria-label="Master volume"></div></div>
+    <label class="ui-field"><span>Music</span><span class="ui-row"><input class="ui-slider" type="range" value="55" aria-label="Music"><span class="ui-field__value">55%</span></span></label>
+    <div class="ui-field"><span>Quality</span><span class="ui-choices"><button class="ui-btn">Low</button><button class="ui-btn">Medium</button><button class="ui-btn ui-btn--primary">High</button></span></div>
+    <hr class="ui-sep">
+    <p class="ui-note">A quiet note.</p>
+    <p class="ui-note ui-note--warn">A warning note.</p>
+    <ul class="ui-menu"><li><button class="ui-menu__item ui-menu__item--split"><span>Save 1</span><span>Oct 16, 18:20</span></button></li></ul>
+  </div>
+  <div class="pv-row">
+    <ul class="ui-menu ui-menu--row"><li><button class="ui-menu__item">New game</button></li><li><button class="ui-menu__item is-selected">Options</button></li></ul>
+    <button class="ui-btn ui-btn--icon ui-btn--faint" aria-label="Menu"><span class="ui-burger"></span></button>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>HUD</h2>
+  <div class="pv-row">
+    <div class="ui-score"><span class="ui-score__label">Score</span><span class="ui-score__value">012,450</span></div>
+    <div class="ui-stack" style="gap:var(--ui-sp-2)">
+      <div class="ui-bar ui-bar--health" style="--value:72%"><div class="ui-bar__fill"></div><span class="ui-bar__text">72 / 100</span></div>
+      <div class="ui-bar ui-bar--progress" style="--value:40%"><div class="ui-bar__fill"></div></div>
+      <div class="ui-bar ui-bar--timer" style="--value:15%"><div class="ui-bar__fill"></div><span class="ui-bar__text">0:09</span></div>
+      <div class="ui-bar" style="--value:100%"><div class="ui-bar__fill"></div></div>
+    </div>
+    <span class="ui-chip"><span class="ui-chip__icon"><span class="ui-icon ui-icon--danger" style="--icon: url(icons/hearts.svg)"></span></span><span class="ui-chip__value">3</span></span>
+    <span class="ui-chip"><span class="ui-chip__icon"><span class="ui-icon ui-icon--warn" style="--icon: url(icons/two-coins.svg)"></span></span><span class="ui-chip__value">128</span></span>
+    <span class="ui-hint"><kbd class="ui-key">Space</kbd> Jump</span>
+    <span class="ui-hint"><kbd class="ui-key">E</kbd> Interact</span>
+    <span class="ui-hint"><kbd class="ui-key">&larr;</kbd><kbd class="ui-key">&rarr;</kbd> Move</span>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Tooltip</h2>
+  <p class="pv-cap">First is forced open; hover or focus the second</p>
+  <div class="pv-row pv-pad-top">
+    <span class="ui-tip-anchor is-open"><button class="ui-btn">Forced open</button><span class="ui-tooltip" role="tooltip">Restores 20 HP</span></span>
+    <span class="ui-tip-anchor"><button class="ui-btn">Hover me</button><span class="ui-tooltip" role="tooltip">Costs 5 coins</span></span>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Toasts</h2>
+  <div class="pv-row">
+    <div class="ui-toast"><span class="ui-toast__title">Info</span> Checkpoint saved</div>
+    <div class="ui-toast ui-toast--good"><span class="ui-toast__title">Done</span> Level complete</div>
+    <div class="ui-toast ui-toast--warn"><span class="ui-toast__title">Careful</span> Low ammo</div>
+    <div class="ui-toast ui-toast--danger"><span class="ui-toast__title">Ouch</span> Took 20 damage</div>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Controls</h2>
+  <div class="pv-row">
+    <input class="ui-slider" type="range" min="0" max="100" value="60" aria-label="Volume">
+    <input class="ui-slider is-focus" type="range" min="0" max="100" value="30" aria-label="Focused slider">
+    <input class="ui-slider" type="range" disabled value="50" aria-label="Disabled slider">
+  </div>
+  <div class="pv-row">
+    <label class="ui-toggle"><input type="checkbox" checked><span class="ui-toggle__track"></span>Music</label>
+    <label class="ui-toggle"><input type="checkbox"><span class="ui-toggle__track"></span>Screen shake</label>
+    <label class="ui-toggle"><input type="checkbox" checked disabled><span class="ui-toggle__track"></span>Disabled</label>
+    <label class="ui-check"><input type="checkbox" checked><span class="ui-check__box"></span>Subtitles</label>
+    <label class="ui-check"><input type="checkbox"><span class="ui-check__box"></span>Colour-blind mode</label>
+    <label class="ui-check"><input type="checkbox" disabled><span class="ui-check__box"></span>Disabled</label>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Tabs</h2>
+  <div class="ui-panel" style="width:480px">
+    <div class="ui-tabs" role="tablist">
+      <button class="ui-tab" role="tab" aria-selected="true" aria-controls="t1">Audio</button>
+      <button class="ui-tab" role="tab" aria-selected="false" aria-controls="t2">Video</button>
+      <button class="ui-tab" role="tab" aria-selected="false" aria-controls="t3">Controls</button>
+    </div>
+    <div id="t1" role="tabpanel" style="padding-top:var(--ui-sp-3)">Audio settings go here.</div>
+    <div id="t2" role="tabpanel" style="padding-top:var(--ui-sp-3)" hidden>Video settings go here.</div>
+    <div id="t3" role="tabpanel" style="padding-top:var(--ui-sp-3)" hidden>Key bindings go here.</div>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Ability bar</h2>
+  <p class="ui-dim">Placeholder icons from game-icons.net (<code>npm run icons</code>), filled with a role colour (<code>ui-icon--danger</code>, <code>--arcane</code>, <code>--frost</code> ...).</p>
+  <div class="pv-row">
+    <div class="ui-row">
+      <button class="ui-slot is-selected"><span class="ui-icon ui-icon--arcane" style="--icon: url(icons/focused-lightning.svg)"></span></button>
+      <button class="ui-slot"><span class="ui-icon ui-icon--good" style="--icon: url(icons/skull-crossed-bones.svg)"></span><span class="ui-slot__count">10</span></button>
+      <button class="ui-slot"><span class="ui-icon ui-icon--danger" style="--icon: url(icons/fireball.svg)"></span></button>
+      <button class="ui-slot"><span class="ui-icon ui-icon--frost" style="--icon: url(icons/ice-bolt.svg)"></span></button>
+      <button class="ui-slot is-empty"></button>
+    </div>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Inventory grid</h2>
+  <div class="pv-row">
+    <div class="ui-panel">
+      <div class="ui-grid" style="--cols:5">
+        <button class="ui-slot is-selected"><span class="ui-icon" style="--icon: url(icons/crossed-swords.svg)"></span><span class="ui-slot__count">1</span></button>
+        <button class="ui-slot"><span class="ui-icon ui-icon--good" style="--icon: url(icons/potion-ball.svg)"></span><span class="ui-slot__count">12</span></button>
+        <button class="ui-slot"><span class="ui-icon" style="--icon: url(icons/crown.svg)"></span></button>
+        <button class="ui-slot is-hover"><span class="ui-icon ui-icon--danger" style="--icon: url(icons/fireball.svg)"></span><span class="ui-slot__count">3</span></button>
+        <button class="ui-slot is-empty"></button>
+        <button class="ui-slot is-empty"></button>
+        <button class="ui-slot is-empty"></button>
+        <button class="ui-slot is-empty"></button>
+        <button class="ui-slot is-empty"></button>
+        <button class="ui-slot is-empty"></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Dialogue box</h2>
+  <div class="pv-row">
+    <div class="ui-panel ui-dialogue">
+      <span class="ui-dialogue__speaker">Old Wizard</span>
+      <p class="ui-dialogue__text">The bridge is out. You will have to find another way across the river.</p>
+      <span class="ui-dialogue__next">&#9660;</span>
+    </div>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Dialog / modal</h2>
+  <div class="pv-scene" style="height:320px">
+    <div class="ui-backdrop" style="position:absolute">
+      <div class="ui-panel ui-dialog" role="dialog" aria-labelledby="dlg-t">
+        <h3 class="ui-panel__title" id="dlg-t" style="margin:0">Quit to menu?</h3>
+        <p class="ui-dialog__body">Unsaved progress will be lost.</p>
+        <div class="ui-dialog__actions">
+          <button class="ui-btn ui-btn--secondary">Cancel</button>
+          <button class="ui-btn ui-btn--primary">Quit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pv-section">
+  <h2>Stat rows</h2>
+  <div class="ui-panel" style="width:320px">
+    <div class="ui-stat"><span>Enemies</span><span class="ui-stat__value">24</span></div>
+    <div class="ui-stat"><span>Time</span><span class="ui-stat__value">03:12</span></div>
+    <div class="ui-stat"><span>Accuracy</span><span class="ui-stat__value">87%</span></div>
+  </div>
+</section>
+
+</main>
+<script src="preview.js"></script>
+</body>
+</html>

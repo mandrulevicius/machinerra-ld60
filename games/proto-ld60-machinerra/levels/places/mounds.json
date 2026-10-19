@@ -1,0 +1,15 @@
+{
+  "name": "Dig Mounds",
+  "band": [20,55],
+  "clear": 4,
+  "apart": 6,
+  "noHive": 6,
+  "tags": ["mounds","dog","junk"],
+  "presence": {"quest":"dog.dig"},
+  "entities": [
+    {"id":"mound-1","type":"mound","x":-52,"y":10},
+    {"id":"mound-2","type":"mound","x":38,"y":-32},
+    {"id":"mound-3","type":"mound","x":12,"y":52},
+    {"id":"ground-dirt","type":"blob","x":0,"y":8,"props":{"ground":"hardpan","rx":84,"ry":64,"rough":0.4,"seed":221}}
+  ]
+}

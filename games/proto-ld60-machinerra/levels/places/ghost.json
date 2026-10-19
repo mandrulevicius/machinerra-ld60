@@ -1,0 +1,11 @@
+{
+  "name": "The Esteemed Ghost's Prison",
+  "band": [16,40],
+  "clear": 3,
+  "apart": 8,
+  "noHive": 6,
+  "tags": ["ether","npc"],
+  "entities": [
+    {"id":"prison-1","type":"prison","x":0,"y":0}
+  ]
+}

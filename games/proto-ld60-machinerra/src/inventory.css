@@ -1,0 +1,140 @@
+/* The inventory (I): brass on soot iron like the hub's panels; quality colours from theme.css (--q-*). */
+.inv-backdrop { z-index: 40; }
+.inv { width: 1180px; max-width: calc(100% - 32px); height: 640px; display: flex; flex-direction: column; gap: 8px; padding: 14px 18px; }
+.inv__head { display: flex; align-items: center; gap: 18px; }
+.inv__title { margin: 0; font-size: var(--ui-fs-lg); color: var(--brass-hi, var(--ui-c-accent)); }
+.inv__purse { display: flex; gap: 14px; font-weight: 700; margin-left: auto; }
+.inv__dim { color: var(--ui-c-text-dim); font-size: var(--ui-fs-sm); font-weight: 500; }
+.inv__close { margin-left: 8px; }
+.inv__body { flex: 1; min-height: 0; display: grid; gap: 16px; grid-template-columns: 300px 1fr 330px; }
+.inv__body--mats { grid-template-columns: 1fr 1fr; }
+.inv__body--bench { grid-template-columns: 1fr 360px; }
+.inv__col { min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
+.inv__h { margin: 6px 0 0; font-family: var(--ui-font-display); font-weight: 400; font-size: var(--ui-fs-md); color: var(--brass-hi, var(--ui-c-accent)); }
+.inv__h2 { margin: 4px 0 0; font-weight: 700; font-size: var(--ui-fs-sm); }
+.inv__note { min-height: 22px; color: var(--ui-c-warn); font-weight: 700; opacity: 0; transition: opacity 160ms; }
+.inv__note.is-on { opacity: 1; }
+.inv__empty { color: var(--ui-c-text-dim); }
+
+/* Slots (the doll) and item tiles: the border is the quality. */
+.inv__slots { display: grid; grid-template-columns: repeat(4, 64px); gap: 8px; }
+.inv-slot, .inv-item { width: 64px; height: 64px; border-width: 2px; }
+.inv-slot img, .inv-item img { width: 52px; height: 52px; }
+.inv-slot__name { position: absolute; left: 0; right: 0; bottom: -1px; font-size: 11px; line-height: 1.1; text-align: center; color: var(--ui-c-text-dim); text-shadow: 0 1px 0 #000; pointer-events: none; }
+.inv-slot.is-empty { opacity: 0.7; }
+.inv-slot.is-idle img { filter: grayscale(1) brightness(0.6); }
+.inv__slots .ui-key, .inv-slot__name .ui-key { transform: scale(0.75); }
+.inv__grid { display: grid; grid-template-columns: repeat(auto-fill, 64px); gap: 8px; align-content: start; }
+.inv-item__worn { position: absolute; top: 1px; right: 3px; font-size: 10px; font-weight: 700; color: var(--ui-c-good); text-transform: uppercase; }
+/* The kind badge: a small icon on a soot disc in a tile's top left corner, so a weapon, a head piece or a tread read at a glance. */
+.inv-kind { position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--ui-icon-line, #1d1a17) 88%, transparent); pointer-events: none; --ui-icon-size: 17px; --ui-icon-bw: 0px; }
+/* Tuned by Gasket (Owned.tuned): a small spanner on a soot disc in the bottom left corner (the top left is the kind badge, the top right "worn"). */
+.inv-tuned { position: absolute; bottom: 2px; left: 2px; width: 18px; height: 18px; display: grid; place-items: center; border-radius: 50%; background: color-mix(in srgb, var(--ui-icon-line, #1d1a17) 88%, transparent); pointer-events: none; --ui-icon-size: 12px; --ui-icon-bw: 0px; }
+.inv-slot .inv-tuned { bottom: 16px; }
+.inv-card__tuned { margin: 2px 0 0; font-size: 12px; font-weight: 700; color: var(--ui-c-good); display: flex; align-items: center; gap: 4px; --ui-icon-size: 14px; }
+.inv-recipe { position: relative; }
+.inv-recipe .inv-kind { top: 1px; left: 1px; width: 16px; height: 16px; --ui-icon-size: 11px; }
+.inv-recipe:not(.is-can) .inv-kind { opacity: 0.6; }
+.q-standard { --q: var(--q-standard); }
+.q-fine { --q: var(--q-fine); }
+.q-rare { --q: var(--q-rare); }
+.q-epic { --q: var(--q-epic); }
+.q-legendary { --q: var(--q-legendary); }
+:is(.inv-slot, .inv-item)[class*="q-"] { border-color: var(--q); box-shadow: inset 0 0 12px color-mix(in srgb, var(--q) 30%, transparent); }
+:is(.inv-slot, .inv-item).q-legendary { box-shadow: 0 0 10px color-mix(in srgb, var(--q) 60%, transparent), inset 0 0 14px color-mix(in srgb, var(--q) 45%, transparent); }
+:is(.inv-slot, .inv-item).is-selected { outline: 3px solid var(--ui-c-focus); outline-offset: 1px; }
+
+/* Filters. */
+.inv__filters { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.inv__sep { width: 8px; }
+.inv__chips { display: contents; }
+.inv-search { pointer-events: auto; flex: 1 0 100%; box-sizing: border-box; padding: 5px 12px; font: 600 var(--ui-fs-sm) var(--ui-font-body); color: var(--ui-c-text); background: var(--ui-c-surface-2); border: 1px solid var(--ui-c-border); border-radius: 99px; outline: none; }
+.inv-search::placeholder { color: var(--ui-c-text-dim); }
+.inv-search:focus { border-color: var(--ui-c-accent); box-shadow: 0 0 0 1px var(--ui-c-accent), 0 0 10px rgb(224 160 64 / 0.35); }
+/* The search's suggestions: a brass-edged plate under the box, like the panel it hangs from. */
+.inv-suggest { position: absolute; z-index: 5; margin: 0; padding: 4px; list-style: none; display: flex; flex-direction: column; gap: 2px; background: var(--ui-c-surface); border: 1px solid var(--ui-c-border); border-radius: var(--ui-radius); box-shadow: var(--ui-shadow); pointer-events: auto; }
+.inv-suggest li { cursor: pointer; display: flex; align-items: center; gap: 8px; padding: 3px 8px; border-radius: 4px; font: 700 var(--ui-fs-sm) var(--ui-font-body); color: var(--ui-c-text-dim); }
+.inv-suggest li b { color: var(--ui-c-accent); font-weight: 800; }
+.inv-suggest li em { margin-left: auto; font-style: normal; font-weight: 500; font-size: 0.85em; color: var(--ui-c-text-dim); opacity: 0.8; }
+.inv-suggest li:hover, .inv-suggest li.is-lit { color: var(--ui-c-text); background: var(--ui-c-surface-2); box-shadow: inset 2px 0 0 var(--ui-c-accent); }
+.inv-suggest img { width: 26px; height: 26px; object-fit: contain; }
+.inv-suggest .mc-barrel { width: 16px; height: 20px; margin: 0 5px; flex: none; }
+.inv-suggest__glyph { width: 26px; text-align: center; font-size: 18px; color: var(--ui-c-accent); }
+.inv-chip { pointer-events: auto; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; font: 700 var(--ui-fs-sm) var(--ui-font-body); color: var(--ui-c-text-dim); background: var(--ui-c-surface-2); border: 1px solid var(--ui-c-border); border-radius: 99px; }
+.inv-chip:hover { color: var(--ui-c-text); }
+.inv-chip.is-on { color: var(--ui-c-on-accent); background: var(--ui-c-accent); }
+.inv-chip--q i { width: 10px; height: 10px; border-radius: 50%; background: var(--q); box-shadow: 0 0 6px var(--q); }
+.inv-chip--q.is-on { background: var(--q); color: var(--ui-c-on-accent); }
+.inv-chip--clear { border-style: dashed; }
+/* Attention (P33): the filters are there to find things by, not the first thing to see; a filter in use is bright, the rest sit back until hovered. */
+.inv__chips .inv-chip:not(.is-on) { background: transparent; border-color: transparent; opacity: 0.6; font-weight: 600; transition: opacity 160ms; }
+.inv__chips .inv-chip:not(.is-on):hover, .inv__chips .inv-chip:not(.is-on):focus-visible { opacity: 1; border-color: var(--ui-c-border); }
+.inv__chips .inv-chip--clear:not(.is-on) { opacity: 0.9; border-color: var(--ui-c-border); }
+.inv__roles { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Stats and skills. */
+.inv__stats, .inv__skills, .inv__cost { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; font-size: var(--ui-fs-sm); font-weight: 700; }
+.inv__stats li { color: var(--ui-c-good); }
+.inv__stats li.is-bad, .inv__cost li.is-bad { color: var(--ui-c-warn); }
+.inv__stats li.inline { display: inline; margin-right: 6px; }
+.inv__skills span, .inv__cost span { color: var(--ui-c-text-dim); font-weight: 500; }
+.inv__cost img { width: 20px; vertical-align: middle; margin-right: 4px; }
+
+/* The item card. */
+.inv-card { display: flex; flex-direction: column; gap: 6px; padding: 12px; border: 2px solid var(--q); border-radius: 8px; background: rgb(20 14 9 / 0.6); }
+.inv-card__top { display: flex; gap: 10px; align-items: center; }
+.inv-card__top img { width: 64px; height: 64px; }
+.inv-card__name { display: block; font-family: var(--ui-font-display); font-weight: 400; font-size: var(--ui-fs-lg); line-height: 1.1; color: var(--q); }
+.inv-card__top small { color: var(--ui-c-text-dim); }
+.inv-card__tags { display: flex; gap: 4px; flex-wrap: wrap; }
+.inv-card__tags span { padding: 1px 7px; font-size: 12px; border-radius: 99px; background: var(--ui-c-surface-2); color: var(--ui-c-text-dim); }
+.inv-card__skill { margin: 0; font-size: var(--ui-fs-sm); }
+.inv-card__skill span { color: var(--ui-c-text-dim); }
+.inv-card__look { margin: 0; font-size: var(--ui-fs-sm); }
+.inv-card__flavour { margin: 0; font-size: var(--ui-fs-sm); font-style: italic; color: var(--ui-c-text-dim); }
+.inv-card__needs { margin: 0; font-weight: 700; color: var(--ui-c-warn); }
+.inv-card__needs.is-met { color: var(--ui-c-good); }
+.inv__acts { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* Materials. */
+.inv-mats { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.inv-mat { display: grid; grid-template-columns: 36px 1fr auto; grid-template-rows: auto auto; align-items: center; column-gap: 10px; padding: 4px 8px; border-radius: 4px; background: rgb(0 0 0 / 0.25); }
+.inv-mat__icon { grid-row: span 2; display: grid; place-items: center; font-size: 22px; color: var(--ui-c-accent); }
+.inv-mat__icon img { width: 32px; }
+.inv-mat small { color: var(--ui-c-text-dim); grid-column: 2; }
+.inv-mat em { grid-row: 1 / span 2; grid-column: 3; font-style: normal; font-family: var(--ui-font-display); font-size: var(--ui-fs-lg); color: var(--ui-c-text); }
+
+/* The workbench. */
+.inv__recipes { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.inv-recipe { pointer-events: auto; cursor: pointer; display: flex; align-items: center; gap: 6px; padding: 4px 6px; text-align: left; font: 700 var(--ui-fs-sm) var(--ui-font-body); color: var(--ui-c-text-dim); background: var(--ui-c-surface-2); border: 1px solid transparent; border-radius: 6px; }
+.inv-recipe img { width: 36px; height: 36px; opacity: 0.55; }
+.inv-recipe.is-can { color: var(--ui-c-text); border-color: var(--ui-c-border); }
+.inv-recipe.is-can img { opacity: 1; }
+.inv-recipe.is-selected { outline: 3px solid var(--ui-c-focus); }
+.inv__craft { align-self: flex-start; }
+.inv-reveal { font-family: var(--ui-font-display); font-size: var(--ui-fs-xl); color: var(--q); text-shadow: 0 0 18px var(--q); animation: inv-pop 600ms cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+@keyframes inv-pop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* Punch cards: a slot is a card (or an empty pocket); the collection is a grid of cards. Their look is `punchcard.css`. */
+.inv__cslots { display: flex; flex-direction: column; gap: 8px; }
+.inv__ctiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 10px 8px; align-content: start; }
+.inv__acts .ui-btn small { display: block; font-weight: 500; }
+
+/* Drag and drop: where the dragged item or card can land glows, the one under the pointer brighter. */
+[data-drag] { -webkit-user-drag: element; }
+.inv-slot.is-target { opacity: 1; outline: 2px dashed var(--ui-c-accent); outline-offset: 2px; }
+.inv-slot.is-over { outline: 3px solid var(--ui-c-accent); box-shadow: 0 0 12px color-mix(in srgb, var(--ui-c-accent) 60%, transparent); }
+.inv__list.is-target { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ui-c-accent) 35%, transparent); border-radius: 6px; }
+.inv__list.is-over { box-shadow: inset 0 0 0 2px var(--ui-c-accent); }
+
+/* Weapon mods (P57): a weapon's lugs are brass pips under its slot, filled with the fitted mod's icon; weapon tiles show them small. */
+.inv-slotwrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.inv-lugs { display: flex; gap: 6px; }
+.inv-lug { pointer-events: auto; cursor: pointer; width: 24px; height: 24px; padding: 0; display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--brass-hi, var(--ui-c-accent)); background: radial-gradient(circle at 35% 30%, rgb(255 224 140 / 0.35), rgb(20 14 9 / 0.85) 70%); box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.5); }
+.inv-lug:not(.is-filled)::after { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--brass-hi, var(--ui-c-accent)); opacity: 0.55; }
+.inv-lug:hover { filter: brightness(1.25); }
+.inv-lug.is-selected { outline: 3px solid var(--ui-c-focus); outline-offset: 1px; }
+.inv-lug img { width: 18px; height: 18px; }
+.inv-lugrow { display: flex; align-items: center; gap: 10px; }
+.inv-item__lugs { position: absolute; left: 2px; bottom: 2px; display: flex; gap: 1px; pointer-events: none; }
+.inv-item .inv-item__lugs img { width: 17px; height: 17px; border-radius: 50%; background: rgb(20 14 9 / 0.8); border: 1px solid var(--brass-hi, var(--ui-c-accent)); }

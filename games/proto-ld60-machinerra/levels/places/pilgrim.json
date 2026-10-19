@@ -1,0 +1,11 @@
+{
+  "name": "Stranded Pilgrim",
+  "band": [26,90],
+  "clear": 2,
+  "apart": 6,
+  "anchor": {"hive":[3.3,4.3]},
+  "tags": ["npc","rescue"],
+  "entities": [
+    {"id":"pilgrim-1","type":"pilgrim","x":0,"y":0}
+  ]
+}

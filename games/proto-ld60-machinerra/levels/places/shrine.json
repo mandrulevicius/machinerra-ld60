@@ -1,0 +1,15 @@
+{
+  "name": "Old Way Shrine",
+  "band": [24,48],
+  "clear": 4,
+  "apart": 8,
+  "awayFrom": {"places":["core-vault"],"deg":120},
+  "tags": ["weapon","hives","reward"],
+  "entities": [
+    {"id":"case-1","type":"case","x":0,"y":0},
+    {"id":"hive-1","type":"hive","x":72.32,"y":61.44},
+    {"id":"hive-2","type":"hive","x":-72.32,"y":61.44},
+    {"id":"hive-3","type":"hive","x":-72.32,"y":-61.44},
+    {"id":"hive-4","type":"hive","x":72.32,"y":-61.44}
+  ]
+}

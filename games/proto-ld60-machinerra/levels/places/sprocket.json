@@ -1,0 +1,11 @@
+{
+  "name": "Sprocket's Wreck",
+  "band": [30,60],
+  "clear": 2,
+  "apart": 6,
+  "tags": ["npc","rescue","guarded"],
+  "entities": [
+    {"id":"pilgrim-1","type":"pilgrim","x":0,"y":0},
+    {"id":"wreck-1","type":"wreck","x":0,"y":0}
+  ]
+}

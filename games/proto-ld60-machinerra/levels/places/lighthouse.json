@@ -1,0 +1,22 @@
+{
+  "name": "The Lighthouse",
+  "band": [30,60],
+  "clear": 5,
+  "apart": 8,
+  "tags": ["light","beam","lure","fog"],
+  "entities": [
+    {"id":"tower-1","type":"lighthouse","x":0,"y":-16},
+    {"id":"hut-1","type":"ruin","x":-118,"y":40,"props":{"ruin":"panel"}},
+    {"id":"boat-1","type":"ruin","x":112,"y":84,"props":{"ruin":"car"}},
+    {"id":"buoy-1","type":"buoy","x":163.9,"y":54.5},
+    {"id":"buoy-2","type":"buoy","x":21.9,"y":138.9},
+    {"id":"buoy-3","type":"buoy","x":-142.0,"y":84.4},
+    {"id":"buoy-4","type":"buoy","x":-163.9,"y":-54.5},
+    {"id":"buoy-5","type":"buoy","x":-21.9,"y":-138.9},
+    {"id":"buoy-6","type":"buoy","x":142.0,"y":-84.4},
+    {"id":"wave-1","type":"band","x":0,"y":150,"props":{"ground":"dune","length":420,"width":44,"bend":30,"rough":0.4,"seed":71}},
+    {"id":"wave-2","type":"band","x":0,"y":214,"props":{"ground":"dune","length":460,"width":40,"bend":36,"rough":0.4,"seed":72}},
+    {"id":"wave-3","type":"band","x":-20,"y":-170,"props":{"ground":"dune","length":380,"width":44,"bend":-30,"rough":0.4,"seed":73}},
+    {"id":"ground-rock","type":"blob","x":0,"y":-10,"props":{"ground":"hardpan","rx":70,"ry":56,"rough":0.4,"seed":74}}
+  ]
+}

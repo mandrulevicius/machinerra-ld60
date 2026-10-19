@@ -1,0 +1,15 @@
+{
+  "name": "Core Vault",
+  "band": [30,60],
+  "clear": 3,
+  "apart": 8,
+  "anchor": {"hive":[8,12]},
+  "bounded": true,
+  "tags": ["core","vault","hold","elite","lure","kick"],
+  "entities": [
+    {"id":"vault-1","type":"vault","x":0,"y":0},
+    {"id":"can-1","type":"can","x":-52,"y":34},
+    {"id":"ground-pan","type":"blob","x":0,"y":12,"props":{"ground":"hardpan","rx":128,"ry":96,"rough":0.5,"seed":21}},
+    {"id":"ground-shade","type":"blob","x":14,"y":-92,"rotation":-8,"props":{"ground":"rock","rx":88,"ry":38,"rough":0.65,"seed":22}}
+  ]
+}

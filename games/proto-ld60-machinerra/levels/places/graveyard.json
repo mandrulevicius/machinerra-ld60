@@ -1,0 +1,29 @@
+{
+  "name": "Graveyard of Communicators",
+  "band": [11,21],
+  "clear": 5,
+  "apart": 7,
+  "noHive": 17,
+  "tags": ["rest","oil","communicators"],
+  "entities": [
+    {"id":"wreck-1","type":"wreck","x":62.4,"y":82.24},
+    {"id":"wreck-2","type":"wreck","x":-14.4,"y":97.28},
+    {"id":"wreck-3","type":"wreck","x":-84.48,"y":66.56},
+    {"id":"wreck-4","type":"wreck","x":-115.2,"y":4.8},
+    {"id":"wreck-5","type":"wreck","x":-91.84,"y":-59.2},
+    {"id":"wreck-6","type":"wreck","x":-25.6,"y":-95.36},
+    {"id":"wreck-7","type":"wreck","x":52.48,"y":-87.04},
+    {"id":"wreck-8","type":"wreck","x":106.24,"y":-38.08},
+    {"id":"grave-1","type":"grave","x":31.04,"y":41.28},
+    {"id":"grave-2","type":"grave","x":-57.6,"y":2.24},
+    {"id":"grave-3","type":"grave","x":26.56,"y":-43.52},
+    {"id":"can-1","type":"can","x":29.12,"y":16.96},
+    {"id":"can-2","type":"can","x":-31.68,"y":12.8},
+    {"id":"can-3","type":"can","x":2.56,"y":-29.76},
+    {"id":"lamp-1","type":"lamp","x":-67.2,"y":6.4},
+    {"id":"lamp-2","type":"lamp","x":67.2,"y":6.4},
+    {"id":"ground-pan","type":"blob","x":0,"y":8,"props":{"ground":"hardpan","rx":152,"ry":128,"rough":0.45,"seed":11}},
+    {"id":"ground-way","type":"band","x":152,"y":50,"rotation":15,"props":{"ground":"hardpan","length":230,"width":58,"bend":14,"rough":0.5,"seed":12}},
+    {"id":"ground-drift","type":"blob","x":-118,"y":-92,"rotation":-30,"props":{"ground":"dune","rx":84,"ry":40,"rough":0.6,"seed":13}}
+  ]
+}

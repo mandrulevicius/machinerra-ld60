@@ -1,0 +1,39 @@
+{
+  "_": "The four-legged foes' cuts (P7): each leg is one limb of Laimonas's drawing, hip, knee, foot, in game px of the foe's box (facing right, feet at the bottom). tools/mob-svg.cjs draws the whole painting from these and cuts each leg into a thigh and a shin, and the head out of the body; src/quad.ts rigs them. far: drawn behind the body; front: a front leg; phase: 0 or 1, a trot swings diagonal pairs together; k: the whole drawing's scale (the bleater is a goat at 0.66); head: its frame's box [x0, y0, x1, y1] and the neck it turns on.",
+  "cat": { "head": { "box": [33, 3, 47, 17.5], "neck": [35, 12.5] }, "legs": [
+    { "id": "rear-far", "far": true, "front": false, "phase": 0, "pts": [[13, 16], [9, 21], [12, 27]], "w": 2.6 },
+    { "id": "front-far", "far": true, "front": true, "phase": 1, "pts": [[32, 16], [35, 21], [33, 27]], "w": 2.6 },
+    { "id": "rear-near", "far": false, "front": false, "phase": 1, "pts": [[16, 17], [19, 22], [17, 27]], "w": 2.8 },
+    { "id": "front-near", "far": false, "front": true, "phase": 0, "pts": [[30, 17], [27, 22], [30, 27]], "w": 2.8 }
+  ] },
+  "boar": { "head": { "box": [34.5, 8, 52.5, 26], "neck": [41, 18] }, "legs": [
+    { "id": "rear-far", "far": true, "front": false, "phase": 0, "pts": [[14, 24], [12, 28], [13, 33]], "w": 3.4 },
+    { "id": "front-far", "far": true, "front": true, "phase": 1, "pts": [[36, 24], [38, 28], [37, 33]], "w": 3.4 },
+    { "id": "rear-near", "far": false, "front": false, "phase": 1, "pts": [[18, 25], [20, 29], [18, 33]], "w": 3.4 },
+    { "id": "front-near", "far": false, "front": true, "phase": 0, "pts": [[32, 25], [30, 29], [32, 33]], "w": 3.4 }
+  ] },
+  "goat": { "head": { "box": [29, -1.5, 44.5, 22.5], "neck": [32, 14] }, "legs": [
+    { "id": "rear-far", "far": true, "front": false, "phase": 0, "pts": [[10, 24], [8, 29], [10, 35]], "w": 2.6 },
+    { "id": "front-far", "far": true, "front": true, "phase": 1, "pts": [[30, 24], [32, 29], [30, 35]], "w": 2.6 },
+    { "id": "rear-near", "far": false, "front": false, "phase": 1, "pts": [[14, 25], [16, 30], [14, 35]], "w": 2.6 },
+    { "id": "front-near", "far": false, "front": true, "phase": 0, "pts": [[26, 25], [24, 30], [26, 35]], "w": 2.6 }
+  ] },
+  "bleater": { "k": 0.66, "head": { "box": [30, 5, 43, 22.5], "neck": [32, 14] }, "legs": [
+    { "id": "rear-far", "far": true, "front": false, "phase": 0, "pts": [[10, 24], [8, 29], [10, 35]], "w": 2.6 },
+    { "id": "front-far", "far": true, "front": true, "phase": 1, "pts": [[30, 24], [32, 29], [30, 35]], "w": 2.6 },
+    { "id": "rear-near", "far": false, "front": false, "phase": 1, "pts": [[14, 25], [16, 30], [14, 35]], "w": 2.6 },
+    { "id": "front-near", "far": false, "front": true, "phase": 0, "pts": [[26, 25], [24, 30], [26, 35]], "w": 2.6 }
+  ] },
+  "charger": { "head": { "box": [40, -2, 58.5, 23], "neck": [43, 18] }, "legs": [
+    { "id": "rear-far", "far": true, "front": false, "phase": 0, "pts": [[18, 28], [15, 36], [17, 44]], "w": 3 },
+    { "id": "front-far", "far": true, "front": true, "phase": 1, "pts": [[40, 28], [44, 36], [41, 44]], "w": 3 },
+    { "id": "rear-near", "far": false, "front": false, "phase": 1, "pts": [[22, 29], [24, 36], [21, 44]], "w": 3 },
+    { "id": "front-near", "far": false, "front": true, "phase": 0, "pts": [[36, 29], [33, 36], [36, 44]], "w": 3 }
+  ] },
+  "cart": { "head": { "box": [-0.5, 1, 11, 7.5], "neck": [9, 4.4] }, "legs": [
+    { "id": "rear-far", "far": true, "front": false, "phase": 0, "pts": [[8, 20], [5.8, 24], [8, 28]], "w": 1.9 },
+    { "id": "rear-near", "far": true, "front": false, "phase": 1, "pts": [[15, 20], [12.8, 24], [15, 28]], "w": 1.9 },
+    { "id": "front-far", "far": true, "front": true, "phase": 1, "pts": [[26, 20], [23.8, 24], [26, 28]], "w": 1.9 },
+    { "id": "front-near", "far": true, "front": true, "phase": 0, "pts": [[33, 20], [30.8, 24], [33, 28]], "w": 1.9 }
+  ] }
+}

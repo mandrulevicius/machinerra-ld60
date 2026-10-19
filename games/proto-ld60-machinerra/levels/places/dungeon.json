@@ -1,0 +1,11 @@
+{
+  "name": "Dungeon entrance",
+  "band": [18,46],
+  "clear": 3,
+  "apart": 8,
+  "noHive": 7,
+  "tags": ["dungeon","entrance"],
+  "entities": [
+    {"id":"shaft-1","type":"shaft","x":0,"y":0}
+  ]
+}

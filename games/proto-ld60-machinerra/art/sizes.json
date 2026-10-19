@@ -1,0 +1,794 @@
+{
+  "default": {
+    "max": 128
+  },
+  "sizes": {
+    "communicator/": {
+      "height": 74,
+      "scale": 2,
+      "material": "matte"
+    },
+    "communicator/portrait": {
+      "max": 64,
+      "scale": 2
+    },
+    "communicator/hero": {
+      "height": 340,
+      "scale": 1
+    },
+    "communicator/shovel": {
+      "width": 46,
+      "scale": 2
+    },
+    "crew/gatherer": {
+      "height": 48,
+      "scale": 2,
+      "material": "matte"
+    },
+    "crew/gatherer-gather-*": {
+      "height": 48,
+      "scale": 2,
+      "material": "matte"
+    },
+    "crew/guard-*": {
+      "height": 50,
+      "scale": 2,
+      "material": "matte"
+    },
+    "crew/guard": {
+      "height": 50,
+      "scale": 2,
+      "material": "matte"
+    },
+    "crew/repairer": {
+      "height": 48,
+      "scale": 2,
+      "material": "matte"
+    },
+    "crew/mule": {
+      "height": 46,
+      "scale": 2,
+      "material": "matte"
+    },
+    "crew/marksman": {
+      "height": 52,
+      "scale": 2,
+      "material": "matte"
+    },
+    "crew/boilermancer": {
+      "height": 48,
+      "scale": 2,
+      "material": "matte"
+    },
+    "crew/lamplighter": {
+      "height": 56,
+      "scale": 2,
+      "material": "matte"
+    },
+    "crew/stalker": {
+      "height": 50,
+      "scale": 2,
+      "material": "matte"
+    },
+    "npc/": {
+      "height": 100,
+      "scale": 2,
+      "material": "matte"
+    },
+    "npc/highPriest": {
+      "height": 150,
+      "scale": 2,
+      "material": "matte"
+    },
+    "npc/kicker": {
+      "height": 92,
+      "scale": 2,
+      "material": "matte"
+    },
+    "npc/cityPlanner": {
+      "height": 96,
+      "scale": 2,
+      "material": "matte"
+    },
+    "npc/expeditioner": {
+      "height": 94,
+      "scale": 2,
+      "material": "matte"
+    },
+    "npc/princess": {
+      "height": 96,
+      "scale": 2,
+      "material": "matte"
+    },
+    "npc/evilOracle": {
+      "height": 120,
+      "scale": 2,
+      "material": "matte"
+    },
+    "npc/portrait-*": {
+      "height": 276,
+      "scale": 2,
+      "trim": false
+    },
+    "npc/oracle-face": {
+      "height": 64,
+      "scale": 2,
+      "trim": false
+    },
+    "foe/swarmer-*": {
+      "height": 42,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/swarmer": {
+      "height": 42,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/drone-*": {
+      "height": 46,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/drone": {
+      "height": 46,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/harbinger": {
+      "height": 128,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/evilOracle": {
+      "height": 132,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/evilOracle-unveiled": {
+      "height": 144,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/hornet-boss": {
+      "height": 100,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/hornet-boss-flap": {
+      "height": 100,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/gorilla-boss-*": {
+      "height": 96,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/gorilla-boss": {
+      "height": 96,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/knight-boss": {
+      "height": 124,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/knight-boss2": {
+      "height": 84,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/bear-boss": {
+      "height": 84,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/bear-boss2": {
+      "height": 64,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/snake-boss": {
+      "height": 74,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/croc-boss": {
+      "height": 76,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/mallcop-boss": {
+      "height": 112,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/bishop-boss": {
+      "height": 118,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/snowcat-boss": {
+      "height": 88,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/hornet": {
+      "height": 32,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/hornet-flap": {
+      "height": 32,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/snake": {
+      "height": 39,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/snake-head": {
+      "height": 21,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/snake-seg": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/snake-seg2": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/snake-tail": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/veinworm-head": {
+      "height": 21,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/veinworm-seg": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/veinworm-tail": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/snake-boss-head": {
+      "height": 55,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/snake-boss-seg": {
+      "height": 19,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/snake-boss-tail": {
+      "height": 19,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cat": {
+      "height": 37,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/boar": {
+      "height": 44,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/monkey": {
+      "height": 41,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/commuter": {
+      "height": 55,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/officer": {
+      "height": 57,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/charger": {
+      "height": 57,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/goat": {
+      "height": 46,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/bleater": {
+      "height": 30,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/kite": {
+      "height": 39,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/piranha": {
+      "height": 32,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cupid": {
+      "height": 39,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/mannequin": {
+      "height": 57,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cart": {
+      "height": 39,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/copdrone": {
+      "height": 32,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/leech": {
+      "height": 30,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/veinworm": {
+      "height": 30,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/mite": {
+      "height": 23,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/driller": {
+      "height": 44,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/wisp": {
+      "height": 46,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/shade-*": {
+      "height": 64,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/shade": {
+      "height": 64,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/banshee": {
+      "height": 53,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/cat-body": {
+      "height": 37,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cat-head": {
+      "height": 22,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cat-leg-rear-far-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cat-leg-rear-far-shin": {
+      "height": 17,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cat-leg-front-far-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cat-leg-front-far-shin": {
+      "height": 17,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cat-leg-rear-near-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cat-leg-rear-near-shin": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cat-leg-front-near-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cat-leg-front-near-shin": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/boar-body": {
+      "height": 44,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/boar-head": {
+      "height": 26,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/boar-leg-rear-far-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/boar-leg-rear-far-shin": {
+      "height": 17,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/boar-leg-front-far-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/boar-leg-front-far-shin": {
+      "height": 17,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/boar-leg-rear-near-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/boar-leg-rear-near-shin": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/boar-leg-front-near-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/boar-leg-front-near-shin": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/goat-body": {
+      "height": 46,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/goat-head": {
+      "height": 33,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/goat-leg-rear-far-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/goat-leg-rear-far-shin": {
+      "height": 17,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/goat-leg-front-far-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/goat-leg-front-far-shin": {
+      "height": 17,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/goat-leg-rear-near-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/goat-leg-rear-near-shin": {
+      "height": 16,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/goat-leg-front-near-thigh": {
+      "height": 16,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/goat-leg-front-near-shin": {
+      "height": 16,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/bleater-body": {
+      "height": 30,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/bleater-head": {
+      "height": 18,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/bleater-leg-rear-far-thigh": {
+      "height": 12,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/bleater-leg-rear-far-shin": {
+      "height": 13,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/bleater-leg-front-far-thigh": {
+      "height": 12,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/bleater-leg-front-far-shin": {
+      "height": 13,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/bleater-leg-rear-near-thigh": {
+      "height": 12,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/bleater-leg-rear-near-shin": {
+      "height": 12,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/bleater-leg-front-near-thigh": {
+      "height": 12,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/bleater-leg-front-near-shin": {
+      "height": 12,
+      "scale": 2,
+      "material": "matte"
+    },
+    "foe/charger-body": {
+      "height": 57,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/charger-head": {
+      "height": 34,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/charger-leg-rear-far-thigh": {
+      "height": 20,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/charger-leg-rear-far-shin": {
+      "height": 20,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/charger-leg-front-far-thigh": {
+      "height": 20,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/charger-leg-front-far-shin": {
+      "height": 20,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/charger-leg-rear-near-thigh": {
+      "height": 19,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/charger-leg-rear-near-shin": {
+      "height": 20,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/charger-leg-front-near-thigh": {
+      "height": 19,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/charger-leg-front-near-shin": {
+      "height": 20,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cart-body": {
+      "height": 39,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cart-head": {
+      "height": 12,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cart-leg-rear-far-thigh": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cart-leg-rear-far-shin": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cart-leg-rear-near-thigh": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cart-leg-rear-near-shin": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cart-leg-front-far-thigh": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cart-leg-front-far-shin": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cart-leg-front-near-thigh": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/cart-leg-front-near-shin": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/limb-claw-upper": {
+      "height": 10,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/limb-claw-fore": {
+      "height": 16,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/limb-tentacle-plate": {
+      "height": 9,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/limb-tentacle-tip": {
+      "height": 12,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/monkey-body": {
+      "height": 41,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/monkey-arm-raised-upper": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/monkey-arm-raised-lower": {
+      "height": 21,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/monkey-arm-low-upper": {
+      "height": 14,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/monkey-arm-low-lower": {
+      "height": 13,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/commuter-body": {
+      "height": 55,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/commuter-arm-near-upper": {
+      "height": 18,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/commuter-arm-near-lower": {
+      "height": 20,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/officer-body": {
+      "height": 57,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/officer-arm-near-upper": {
+      "height": 18,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/officer-arm-near-lower": {
+      "height": 20,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/mannequin-body": {
+      "height": 57,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/mannequin-arm-left-upper": {
+      "height": 20,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/mannequin-arm-left-lower": {
+      "height": 15,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/mannequin-arm-right-upper": {
+      "height": 18,
+      "scale": 2,
+      "material": "metal"
+    },
+    "foe/mannequin-arm-right-lower": {
+      "height": 24,
+      "scale": 2,
+      "material": "metal"
+    }
+  }
+}

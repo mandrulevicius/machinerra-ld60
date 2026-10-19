@@ -1,0 +1,15 @@
+{
+  "name": "The False Church",
+  "band": [34,80],
+  "clear": 7,
+  "apart": 9,
+  "noHive": 8,
+  "tags": ["ether","boss"],
+  "entities": [
+    {"id":"nave-1","type":"nave","x":0,"y":-48},
+    {"id":"candle-1","type":"candle","x":-102.4,"y":76.8},
+    {"id":"candle-2","type":"candle","x":102.4,"y":76.8},
+    {"id":"candle-3","type":"candle","x":-51.2,"y":128},
+    {"id":"candle-4","type":"candle","x":51.2,"y":128}
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "The Frozen Lake",
+  "band": [28,70],
+  "clear": 6,
+  "apart": 9,
+  "noHive": 9,
+  "tags": ["arena","boss"],
+  "entities": [
+    {"id":"ice-1","type":"ice","x":0,"y":0},
+    {"id":"rock-1","type":"rock","x":29.76,"y":144.64},
+    {"id":"rock-2","type":"rock","x":-114.56,"y":110.08},
+    {"id":"rock-3","type":"rock","x":-172.48,"y":-7.36},
+    {"id":"rock-4","type":"rock","x":-100.8,"y":-119.36},
+    {"id":"rock-5","type":"rock","x":47.04,"y":-141.44},
+    {"id":"rock-6","type":"rock","x":159.36,"y":-56.96},
+    {"id":"hangar-1","type":"hangar","x":0,"y":-230.4}
+  ]
+}

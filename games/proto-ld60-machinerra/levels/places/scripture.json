@@ -1,0 +1,19 @@
+{
+  "name": "The First Scripture",
+  "band": [20,60],
+  "clear": 4,
+  "apart": 7,
+  "noHive": 12,
+  "tags": ["scripture","delight","oldway","church","title"],
+  "presence": {"oneIn":5,"once":true},
+  "entities": [
+    {"id":"sign-1","type":"sign","x":0,"y":96},
+    {"id":"table-1","type":"table","x":-24,"y":10},
+    {"id":"chair-1","type":"chair","x":-56,"y":14},
+    {"id":"chair-2","type":"chair","x":8,"y":14},
+    {"id":"cafe-back","type":"band","x":0,"y":-80,"props":{"ground":"rock","length":230,"width":40,"bend":0,"rough":0.08,"seed":101}},
+    {"id":"cafe-west","type":"band","x":-112,"y":-16,"rotation":90,"props":{"ground":"rock","length":150,"width":40,"bend":0,"rough":0.08,"seed":102}},
+    {"id":"cafe-east","type":"band","x":112,"y":-16,"rotation":90,"props":{"ground":"rock","length":150,"width":40,"bend":0,"rough":0.08,"seed":103}},
+    {"id":"ground-terrace","type":"blob","x":0,"y":40,"props":{"ground":"hardpan","rx":110,"ry":70,"rough":0.3,"seed":104}}
+  ]
+}

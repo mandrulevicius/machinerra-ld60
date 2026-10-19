@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup: game menu</title>
+<link rel="stylesheet" href="../all.css">
+</head>
+<body data-probe="Input">
+<div class="stage-fit"><div class="stage">
+<div class="game-placeholder"><i></i></div>
+<div id="ui">
+  <div class="ui-anchor ui-anchor--tl"><button class="ui-btn ui-btn--icon ui-btn--faint" aria-label="Menu"><span class="ui-burger"></span></button></div>
+  <!-- The kit's game menu (harness/kit/menus.ts): Main tab (buttons only: Resume, Save, Load, then Exit), and rows of the other tabs below it. Save and Load appear only when the game has them. -->
+  <div class="ui-backdrop" style="gap:var(--ui-sp-5)">
+    <div class="ui-panel ui-dialog ui-dialog--wide" role="dialog" aria-label="Game Title">
+      <h2 class="ui-panel__title">Game Title</h2>
+      <div class="ui-stack">
+        <div class="ui-tabs" role="tablist">
+          <button class="ui-tab" role="tab" aria-selected="true">Main</button>
+          <button class="ui-tab" role="tab" aria-selected="false">Audio</button>
+          <button class="ui-tab" role="tab" aria-selected="false">Graphics</button>
+          <button class="ui-tab" role="tab" aria-selected="false">Controls</button>
+        </div>
+        <div class="ui-tabpanel" role="tabpanel">
+          <ul class="ui-menu">
+            <li><button class="ui-menu__item is-selected">Resume</button></li>
+            <li><button class="ui-menu__item">Save</button></li>
+            <li><button class="ui-menu__item">Load</button></li>
+          </ul>
+          <hr class="ui-sep">
+          <ul class="ui-menu"><li><button class="ui-menu__item">Exit to title</button></li></ul>
+        </div>
+      </div>
+    </div>
+    <div class="ui-panel ui-dialog ui-dialog--wide" role="dialog" aria-label="Audio">
+      <h2 class="ui-panel__title">Audio tab, Graphics tab, Controls tab</h2>
+      <div class="ui-stack">
+        <div class="ui-field"><span>Master volume</span><div class="ui-vol" style="--v: 0.8" data-level="high"><span class="ui-vol__pct">80%</span><svg class="ui-vol__ramp ui-vol__bed" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,100 100,0 100,100"/></svg><svg class="ui-vol__ramp ui-vol__fill" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,100 100,0 100,100"/></svg><svg class="ui-vol__ramp ui-vol__edge" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polygon points="0,100 100,0 100,100"/></svg><span class="ui-vol__handle"><span class="ui-icon ui-vol__icon"></span></span><input class="ui-vol__input" type="range" min="0" max="1" step="0.05" value="0.8" aria-label="Master volume"></div></div>
+        <label class="ui-field"><span>Music</span><span class="ui-row"><input class="ui-slider" type="range" value="55" aria-label="Music"><span class="ui-field__value">55%</span></span></label>
+        <label class="ui-field"><span>Mute</span><span class="ui-toggle"><input type="checkbox" aria-label="Mute"><span class="ui-toggle__track"></span></span></label>
+        <div class="ui-field"><span>Quality</span><span class="ui-choices"><button class="ui-btn">Low</button><button class="ui-btn">Medium</button><button class="ui-btn ui-btn--primary">High</button></span></div>
+        <label class="ui-field"><span>Shadows</span><span class="ui-toggle"><input type="checkbox" checked aria-label="Shadows"><span class="ui-toggle__track"></span></span></label>
+        <div class="ui-field"><span>Particles</span><span class="ui-choices"><button class="ui-btn">Few</button><button class="ui-btn ui-btn--primary">Normal</button><button class="ui-btn">Many</button></span></div>
+        <p class="ui-note ui-note--warn">More lights need a reload. <button class="ui-btn">Reload</button></p>
+        <div class="ui-stat"><span>Move</span><span><kbd class="ui-key">Left</kbd> <kbd class="ui-key">Right</kbd></span></div>
+        <div class="ui-stat"><span>Jump</span><kbd class="ui-key">Space</kbd></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div></div>
+<script src="../preview.js"></script>
+</body>
+</html>

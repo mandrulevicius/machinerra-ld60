@@ -1,0 +1,63 @@
+/* Machinerra: brass and soot iron, amber glass, a western-steampunk display face; the Oracle speaks in a clean mono. */
+@import url("https://fonts.googleapis.com/css2?family=Rye&family=Barlow+Semi+Condensed:wght@500;700&family=Share+Tech+Mono&display=swap");
+
+[data-theme="machinerra"] {
+  --ui-c-scene-text: #fbe8c0;
+  --ui-c-scene-text-dim: #d8b880;
+  --ui-c-surface: #2a221b;
+  --ui-c-surface-2: #3a2f24;
+  --ui-c-text: #f4e2bc;
+  --ui-c-text-dim: #b89b70;
+  --ui-c-border: #c8963c;
+  --ui-c-accent: #e0a040;
+  --ui-c-accent-hover: #f0bc5c;
+  --ui-c-on-accent: #20170f;
+  --ui-c-btn: #4a3a28;
+  --ui-c-btn-hover: #5e4a32;
+  --ui-c-btn-text: #f4e2bc;
+  --ui-c-danger: #e0503a;
+  --ui-c-good: #7cc46a;
+  --ui-c-warn: #ffb640;
+  --ui-c-focus: #3df2ff;
+  --ui-c-backdrop: rgb(12 8 4 / 0.78);
+  --ui-c-track: #1a140f;
+  --ui-icon-c: #e0a040;
+  --ui-icon-line: #1d1a17;
+
+  --ui-font-body: "Barlow Semi Condensed", "Arial Narrow", sans-serif;
+  --ui-font-display: Rye, Georgia, serif;
+  --ui-fs-sm: 14px;
+  --ui-fs-md: 18px;
+  --ui-fs-lg: 24px;
+  --ui-fs-xl: 34px;
+  --ui-fs-xxl: 76px;
+  --ui-fw-display: 400;
+  --ui-ls-display: 0.04em;
+  --ui-tt-display: none;
+  --ui-text-shadow: 0 2px 0 #1d1a17, 0 0 16px rgb(0 0 0 / 0.7);
+
+  --ui-radius: 6px;
+  --ui-radius-lg: 10px;
+
+  /* Item quality (the inventory, Laimonas): grey-white standard up to legendary gold. */
+  --q-standard: #d8d0c0;
+  --q-fine: #7cd46a;
+  --q-rare: #4aa8ff;
+  --q-epic: #c070ff;
+  --q-legendary: #ffc83a;
+  --ui-bw: 2px;
+  --ui-panel-bg: linear-gradient(170deg, #3a2f24, #211a14);
+  --ui-shadow: 0 0 0 1px #7a5a22, 0 0 0 3px #1d1a17, 0 12px 28px rgb(0 0 0 / 0.6);
+  --ui-shadow-raised: inset 0 1px 0 rgb(255 220 150 / 0.25), 0 2px 0 #1d1a17;
+  --ui-shadow-pressed: inset 0 2px 4px rgb(0 0 0 / 0.45);
+  --ui-menu-marker: "\2699";
+
+  --kit-bg: #1d1712;
+  --kit-ink: #1d1a17;
+  --kit-paper: #f4e2bc;
+  --kit-line: 4px;
+  --kit-ambient: #c8a078;
+  --kit-fx-1: #ffb640;
+  --kit-fx-2: #3df2ff;
+  --kit-fx-3: #f4efe6;
+}

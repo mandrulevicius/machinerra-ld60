@@ -1,0 +1,17 @@
+{
+  "name": "Test land",
+  "biome": "desert",
+  "size": [40,26],
+  "ground": "sand",
+  "entities": [
+    {"id":"rock-1","type":"blob","x":600,"y":640,"props":{"ground":"rock","rx":140,"ry":90,"rough":0.5,"seed":3}},
+    {"id":"road-1","type":"band","x":560,"y":416,"props":{"ground":"hardpan","length":720,"width":64,"bend":40,"rough":0.3,"seed":5}},
+    {"id":"dunes-1","type":"blob","x":900,"y":250,"rotation":20,"props":{"ground":"dune","rx":150,"ry":70,"rough":0.4,"seed":9}},
+    {"id":"lift-1","type":"lift","x":144,"y":432},
+    {"id":"seep-1","type":"seep","x":336,"y":400},
+    {"id":"seep-2","type":"seep","x":720,"y":272},
+    {"id":"hive-1","type":"hive","x":976,"y":176},
+    {"id":"ruin-1","type":"ruin","x":400,"y":176,"props":{"ruin":"car"}},
+    {"id":"place-1","type":"place","x":976,"y":560,"rotation":20,"props":{"place":"graveyard"}}
+  ]
+}

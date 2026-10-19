@@ -1,0 +1,7 @@
+/* Convenience bundle for the preview pages. A game imports tokens.css, one theme, and components.css. */
+@import url("tokens.css");
+@import url("themes/samples/clean.css");
+@import url("themes/samples/pixel.css");
+@import url("themes/samples/fantasy.css");
+@import url("components.css");
+@import url("preview.css");

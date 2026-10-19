@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup: game over</title>
+<link rel="stylesheet" href="../all.css">
+</head>
+<body data-probe="Transitions">
+<div class="stage-fit"><div class="stage">
+<div class="game-placeholder"><i></i></div>
+<div id="ui">
+  <div class="ui-screen ui-screen--center" style="flex-direction:column;gap:var(--ui-sp-4)">
+    <h1 class="ui-title">Game Over</h1>
+    <div class="ui-panel" style="width:420px">
+      <div class="ui-stat"><span>Final score</span><span class="ui-stat__value">012,450</span></div>
+      <div class="ui-stat"><span>Enemies defeated</span><span class="ui-stat__value">24</span></div>
+      <div class="ui-stat"><span>Coins</span><span class="ui-stat__value">128</span></div>
+      <div class="ui-stat"><span>Time</span><span class="ui-stat__value">03:12</span></div>
+      <div class="ui-stat"><span>Best</span><span class="ui-stat__value">15,200</span></div>
+      <div class="ui-stack" style="gap:var(--ui-sp-1);margin-top:var(--ui-sp-4)">
+        <span class="ui-label">Level progress</span>
+        <div class="ui-bar ui-bar--progress" style="--value:62%;width:100%"><div class="ui-bar__fill"></div><span class="ui-bar__text">62%</span></div>
+      </div>
+    </div>
+    <div class="ui-row">
+      <button class="ui-btn ui-btn--primary">Try again</button>
+      <button class="ui-btn ui-btn--secondary">Main menu</button>
+    </div>
+    <span class="ui-hint"><kbd class="ui-key">R</kbd> Retry</span>
+  </div>
+</div>
+</div></div>
+<script src="../preview.js"></script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+/* Research cards as punch cards (`hub/punchcard.ts` makes the markup): manila stock with a clipped corner, the holes cut through to
+   what lies behind, the name stamped and the rule typed. Used by the church's pick, the inventory's slots, tiles and picked card.
+   Sizes: pc--big (church pick), pc--mid (the picked card), pc--sm (slots and tiles), pc--chip (holes only). A keystone: pc--key
+   (a red stripe along the top, a brass edge). */
+.pc {
+  --pc-stock: #dac38c;
+  --pc-stock-hi: #e9d9a9;
+  --pc-stock-lo: #c4a96d;
+  --pc-edge: #8f6f3a;
+  --pc-ink: #2c1f13;
+  --pc-typed: #43321f;
+  --pc-print: #8a6c3c;
+  --pc-hole: #130e09;
+  --pc-stripe: #b13a2a;
+  --pc-brass: var(--brass-hi, #f0cf7a);
+  --pc-ring: var(--ui-c-focus, #3df2ff);
+  --pc-cut: 14px;
+  position: relative; isolation: isolate; box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 2px; align-items: stretch;
+  padding: 8px 12px 6px 14px; margin: 0; border: 0; border-radius: 0; background: none; box-shadow: none; text-shadow: none;
+  text-align: left; white-space: normal; color: var(--pc-ink);
+  font: 500 12px/1.25 "Share Tech Mono", ui-monospace, monospace; letter-spacing: 0;
+  pointer-events: auto;
+}
+button.pc { cursor: pointer; }
+.pc > * { pointer-events: none; }
+.pc--key { padding-top: 13px; }
+
+/* The stock: a clipped top left corner, fibres, a smudge of its own (--sx, --sy), a worn edge; a keystone a brass edge and a red stripe. */
+.pc__stock {
+  position: absolute; inset: 0; z-index: -1;
+  clip-path: polygon(var(--pc-cut) 0, 100% 0, 100% 100%, 0 100%, 0 var(--pc-cut));
+  background:
+    radial-gradient(ellipse 34% 55% at var(--sx, 60%) var(--sy, 60%), rgb(120 78 30 / 0.3), transparent),
+    repeating-linear-gradient(94deg, transparent 0 3px, rgb(110 76 30 / 0.07) 3px 4px),
+    linear-gradient(172deg, var(--pc-stock-hi), var(--pc-stock) 38%, var(--pc-stock-lo));
+  box-shadow: inset 0 0 0 1.5px var(--pc-edge), inset 0 0 16px rgb(120 80 30 / 0.4);
+}
+/* The cut corner's edge. */
+.pc::before {
+  content: ''; position: absolute; left: 0; top: 0; width: var(--pc-cut); height: var(--pc-cut); z-index: -1;
+  background: linear-gradient(to bottom right, transparent calc(50% - 1.6px), var(--pc-edge) calc(50% - 1.6px), var(--pc-edge) calc(50% + 0.4px), transparent calc(50% + 0.4px));
+}
+.pc--key .pc__stock { box-shadow: inset 0 0 0 2px var(--pc-brass), inset 0 0 0 3px rgb(70 45 10 / 0.65), inset 0 0 16px rgb(120 80 30 / 0.35); }
+.pc--key .pc__stock::before { content: ''; position: absolute; left: 0; right: 0; top: 0; height: 7px; background: var(--pc-stripe); box-shadow: inset 0 -1px 0 rgb(60 10 5 / 0.5); }
+.pc--key::before { background: linear-gradient(to bottom right, transparent calc(50% - 1.6px), var(--pc-brass) calc(50% - 1.6px), var(--pc-brass) calc(50% + 0.4px), transparent calc(50% + 0.4px)); }
+
+/* The print: the name stamped (a slight ink bleed), the rule typed, a line of small print. */
+.pc__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; min-width: 0; }
+.pc__name { font: 400 var(--ui-fs-md, 18px)/1.1 var(--ui-font-display, Rye, serif); letter-spacing: 0.02em; color: var(--pc-ink); text-shadow: 0.6px 0 0 currentColor; font-weight: 400; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pc__tag { font-style: normal; font-size: 11px; color: var(--pc-print); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.pc__typed { color: var(--pc-typed); font-size: 13px; line-height: 1.3; }
+.pc__foot { color: var(--pc-print); font-size: 11px; }
+.pc__holes { display: block; width: 100%; flex: none; }
+.pc__hole { fill: var(--pc-hole); }
+.pc__digits text { fill: var(--pc-print); font: 500 6.2px "Share Tech Mono", ui-monospace, monospace; text-anchor: middle; opacity: 0.55; }
+
+/* The church's pick: three stacked. */
+.hb-cards:has(.pc--big) { display: flex; flex-direction: column; gap: 10px; }
+.hb-card.pc--big { padding: 11px 16px 7px 18px; gap: 3px; font-size: 12px; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.5)); transition: transform 120ms, filter 120ms; }
+.hb-card.pc--key { padding-top: 16px; }
+.pc--big .pc__name { font-size: 20px; }
+.pc--big .pc__tag { font-size: 12px; }
+.pc--big .pc__typed { font-size: 14px; }
+.pc--big .pc__holes { height: 84px; margin-top: 3px; }
+.pc--big { --pc-cut: 20px; }
+.hb-card.pc:hover { transform: translateY(-2px); filter: brightness(1.07) drop-shadow(0 4px 6px rgb(0 0 0 / 0.5)); }
+.hb-card.pc:focus-visible { outline: none; filter: drop-shadow(2px 0 0 var(--pc-ring)) drop-shadow(-2px 0 0 var(--pc-ring)) drop-shadow(0 2px 0 var(--pc-ring)) drop-shadow(0 -2px 0 var(--pc-ring)); }
+
+/* The picked card, in the inventory's third column. */
+.pc--mid { padding: 10px 12px 8px 16px; gap: 3px; --pc-cut: 18px; }
+.pc--mid .pc__name { font-size: 20px; white-space: normal; }
+.pc--mid .pc__typed { font-size: 13px; margin-top: 2px; }
+.pc--mid .pc__holes { height: 66px; margin: 4px 0 2px; }
+
+/* A slot or a tile: the name and its place on one line, the holes below. */
+.pc--sm { padding: 5px 9px 4px 11px; gap: 2px; --pc-cut: 11px; min-width: 0; }
+.pc--sm.pc--key { padding-top: 9px; }
+.pc--sm .pc__name { font-size: 13px; flex: none; max-width: 72%; }
+.pc--sm .pc__tag { font-size: 10.5px; }
+.pc--sm .pc__holes { height: 36px; }
+.pc--sm .pc__digits text, .pc--chip .pc__digits text { opacity: 0.7; }
+
+/* A chip: the holes alone, beside a row. */
+.pc--chip { flex: none; width: 104px; height: 40px; padding: 5px 4px 3px 8px; --pc-cut: 9px; }
+.pc--chip .pc__holes { height: 100%; }
+
+/* An empty slot: an empty pocket, the shape of a card. */
+.pc--empty .pc__stock { background: #1f1710; box-shadow: inset 0 0 0 1.5px rgb(200 150 60 / 0.5); }
+.pc--empty::before { background: linear-gradient(to bottom right, transparent calc(50% - 1.6px), rgb(200 150 60 / 0.5) calc(50% - 1.6px), rgb(200 150 60 / 0.5) calc(50% + 0.4px), transparent calc(50% + 0.4px)); }
+.pc--empty .pc__name { color: var(--ui-c-text-dim, #b89b70); text-shadow: none; font-size: 12px; }
+.pc--empty .pc__tag { color: var(--ui-c-text-dim, #b89b70); }
+.pc--empty { min-height: 36px; justify-content: center; }
+
+/* States: a ring that follows the cut corner (an outline would be a plain rectangle). */
+.pc--sm:is(.is-selected, :focus-visible) { outline: none; filter: drop-shadow(2px 0 0 var(--pc-ring)) drop-shadow(-2px 0 0 var(--pc-ring)) drop-shadow(0 2px 0 var(--pc-ring)) drop-shadow(0 -2px 0 var(--pc-ring)); }
+.pc--sm:not(.is-empty):hover { filter: brightness(1.07); }
+.pc--sm.is-target { --pc-ring: var(--ui-c-accent, #e0a040); opacity: 1; outline: none; filter: drop-shadow(1.5px 0 0 var(--pc-ring)) drop-shadow(-1.5px 0 0 var(--pc-ring)) drop-shadow(0 1.5px 0 var(--pc-ring)) drop-shadow(0 -1.5px 0 var(--pc-ring)); }
+.pc--sm.is-over { --pc-ring: var(--ui-c-accent, #e0a040); outline: none; filter: drop-shadow(2.5px 0 0 var(--pc-ring)) drop-shadow(-2.5px 0 0 var(--pc-ring)) drop-shadow(0 2.5px 0 var(--pc-ring)) drop-shadow(0 -2.5px 0 var(--pc-ring)) drop-shadow(0 0 8px rgb(224 160 64 / 0.6)); box-shadow: none; }

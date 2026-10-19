@@ -33,6 +33,8 @@ export interface SysOptions {
   save?: SaveHooks;
   /** One paragraph per line; no Credits entry when empty. */
   credits?: string[];
+  /** A small build label in the title's top right corner ("v3 · c8904c9", "dev"); none: nothing shown. */
+  version?: string;
   /** The game's own title background in place of the hills (title.ts). */
   titleArt?: TitleArt;
   /** Extra tabs after Controls, in the title's Options and the game menu (a game's own settings). */

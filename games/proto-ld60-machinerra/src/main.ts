@@ -28,6 +28,8 @@ installPresence();
 bootGame({
   id: 'proto-ld60-machinerra',
   name: 'Machinerra',
+  // The build label in the title's corner: release.mjs sets VITE_BUILD ("v3 · c8904c9"); the dev server says dev, a plain build shows none.
+  version: import.meta.env.VITE_BUILD ?? (import.meta.env.DEV ? 'dev' : undefined),
   // `Place` is the place bench (dev only, `?scene=Place&id=graveyard`).
   scenes: { Play, Dungeon, Ascent, Hub, ...(import.meta.env.DEV ? { Place: PlaceBench } : {}) },
   start: 'Play',

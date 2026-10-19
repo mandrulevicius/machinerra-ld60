@@ -274,7 +274,7 @@ export default class KitTitle extends Phaser.Scene {
       </div>
       <div class="ui-titlescreen__settings"></div>
       <div class="ui-titlescreen__hints"><span class="ui-hint"><kbd class="ui-key">&uarr;</kbd><kbd class="ui-key">&darr;</kbd> Select</span><span class="ui-hint"><kbd class="ui-key">Enter</kbd> Confirm</span></div>
-      <p class="ui-hint ui-titlescreen__status" hidden></p></div>`);
+      <p class="ui-hint ui-titlescreen__status" hidden></p>${o.version ? `<p class="ui-note ui-titlescreen__version">${esc(o.version)}</p>` : ''}</div>`);
     layer.append(this.root);
     navKeys(this.root);
     const status = this.root.querySelector<HTMLElement>('.ui-titlescreen__status')!;

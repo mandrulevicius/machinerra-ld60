@@ -63,6 +63,8 @@ export interface BootOptions {
   save?: SaveHooks;
   /** Lines for the title's Credits screen (none: no Credits entry). */
   credits?: string[];
+  /** A small build label in the title's top right corner, e.g. "v3 · c8904c9" (SysOptions.version). */
+  version?: string;
   /** The game's own settings tabs (after Controls, in Options and the game menu) and extra buttons in the game menu's Main tab (SysOptions in menu-parts.ts). */
   tabs?: SysOptions['tabs'];
   menuItems?: SysOptions['menuItems'];
@@ -124,7 +126,7 @@ export async function bootGame(o: BootOptions): Promise<Phaser.Game> {
   for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, unlock, { once: true, capture: true });
 
   const titleOn = o.titleScreen ?? !/\/games\/proto-/.test(location.pathname);
-  const menus = createMenus(game, { title: o.name ?? document.title, save: o.save, credits: o.credits, titleArt: o.titleArt, tabs: o.tabs, menuItems: o.menuItems }, {
+  const menus = createMenus(game, { title: o.name ?? document.title, save: o.save, credits: o.credits, version: o.version, titleArt: o.titleArt, tabs: o.tabs, menuItems: o.menuItems }, {
     id: o.id, titleScreen: titleOn, gameMenu: o.gameMenu ?? true, start,
   });
   game.registry.set('kit:menus', menus);

@@ -338,6 +338,7 @@
 .ui-titlescreen.is-leaving { opacity: 0; pointer-events: none; transition: opacity var(--ui-t-med) var(--ui-ease); }   /* the game's title art plays its leave (TitleArt) */
 .ui-titlescreen .ui-menu__item { width: auto; }
 .ui-titlescreen__hints { position: absolute; right: var(--ui-sp-5); bottom: var(--ui-sp-4); display: flex; gap: var(--ui-sp-4); }
+.ui-titlescreen__version { position: absolute; top: var(--ui-sp-3); right: var(--ui-sp-4); color: var(--ui-c-scene-text-dim); text-shadow: var(--ui-text-shadow); opacity: 0.7; pointer-events: none; }   /* build label, top right: the hints and status sit bottom right */
 .ui-titlescreen__status { position: absolute; right: var(--ui-sp-5); bottom: calc(var(--ui-sp-4) + var(--ui-fs-sm) * 2.5); }
 /* the settings sit on the scene, not on a panel: scene colours. A grid in the bottom left corner in every layout: the volume ramp centred over the quality buttons (so over "Medium"), the reload note beside them */
 .ui-titlescreen__settings {

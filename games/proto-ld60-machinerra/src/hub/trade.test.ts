@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { freshGear } from '../sim/gear';
-import { buy, buyBack, freshTrade, left, sell, shelf, type Stall } from './trade';
+import { buy, buyBack, freshTrade, left, sell, sellAll, shelf, type Stall } from './trade';
 
 const stall = (o: Partial<Stall> = {}): Stall => ({ missions: 3, tier: 1, trade: freshTrade(), scrap: 1000, parts: {}, gear: freshGear(), valued: false, ...o });
 
@@ -33,4 +33,12 @@ describe('the Trader', () => {
     expect(() => sell(stall({ parts: { 'queens-crown': 1 } }), 'queens-crown')).toThrow(/will not touch/);
   });
 
+
+  it('Sell all is the whole stack at the same price a unit, and refuses an empty or a boss own stack', () => {
+    const all = sellAll(stall({ scrap: 0, parts: { 'hornet-stinger': 5 } }), 'hornet-stinger');
+    expect(all.scrap).toBe(buyBack('hornet-stinger') * 5);
+    expect(all.parts['hornet-stinger']).toBe(0);
+    expect(() => sellAll(stall(), 'hornet-stinger')).toThrow(/cannot sell 0/);
+    expect(() => sellAll(stall({ parts: { 'queens-crown': 1 } }), 'queens-crown')).toThrow(/will not touch/);
+  });
 });

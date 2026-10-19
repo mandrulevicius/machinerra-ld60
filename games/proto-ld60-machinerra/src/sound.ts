@@ -11,14 +11,14 @@
  * (audio/music/<track>/song.wav) are not committed; each is made from games/lab/art/music/ with ffmpeg (ffmpeg-static
  * is in node_modules): `ffmpeg -i "games/lab/art/music/<file>" -af volume=<gain>dB -ar 44100 games/proto-ld60-machinerra/audio/music/<track>/song.wav`,
  * file and gain in `MUSIC_FILES`. The gains level every song to -21 LUFS integrated (EBU R128, measured with ffmpeg's
- * `ebur128` filter), plain gain with no limiter: every peak stays under -0.5 dBFS. Only `rimti` loads at boot; the others load when first asked for (`playMusic`, `preloadMusic`),
+ * `ebur128` filter), plain gain with no limiter: every peak stays under -0.5 dBFS. No song loads at boot: each loads when first asked for (`playMusic`, `preloadMusic`; the title asks for `rimti`),
  * so a mission decodes its biome's song and the boss's, not all eight.
  */
 import type { Audio, AudioManifest } from '../../../harness/kit';
 import type { BiomeId } from './sim/defs';
 
+/** Only the sounds load before the title: no song does, so the title does not wait on one (`rimti` is 6 MB). `playMusic` loads each when asked. */
 export const AUDIO: AudioManifest = {
-  music: { rimti: ['song'] },
   sfx: ['clang', 'clang2', 'clang3', 'snap', 'snap2', 'crumble', 'crumble2', 'collapse', 'denDown', 'coin', 'coin2', 'click', 'heroHit', 'heroHit2', 'pick4', 'thud', 'creak'],
 };
 

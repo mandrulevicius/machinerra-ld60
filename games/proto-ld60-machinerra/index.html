@@ -4,10 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Machinerra (proto)</title>
-  <style>html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }</style>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    /* Shown from the first paint until the first scene is made (main.ts removes it): brass on black, the theme's accent. */
+    #boot { position: fixed; inset: 0; display: grid; place-items: center; color: #e0a040; font: 24px Georgia, serif; letter-spacing: 0.08em; pointer-events: none; }
+  </style>
 </head>
 <body>
   <div id="game"></div>
+  <div id="boot">Loading…</div>
   <script type="module" src="./src/main.ts"></script>
 </body>
 </html>

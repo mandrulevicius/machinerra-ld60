@@ -7,6 +7,7 @@
  */
 
 import { beastDash, beastHit, fleeing } from './beasts';
+import { dropGraft } from './graft';
 import { limbSummary } from './limbs';
 import { bossCache } from './mods';
 import { foeFell } from './botskills';
@@ -185,6 +186,7 @@ export function hornetDown(sim: Sim, h: Hornet, by: Bot | null, burning = false)
     // Its windings are copper; now and then a little oil, less than a can (the only oil a fight gives but a boss's can).
     drop(sim, h.x + sim.r.range(-14, 14), h.y + sim.r.range(-10, 10), 'copper', null, Math.max(1, Math.round(COPPER.elite * (sim.biome.copperMul ?? 1))));
     if (sim.r.chance(LOOT.eliteOil.chance)) drop(sim, h.x + sim.r.range(-14, 14), h.y + sim.r.range(-10, 10), 'oil', null, LOOT.eliteOil.amt);
+    dropGraft(sim, h); // Gasket's capstone: a claw or a tentacle to graft on (`graft.ts`)
   }
   else if (sim.r.chance(lootChance(sim))) {
     const l = drop(sim, h.x, h.y, undefined, undefined, undefined, h.kind);

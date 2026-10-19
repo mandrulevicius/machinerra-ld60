@@ -3,6 +3,7 @@
  * `games/<game>/public/assets/atlas.json` + pages. Frame name = path under art/ without extension (`hero/idle-01`).
  *
  *   preload() { loadAtlas(this); }                          // once per scene that needs it; cached globally after the first load
+ *   warmAtlas(game)                                        // optional, once the title is up: loads it behind the title so the first scene's loadAtlas finds it in
  *   create()  { const art = atlas(this);                    // art.anims() makes an animation per numbered sequence
  *               art.anims({ rates: { 'hero/idle': 8 } });   // key = name without the trailing number: 'hero/idle'
  *               art.sprite(x, y, 'hero/idle-01').play('hero/idle');
@@ -22,11 +23,40 @@ import { assignMaterial, materialFromRule, resolveMaterial, type MaterialRule } 
 /** Where the build puts public files, relative to the page: `public/` in dev (Vite serves the repo root), the zip's root in a build. */
 export const assetBase = () => (import.meta.env.DEV ? 'public/assets/' : 'assets/');
 
+const queued = new WeakMap<Phaser.Textures.TextureManager, Set<string>>();
+
 /** In `preload()`: queue the game's atlas (all pages) under texture key `key`. */
 export function loadAtlas(scene: Phaser.Scene, key = 'atlas', base = assetBase()) {
   if (scene.textures.exists(key)) return;
+  const q = queued.get(scene.textures) ?? new Set<string>();
+  queued.set(scene.textures, q.add(key));
   scene.load.multiatlas(key, `${base}atlas.json`, base);
   scene.textures.once(`addtexture-${key}`, applyAtlasMaterials);
+}
+
+/**
+ * Fetch the atlas now, outside any scene (call it once the title is up), so the first scene's `loadAtlas` finds it in.
+ * Needs no scene and cannot clash with `loadAtlas`: whichever finishes first adds the texture, and a warm-up that loses (a scene
+ * had queued the same key, or the texture is in) drops its images. A scene that starts before it is done loads the atlas itself.
+ */
+export async function warmAtlas(game: Phaser.Game, key = 'atlas', base = assetBase()) {
+  const tm = game.textures;
+  if (tm.exists(key) || queued.get(tm)?.has(key)) return;
+  try {
+    const sheet = (await (await fetch(`${base}atlas.json`)).json()) as { textures: { image: string }[] };
+    // onload, not decode(): decode() never settles in a tab that is not being drawn.
+    const images = await Promise.all(sheet.textures.map((t) => new Promise<HTMLImageElement>((ok, no) => {
+      const img = new Image();
+      img.onload = () => ok(img);
+      img.onerror = no;
+      img.src = `${base}${t.image}`;
+    })));
+    if (tm.exists(key) || queued.get(tm)?.has(key)) return;
+    tm.once(`addtexture-${key}`, applyAtlasMaterials);
+    tm.addAtlasJSONArray(key, images, sheet.textures as never);
+  } catch {
+    // offline or missing: the scene's own load reports it
+  }
 }
 
 /** Give each frame the material its atlas entry carries (from `sizes.json`). The maps are made when the texture is first lit; atlases without materials change nothing. */

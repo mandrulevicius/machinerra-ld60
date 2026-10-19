@@ -11,6 +11,7 @@ import { hint } from '../../../harness/kit';
 import { leavingNote } from './downedcost';
 import { downedNear } from './sim/downed';
 import { anyOrder } from './sim/command';
+import { graftNear } from './sim/graft';
 import { ViewBase } from './playhost';
 import { RUIN_FINDS, WEAPONS } from './sim/defs';
 import { BEHAVE } from './sim/placeplay';
@@ -22,9 +23,9 @@ export class TeachView extends ViewBase {
   private armSeen: object | null = null;
 
   /** A hint shown the first time its moment comes; once done it is learned for good. */
-  private teach(id: string, target: Phaser.GameObjects.GameObject | { x: number; y: number }, text: string, until: () => boolean, delay = 400) {
-    // A lesson waits for a calm moment: not over a fight.
-    if (this.taught.has(id) || this.host.fight) return;
+  private teach(id: string, target: Phaser.GameObjects.GameObject | { x: number; y: number }, text: string, until: () => boolean, delay = 400, anyTime = false) {
+    // A lesson waits for a calm moment: not over a fight (a limb to graft does not wait: it is lying there as the fight ends or goes on).
+    if (this.taught.has(id) || (this.host.fight && !anyTime)) return;
     this.taught.add(id);
     hint(this.scene, target, text, { until, delay, id, size: 18 });
   }
@@ -49,6 +50,9 @@ export class TeachView extends ViewBase {
     const ruin = sim.ruinNear(c.x, c.y);
     if (ruin && RUIN_FINDS[ruin.kind].pry) this.teach('pry', this.host.ruins.get(ruin.id)!, 'Press {use} to pry its contacts loose (three seconds near it), for the Princess', () => !!sim.action || (sim.stats.docks ?? 0) > 0);
     else if (ruin) this.teach(ruin.live ? 'decode' : 'ruin', this.host.ruins.get(ruin.id)!, ruin.live ? `Press {use} to decode it (six seconds near it, and loud: it wakes the ${sim.biome.talk.hives})` : 'Press {use} to search', () => !!sim.action || (ruin.live ? (sim.stats.decoded ?? 0) : sim.stats.ruins - (sim.stats.decoded ?? 0)) > 0);
+    // Gasket's capstone: a limb lying beside him is grafted by holding Use (`sim/graft.ts`).
+    const limb = graftNear(sim, c.x, c.y);
+    if (limb) this.teach('graft', { x: limb.x, y: limb.y - 56 }, 'Hold {use} to graft it on', () => !!sim.action?.graft || !sim.grafts.includes(limb), 200, true);
     const seam = sim.seamNear(c.x, c.y);
     if (seam) this.teach('seam', { x: seam.x, y: seam.y - 56 }, 'Press {use} to mine coal by hand (slow: a gatherer is faster)', () => !!sim.action || sim.coal > 0);
     // A lift or a way down that asked: "Ride up? E" until the second press or the seconds run out.

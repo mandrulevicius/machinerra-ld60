@@ -3,7 +3,8 @@ import { START_CREW } from '../sim/defs';
 import { Sim } from '../sim/sim';
 import { oldCrewEconomy, oldCrewRoster } from './fixtures';
 import { freshHub } from './state';
-import { STOKE_COST, cleanRoster, crewOf, landRoster, salvage, stoke, type Shop } from './workshop';
+import { STOKE_COST, cleanRoster, crewOf, landRoster, repairAll, repairDowned, riders, salvage, stoke, stokeAll, type Shop } from './workshop';
+import { repairCost } from './economy';
 
 const shop = (coal = 20): Shop => ({
   eco: { ...oldCrewEconomy({ cores: START_CREW.length }), coal },
@@ -60,5 +61,51 @@ describe('stoking at the workshop (Minos: coal, a fixed cost, on or off, one mis
     expect(salvage(on, 'r1').eco.coal).toBe(20);
     const dirty = { ...on.roster, bots: on.roster.bots.map((b) => (b.uid === 'r1' ? { ...b, wreck: true } : b)) };
     expect(cleanRoster(dirty).bots.find((b) => b.uid === 'r1')!.stoked).toBeUndefined();
+  });
+});
+
+describe('Stoke all and Repair all (a click on each robot, in order, until the stores run out)', () => {
+  it('stokes every cold robot in roster order for the same coal each, and never cools a stoked one', () => {
+    const s = stoke(shop(100), 'r1');
+    const all = stokeAll(s);
+    const n = s.roster.bots.length;
+    expect(all.n).toBe(n - 1);
+    expect(all.stopped).toBe(false);
+    expect(all.eco.coal).toBe(100 - STOKE_COST.coal * n);
+    expect(all.roster.bots.every((b) => b.stoked)).toBe(true);
+    expect(stokeAll(all).n).toBe(0);
+  });
+
+  it('stops where the coal runs out, with the first ones done; a first one it cannot pay is a refusal', () => {
+    const part = stokeAll(shop(STOKE_COST.coal * 2 + 1));
+    expect(part).toMatchObject({ n: 2, stopped: true });
+    expect(part.roster.bots.filter((b) => b.stoked).map((b) => b.uid)).toEqual(['r1', 'r2']);
+    expect(part.eco.coal).toBe(1);
+    expect(() => stokeAll(shop(STOKE_COST.coal - 1))).toThrow(/needs 5 coal/);
+  });
+
+  it('skips a wreck and a robot carried home down', () => {
+    const s = shop(100);
+    const roster = { ...s.roster, bots: s.roster.bots.map((b) => (b.uid === 'r2' ? { ...b, wreck: true } : b.uid === 'r3' ? { ...b, downed: true } : b)) };
+    const all = stokeAll({ ...s, roster });
+    expect(all.roster.bots.filter((b) => b.stoked).map((b) => b.uid)).toEqual(['r1', 'r4', 'r5', 'r6']);
+  });
+
+  it('repairs the robots carried home down for the one repair price each, until the scrap runs out; a wreck stays a wreck', () => {
+    const s = shop(0);
+    const price = repairCost('carried').scrap;
+    const roster = { ...s.roster, bots: s.roster.bots.map((b) => (['r1', 'r2', 'r3'].includes(b.uid) ? { ...b, downed: true } : b.uid === 'r4' ? { ...b, wreck: true } : b)) };
+    const rich = repairAll({ ...s, eco: { ...s.eco, scrap: price * 10 }, roster });
+    expect(rich.n).toBe(3);
+    expect(rich.eco.scrap).toBe(price * 7);
+    expect(riders(rich.roster).map((b) => b.uid)).toEqual(['r1', 'r2', 'r3', 'r5', 'r6']);
+    expect(rich.roster.bots.find((b) => b.uid === 'r4')!.wreck).toBe(true);
+    const lean = repairAll({ ...s, eco: { ...s.eco, scrap: price * 2 }, roster });
+    expect(lean).toMatchObject({ n: 2, stopped: true });
+    expect(lean.roster.bots.find((b) => b.uid === 'r3')!.downed).toBe(true);
+    expect(() => repairAll({ ...s, eco: { ...s.eco, scrap: 0 }, roster })).toThrow();
+    // The same as the clicks one by one.
+    const one = repairDowned(repairDowned({ ...s, eco: { ...s.eco, scrap: price * 2 }, roster }, 'r1'), 'r2');
+    expect(lean.eco.scrap).toBe(one.eco.scrap);
   });
 });

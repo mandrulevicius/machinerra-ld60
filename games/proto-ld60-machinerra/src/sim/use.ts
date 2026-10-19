@@ -32,6 +32,7 @@ import {
   DECODE,
   DOCK,
   GATHER,
+  GRAFT,
   INSIGHT,
   MISSION,
   RUIN,
@@ -46,6 +47,7 @@ import {
   wake,
 } from './foes';
 import { dist } from './geom';
+import { graftLift, graftNear, graftOn } from './graft';
 import {
   type RelicId,
   stripSize as junkStrip,
@@ -105,6 +107,12 @@ export function pressUse(sim: Sim, c: Bot) {
     } else sim.armed = { key: 'lift', verb: 'Ride up?', t: ACTION.confirm };
     return;
   }
+  // A limb lying where its elite fell (Gasket's capstone): hold Use beside it to graft it on.
+  const limb = graftNear(sim, c.x, c.y);
+  if (limb) {
+    if (sim.action?.graft !== limb) sim.action = { graft: limb, t: 0, need: GRAFT.hold, reach: GRAFT.reach, paused: false };
+    return;
+  }
   const ruin = ruinNear(sim, c.x, c.y);
   if (ruin) {
     if (sim.action?.ruin !== ruin) startRuin(sim, ruin);
@@ -145,6 +153,7 @@ export function pressUse(sim: Sim, c: Bot) {
 export function rise(sim: Sim) {
   sim.riseT = 0;
   sim.action = null;
+  graftLift(sim);
   sim.exitUsed = sim.atExit(sim.controller);
   // A cleared den's party comes up wherever it was: it joins him on the platform first.
   if (sim.run?.cleared) {
@@ -205,8 +214,8 @@ export function actionStep(sim: Sim, dt: number) {
   if (a.bot) {
     // A field fix ends when the robot is carried off or stands up (or is gone).
     if (a.bot.dead || a.bot.downed?.by !== null) return void (sim.action = null);
-  } else if (a.seam ? a.seam.amount <= 0 : a.ruin ? a.ruin.searched : !a.place || !use || !use.ready(sim, a.place)) return void (sim.action = null);
-  const at = a.bot ?? a.seam ?? a.ruin ?? use!.at(sim, a.place!);
+  } else if (a.graft ? !sim.grafts.includes(a.graft) : a.seam ? a.seam.amount <= 0 : a.ruin ? a.ruin.searched : !a.place || !use || !use.ready(sim, a.place)) return void (sim.action = null);
+  const at = a.bot ?? a.graft ?? a.seam ?? a.ruin ?? use!.at(sim, a.place!);
   a.paused = dist(c.x, c.y, at.x, at.y) > a.reach * ACTION.zone;
   if (a.place) sim.hold = { id: a.place.id, t: a.t, need: a.need, paused: a.paused };
   if (a.paused) return;
@@ -218,6 +227,12 @@ export function actionStep(sim: Sim, dt: number) {
   if (a.bot) {
     c.work = a.bot;
     if (a.t >= a.need) fixed(sim, a.bot);
+  } else if (a.graft) {
+    if (a.t >= a.need) {
+      const g = a.graft;
+      sim.action = null;
+      graftOn(sim, g);
+    }
   } else if (a.seam) {
     // By hand, slowly: a press mines on while he stays near, a load each time round. A pickaxe beat each `COAL.hand.beat` s (a look only).
     if (Math.floor(a.t / COAL.hand.beat) > Math.floor(t0 / COAL.hand.beat)) sim.events.push({ e: 'mine', seam: a.seam, by: c });
@@ -432,7 +447,7 @@ export function useSummary(sim: Sim) {
     })),
     hold: sim.hold && { place: sim.hold.id, t: +sim.hold.t.toFixed(2), need: sim.hold.need, paused: sim.hold.paused },
     action: a && {
-      kind: a.bot ? 'fix' : a.seam ? 'coal' : a.ruin ? (a.ruin.live ? 'decode' : 'search') : a.place!.id,
+      kind: a.bot ? 'fix' : a.graft ? 'graft' : a.seam ? 'coal' : a.ruin ? (a.ruin.live ? 'decode' : 'search') : a.place!.id,
       t: +a.t.toFixed(2),
       need: +a.need.toFixed(2),
       paused: a.paused,

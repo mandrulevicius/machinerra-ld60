@@ -17,6 +17,7 @@ import { ViewBase, type G, type PlayHost } from './playhost';
 import { groundShadow } from './shadowview';
 import type { PartKind } from './sim/defs';
 import { settleReward } from './sim/dungeon';
+import { wear } from './sim/graft';
 import type { PartyBot, SimEvent } from './sim/sim';
 
 export class DungeonLink extends ViewBase {
@@ -151,6 +152,7 @@ export class DungeonLink extends ViewBase {
     sim.setGear(syncWeapons(gear.get(), { ...b.hands, weapons: [...sim.weapons] }));
     sim.support = { ...b.hands.support };
     sim.call = b.hands.call;
+    wear(sim, b.hands.graft); // the limb he wears comes back up (one grafted below too)
     host.dressComm();
     const place = sim.places.find((p) => p.id === 'dungeon');
     if (place && b.cleared) place.state = 'cleared';

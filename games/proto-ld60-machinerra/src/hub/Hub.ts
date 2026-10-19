@@ -726,8 +726,14 @@ export class Hub extends Phaser.Scene implements HubDevHost {
     this.hoverStep();
     if (this.cut) return;
     if (input.pressed('guide')) this.guide.toggle();
-    if (input.pressed('inventory') && !this.convo && !this.hud.panel && !this.log.open && !this.guide.open) {
-      if (this.has('inventory') || this.inv.open) this.inv.toggle();
+    if (input.pressed('inventory') && !this.convo && !this.log.open && !this.guide.open) {
+      // A station panel open: I closes it and opens the satchel in one press (once the Oracle has blessed it).
+      if (this.hud.panel) {
+        if (this.has('inventory')) {
+          this.closePanel();
+          this.inv.toggle();
+        }
+      } else if (this.has('inventory') || this.inv.open) this.inv.toggle();
       else this.hud.say('The Oracle', 'Your satchel is not blessed yet, Communicator. Come and hear me out.');
     }
     if (input.pressed('journal') && !this.convo && !this.hud.panel && !this.inv.open && !this.guide.open) this.log.toggle();

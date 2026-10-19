@@ -228,6 +228,7 @@
 .hb-panel[data-kind="workshop"] { width: 860px; max-width: 96vw; height: 640px; display: flex; flex-direction: column; overflow: hidden; }
 .hb-panel[data-kind="workshop"] .hb-panel__body { flex: 1; min-height: 0; }
 .hb-row--mid { align-items: center; gap: 12px; }
+.hb-wbulk { justify-content: flex-start; }
 .hb-wbots { display: flex; flex-direction: column; gap: 6px; }
 .hb-wbot { display: flex; align-items: center; gap: 12px; padding: 6px 12px; border: 1px solid var(--ui-c-border); border-radius: 6px; background: rgb(20 14 9 / 0.6); }
 .hb-wbot.is-field { border-color: var(--brass); }

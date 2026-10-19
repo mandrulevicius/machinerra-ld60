@@ -81,7 +81,8 @@ export type PerkId =
   | 'canRack' | 'oracleCans' | 'workshop' | 'forge' | 'clinic'
   | 'cheapBodies' | 'dreamAgain'
   | 'companionDog' | 'companionCat' | 'dogNose' | 'shootGrows' | 'greenhousePlans' | 'tramPlans' | 'rareBlueprints' | 'aqueductPlans'
-  | 'sandBearings' | 'mossBrush' | 'receipts' | 'frostContacts';
+  | 'sandBearings' | 'mossBrush' | 'receipts' | 'frostContacts'
+  | 'grafting';
 export const PERKS: Record<PerkId, { name: string; how: 'teach' | 'sell'; text: string }> = {
   kick: { name: 'The Kick', how: 'teach', text: 'A boot to the chassis: {kick} sends whatever is in front of you flying. Little damage, a lot of distance.' },
   // Sprocket's free first thing (P9): the bench itself, which opens with her station (D29); no rule of its own. A placeholder gift, tabled for Minos.
@@ -137,6 +138,8 @@ export const PERKS: Record<PerkId, { name: string; how: 'teach' | 'sell'; text: 
   mossBrush: { name: 'Moss in the brush', how: 'teach', text: 'The Main Brush reaches a quarter farther.' },
   receipts: { name: 'Receipts', how: 'teach', text: 'Once a mission the Princess names the nearest ruin you have not searched, and the map circles it.' },
   frostContacts: { name: 'Frost on the contacts', how: 'teach', text: 'The Princess\'s sweepings turn up relics twice as often.' },
+  // Gasket's capstone (`sim/graft.ts`): the limbs of the elites you break can be grafted on.
+  grafting: { name: 'Grafting', how: 'teach', text: 'A twisted elite you break drops a claw, a menacing one a tentacle: hold {use} beside it to graft it on for the mission. It rakes or whips foes on its own, and falls off at the lift.' },
 };
 
 /**

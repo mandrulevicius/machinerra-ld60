@@ -15,6 +15,8 @@ import { DEV_SOURCES } from '../sim/missionfx';
 import type { PlaceId } from '../sim/places';
 import type { Bot, SimEvent } from '../sim/sim';
 import { spawnAtRim } from '../sim/spider';
+import { devBlow, graftOn, graftSummary, layGraft } from '../sim/graft';
+import type { LimbKind } from '../sim/limbs';
 import { goPlace, placeIds } from './places';
 
 export function unitsCommands(play: Play) {
@@ -217,6 +219,26 @@ export function unitsCommands(play: Play) {
     }
     return `kick look: ${kickLook.now}`;
   }, 'kicklook [pose|legs] [degrees [hits]]: the kick\'s look (pose: his painted stride frame; legs: code-drawn legs; also ?kicklook=); with degrees (0 right, 90 down, 180 left, 270 up) plays the drawing alone, hits 1 shows the contact ring', { group: 'units', args: () => ['pose', 'legs'] });
+  command('graft', ([what, kind]) => {
+    const c = sim.controller;
+    if (!what) return JSON.stringify(graftSummary(sim));
+    if (what === 'grant') {
+      sim.perks.add('grafting');
+      return 'grafting granted for this mission (the perk comes with Gasket\'s capstone, gasket.3)';
+    }
+    if (what === 'off') {
+      sim.graft = null;
+      sim.grafts.length = 0;
+      return 'no graft, no parts';
+    }
+    const k = (what === 'drop' || what === 'on' ? kind : what) as LimbKind;
+    if (k !== 'claw' && k !== 'whip') return 'error: graft [grant|off|drop <claw|whip>|on <claw|whip>|claw|whip]';
+    // A cat's limb at an elite's strength, lying 40 px east of him (`drop`), grafted on at once (`on`, or a bare kind).
+    const g = layGraft(sim, k, 'cat', c.x + 40, c.y, devBlow(k));
+    if (what === 'drop') return `a ${k} lies beside you (hold Use over it)`;
+    graftOn(sim, g);
+    return `a ${k} is grafted on`;
+  }, 'graft [grant|off|drop <claw|whip>|on <claw|whip>]: Gasket\'s capstone (sim/graft.ts): `grant` the ability for this mission (the drops from broken elites need it), `drop` a limb lying beside him, `on` (or a bare `claw` / `whip`) graft one at once, `off` clear it; no argument shows the state', { group: 'units', args: () => ['grant', 'drop', 'on', 'claw', 'whip', 'off'] });
   command('tp', ([what]) => {
     if (placeIds.includes(what as PlaceId)) return goPlace(play, what as PlaceId);
     const p = what === 'lift' ? sim.lift : what === 'nest' ? sim.nests[0] : what === 'ruin' ? sim.ruins[0] : sim.seeps[Number(what ?? 0)] ?? sim.seeps[0];

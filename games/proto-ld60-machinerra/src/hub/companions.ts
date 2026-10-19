@@ -41,6 +41,7 @@ export function companionsAfter(s: HubState, b: QuestBook, stats: Record<string,
     hub = add(hub, 'companionCat');
     news.push(`${CAT.name} is yours, or you are hers. She leaves ${CAT.home} scrap with every return.`);
   }
+  if (stats.grafted) news.push('Dr. Gasket: "Splendid. I\'ll take that for study."'); // the graft fell off at the lift (`sim/graft.ts`)
   const items = [...book.items];
   for (const [stat, item, line] of [['got.boot', 'boot', 'A boot, and a green shoot in it. Take it to the Expeditioner.'], ['got.toy', 'toy', 'The Squeaky Toy is home. The Oracle wants a word about the dog.']] as const) {
     if (stats[stat] && !items.includes(item)) {

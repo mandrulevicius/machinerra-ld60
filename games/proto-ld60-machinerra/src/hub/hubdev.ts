@@ -32,7 +32,7 @@ import type { TalkView } from './talkview';
 import type { HubHost, Thing } from './stations/host';
 import { openFor } from './stations/npc';
 import { openRedraw } from './stations/planner';
-import { buyWare, keepStall, shelfNow, stall } from './stations/trader';
+import { buyWare, keepStall, sellAllParts, shelfNow, stall } from './stations/trader';
 import { workshopCommand } from './stations/workshop';
 
 /** What the dev commands reach on the hub beyond a station's `HubHost`: the conversation, the cut scene, the dev overrides. */
@@ -414,8 +414,9 @@ export function registerHubCommands(host: HubDevHost) {
     shop: ["shop: the Trader's shelf this lift (index, ware, price, left), her tier and your scrap", () => JSON.stringify(shelfNow(host))],
     buy: ["buy <i>: buy ware i off the Trader's shelf (as a click; her stall need not be built)", ([i]) => `bought ${buyWare(host, Number(i ?? 0))}; ${economy.get().scrap} scrap left`],
     sell: [
-      'sell <part> [n]: sell parts to the Trader',
+      'sell <part> [n|all]: sell parts to the Trader (all: the "Sell all" button, the whole stack)',
       ([k, n]) => {
+        if (n === 'all') return `${sellAllParts(host, k as PartKind)}; ${economy.get().scrap} scrap`;
         keepStall(host, sellParts(stall(host), k as PartKind, n === undefined ? 1 : Number(n)));
         return `${economy.get().scrap} scrap`;
       },

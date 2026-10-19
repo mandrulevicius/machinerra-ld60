@@ -36,7 +36,7 @@ interface PlaceView {
 const AMBER = 0xffc070;
 
 /** A turning ring of dashes filling with a timed action (dim while he is out of its zone and the work waits) (the ground seen from above). */
-function holdRing(g: G, x: number, y: number, f: number, now: number, paused = false) {
+export function holdRing(g: G, x: number, y: number, f: number, now: number, paused = false) {
   g.lineStyle(LINE.accent, 0x1d1a17, 0.6).strokeEllipse(x, y, 62, 40);
   g.lineStyle(LINE.accent, 0xffd98a, paused ? 0.4 : 0.95);
   const n = Math.max(1, Math.floor(f * 28));

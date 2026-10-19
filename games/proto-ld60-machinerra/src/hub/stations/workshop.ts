@@ -43,6 +43,8 @@ import {
   roster,
   salvage,
   stoke,
+  stokeAll,
+  repairAll,
   type Roster,
   type Shop,
 } from '../workshop';
@@ -255,7 +257,16 @@ export function workshopBody(
   const coreNote = Number.isFinite(cores)
     ? ` · <span title="One robot per AI core. Cores come from Core Vaults and from bosses.">${cores} AI core${cores === 1 ? '' : 's'}</span>`
     : '';
-  const robots = `${oldTech}<div class="hb-row hb-row--mid"><span>On the lift: <b>${goes} / ${ro.bots.length}</b>${stoked ? ` · <span title="Fed coal for the next mission">${stoked} stoked</span>` : ''}${coreNote}</span></div>
+  // Bulk (no new rule): each is a click on every robot it fits, in order, until the stores run short.
+  const cold = ro.bots.filter((b) => !b.wreck && !b.downed && !b.stoked).length;
+  const down = ro.bots.filter((b) => b.downed && !b.wreck).length;
+  const repairOne = foundried(s, { scrap: repairCost('carried').scrap });
+  const bulk = (a: string, label: string, n: number, each: string, ok: boolean) =>
+    n ? `<button class="ui-btn ui-btn--secondary hb-wbtn" data-a="${a}"${ok ? '' : ' disabled'} title="${n} robot${n === 1 ? '' : 's'}, ${each} each, in order until the stores run out">${label}<small>${n} × ${each}</small></button>` : '';
+  const bulkRow = cold || down
+    ? `<div class="hb-row hb-row--mid hb-wbulk">${bulk('stokeall', 'Stoke all', cold, `${STOKE_COST.coal} coal`, have.coal >= STOKE_COST.coal)}${bulk('repairall', 'Repair all', down, costText(repairOne), have.scrap >= (repairOne.scrap ?? 0))}</div>`
+    : '';
+  const robots = `${oldTech}<div class="hb-row hb-row--mid"><span>On the lift: <b>${goes} / ${ro.bots.length}</b>${stoked ? ` · <span title="Fed coal for the next mission">${stoked} stoked</span>` : ''}${coreNote}</span></div>${bulkRow}
     <div class="hb-wbots">${bots}</div>
     <p class="hb-note hb-note--dim">${[
       'Only robots standing on the lift when it rises come home; the rest are wrecks until rebuilt (rank kept). A downed one you carried up is repaired for less. Stoke feeds a robot coal for one mission. ',
@@ -517,6 +528,14 @@ function drawWorkshop(host: HubHost) {
           const r = stoke(shop, id);
           return done(r, r.on ? `${name(id)} is stoked for the next mission` : `${name(id)} is cold again`);
         }
+        if (a === 'stokeall') {
+          const r = stokeAll(shop);
+          return done(r, `${r.n} robot${r.n === 1 ? '' : 's'} stoked${r.stopped ? ': out of coal' : ''}`);
+        }
+        if (a === 'repairall') {
+          const r = repairAll(shop);
+          return done(r, `${r.n} robot${r.n === 1 ? '' : 's'} repaired${r.stopped ? ': out of scrap' : ''}`);
+        }
         if (a === 'rank') {
           const r = rankUp(shop, id);
           return done(r, `${name(id)}: ${RANK_NAMES[r.roster.bots.find((x) => x.uid === id)!.rank]}`);
@@ -584,9 +603,9 @@ export function workshopCommand(host: HubHost) {
     }),
     buy: ([role]) => shopDo(host, (sh) => buyBot(sh, role as CrewRole)),
     rank: ([uid]) => shopDo(host, (sh) => rankUp(sh, uid)),
-    stoke: ([uid]) => shopDo(host, (sh) => stoke(sh, uid)),
+    stoke: ([uid]) => shopDo(host, (sh) => (uid === 'all' ? stokeAll(sh) : stoke(sh, uid))),
     rebuild: ([uid]) => shopDo(host, (sh) => rebuild(sh, uid)),
-    repair: ([uid]) => shopDo(host, (sh) => repairDowned(sh, uid)),
+    repair: ([uid]) => shopDo(host, (sh) => (uid === 'all' ? repairAll(sh) : repairDowned(sh, uid))),
     promote: ([uid, spec]) => shopDo(host, (sh) => promote(sh, uid, spec as SpecId)),
     spec: ([uid, spec]) => {
       // Dev: the spec for free, with no deed (`deeds fill` opens the gauge instead); `off` clears it.
@@ -626,7 +645,7 @@ export function workshopCommand(host: HubHost) {
   };
   const help = [
     'workshop [list|open|lift (who goes down: every robot that is not a wreck; the free AI cores)',
-    '|buy <role> (needs a free AI core)|give <role> (free, any type)|rank <uid>|stoke <uid> (coal; again to cool: the next mission only)|rebuild <uid> (a wreck)|repair <uid> (a robot carried home down)',
+    '|buy <role> (needs a free AI core)|give <role> (free, any type)|rank <uid>|stoke <uid|all> (coal; again to cool: the next mission only; all: every cold robot, till the coal runs out)|rebuild <uid> (a wreck)|repair <uid|all> (a robot carried home down; all: every one, till the scrap runs out)',
     '|promote <uid> <spec> (40 scrap, a part; the spec unlocked by `deeds fill`)|spec <uid> <spec|off> (free)',
     '|relic <uid> [id|off] (raw)|junk [give <relic>|clear] (the stock of old tech)',
     '|fit <uid> <stock index|queens-crown|harbinger-heart|bot:<uid>>|unfit <uid>',

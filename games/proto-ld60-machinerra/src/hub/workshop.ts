@@ -325,6 +325,30 @@ export function stoke(s: Shop, uid: string): Shop & { on: boolean } {
   return { ...s, eco: pay(s.eco, 'coal', STOKE_COST.coal), roster: put(s.roster, { ...b, stoked: true }), on: true };
 }
 
+/**
+ * Run `one` on each robot that `eligible` picks, in roster order, as a click on each would: the same costs, nothing new. Stops at the first
+ * one the stores cannot pay (`stopped`); when not even the first can be paid, that refusal is thrown. `n` is how many were done.
+ */
+function eachInOrder(s: Shop, eligible: (b: RosterBot) => boolean, one: (s: Shop, uid: string) => Shop): Shop & { n: number; stopped: boolean } {
+  let cur = s, n = 0;
+  for (const b of s.roster.bots.filter(eligible)) {
+    try {
+      cur = one(cur, b.uid);
+      n++;
+    } catch (e) {
+      if (!n) throw e;
+      return { ...cur, n, stopped: true };
+    }
+  }
+  return { ...cur, n, stopped: false };
+}
+
+/** Stoke every robot that rides and is still cold (the "Stoke all" button): one `stoke` each, in order, until the coal runs out. Never cools one. */
+export const stokeAll = (s: Shop) => eachInOrder(s, (b) => !b.wreck && !b.downed && !b.stoked, stoke);
+
+/** Repair every robot carried home down (the "Repair all" button): one `repairDowned` each, in order, until the scrap runs out. A wreck is rebuilt on its own row. */
+export const repairAll = (s: Shop) => eachInOrder(s, (b) => !!b.downed && !b.wreck, repairDowned);
+
 /** Fit a relic (or clear it with null). One socket per robot; the relic stays through a wreck. */
 export function fitRelic(r: Roster, uid: string, relic: string | null): Roster {
   const { relic: _old, ...b } = find(r, uid);

@@ -119,8 +119,8 @@ export const STORY_LINES: Record<string, LineDef> = {
         lock: ['Not yet. Splendid things come to those who wait for the Harbinger to fall.'],
         offer: ["Six of mine in one chassis. Do that and you're more me than you."],
         wait: ["Head, arm, core, legs, rear, pack. Six, all fitted. It's splendid."],
-        done: ["Six! I've put hinges on everything. Swap them when you like."],
-        reward: {},
+        done: ["Six! I've put a socket on your shoulder besides. Break a twisted or a menacing one down there, stand over what it drops and hold Use, and graft it on. A claw, a tentacle, it works by itself.", 'Only until the lift, mind. After that it is mine, for study.'],
+        reward: { perk: 'grafting' }, // Minos 2026-10-19, replaces the augment swap (`sim/graft.ts`)
       },
     ],
   },

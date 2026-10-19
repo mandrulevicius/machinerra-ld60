@@ -10,6 +10,7 @@ import type {
 } from './botai';
 import type { BerserkMul } from './clock';
 import type { Limb, LimbKind } from './limbs';
+import type { Graft } from './graft';
 import type { CoalEvent } from './coal';
 import {
   type CombatEvent,
@@ -362,6 +363,8 @@ export interface UseAction {
   place?: PlaceRT;
   /** A downed robot's field fix (P5). */
   bot?: Bot;
+  /** A limb lying on the ground, being grafted on (`graft.ts`). */
+  graft?: Graft;
   t: number;
   need: number;
   reach: number;
@@ -496,6 +499,8 @@ export type SimEvent =
   | { e: 'tier'; what: TierEvent; x: number; y: number; h?: Hornet; hits?: number }
   /** An elite's limb winds up or strikes (P50): `side` which claw (a half) or tentacle, `hits` what the blow struck. */
   | { e: 'limb'; what: 'wind' | 'strike'; h: Hornet; limb: LimbKind; side: 1 | -1; hits?: number }
+  /** Grafting (`graft.ts`): a limb dropped (`drop`), was grafted on or fell off (`on`, `off`), his limb winds up or strikes (`hits` foes struck). */
+  | { e: 'graft'; what: 'drop' | 'on' | 'off' | 'wind' | 'strike'; kind: LimbKind; x: number; y: number; hits?: number }
   /** An elite or a boss broke (`n`th: 66% then 33% of its oil; a form boss's change is `form`): `what` it can no longer do, and the part it dropped on the spot. */
   | { e: 'break'; h: Hornet; n: 1 | 2; what: BreakId | 'form'; name: string; part: PartKind | null }
   /** A robot's choice the player should read (`botai.ts`): a sidestep, a brace, falling back, a target picked for a reason, an idle thing. */

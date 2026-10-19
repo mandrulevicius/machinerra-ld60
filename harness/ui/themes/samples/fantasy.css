@@ -1,5 +1,5 @@
 /* SAMPLE, not a style to copy. fantasy: warm parchment, ink text, gilded double borders, CSS only. */
-@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:wght@400;600&display=swap");
+/* Its fonts, Cinzel and Crimson Text, are in fonts.css: only the lab and the preview pages load it. */
 
 [data-theme="fantasy"] {
   --ui-c-scene-text: #f6e7c1;

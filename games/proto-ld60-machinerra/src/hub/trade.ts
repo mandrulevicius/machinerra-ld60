@@ -114,3 +114,6 @@ export function sell(s: Stall, k: PartKind, n = 1): Stall & { scrap: number } {
   if (have < n) throw new Error(`you have ${have} ${PARTS[k].plural}`);
   return { ...s, scrap: s.scrap + buyBack(k) * n, parts: { ...s.parts, [k]: have - n } };
 }
+
+/** Sell every unit of a part kind in the stores: `sell` with the whole stack (the "Sell all" button). */
+export const sellAll = (s: Stall, k: PartKind) => sell(s, k, s.parts[k] ?? 0);

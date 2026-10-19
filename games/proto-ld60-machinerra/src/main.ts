@@ -1,4 +1,4 @@
-import { addDevTab, audioFor, bootGame, resetHints, themeSlot, transition } from '../../../harness/kit';
+import { addDevTab, audioFor, bootGame, resetHints, themeSlot, transition, warmAtlas } from '../../../harness/kit';
 import { command } from '../../../harness/dev/commands';
 import { TITLE_SCENE } from '../../../harness/kit/menus';
 import { Dungeon, Play } from './Play';
@@ -66,7 +66,7 @@ bootGame({
     ...Object.fromEntries([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => [`group${n}`, [String(n)]])),
   },
   axes: { moveX: ['left', 'right'], moveY: ['up', 'down'] },
-  // The hub's song and the sounds (sound.ts); loaded before the first scene. The biomes' songs load when first heard.
+  // The sounds (sound.ts), loaded before the first scene. Every song loads when first heard.
   audio: AUDIO,
   credits: [...CREDITS, `A ${STUDIO} game`],
   // The Oracle's guide: its unprompted hints in Options and the Esc menu; the guide itself on the Esc menu (guideview.ts).
@@ -74,6 +74,12 @@ bootGame({
   menuItems: [{ id: 'guide', label: "The Oracle's guide", run: openGuide }],
 }).then((game) => {
   audioFor(game).trimSfx(SFX_TRIM);
+  // index.html's "Loading…" goes once the first scene (the title, or the one a ?scene= skips to) is made.
+  const loaded = () => document.getElementById('boot')?.remove();
+  if (game.scene.scenes.some((s) => s.sys.isActive())) loaded();
+  else for (const s of game.scene.scenes) s.events.once('create', loaded);
+  // The art atlas comes in while the title shows, so the hub and the missions find it loaded (a scene that starts first loads it itself).
+  void warmAtlas(game);
   // The run's play time (hub/playtime.ts, the outro's time to finish): every frame a game scene runs.
   game.events.on('step', (_t: number, delta: number) => {
     if (PLAY_SCENES.some((k) => game.scene.isActive(k))) tickPlaytime(delta);

@@ -15,6 +15,7 @@
 
 import { makeVoice, voiceStep, type Voice } from './princessvoice';
 import { dockStep } from './docks';
+import { graftLift, graftStep, graftSummary, type Graft, type Worn } from './graft';
 import {
   type Rng,
   rng,
@@ -568,6 +569,9 @@ export class Sim {
    * the zone it pauses, back in it goes on, and a hit does not cancel it. Starting another replaces it; his going down ends it.
    */
   action: UseAction | null = null;
+  /** Grafting (`graft.ts`): the limbs lying where their elites fell, and the one he wears. */
+  grafts: Graft[] = [];
+  graft: Worn | null = null;
   /** A lift or a place asked "Ride up? E": a second press within `ACTION.confirm` s does it. */
   armed: { key: 'lift' | 'starOil' | PlaceId; verb: string; t: number } | null = null;
   usePrev = false;
@@ -928,6 +932,7 @@ export class Sim {
   /** The mission's end: who rides up (`rides`) is saved, the rest of the robots out here are left, and the downed ones among them lost. */
   private tally() {
     const up = this.fielded.filter((b) => rides(this, b));
+    graftLift(this); // a limb still worn falls off (the lift's rise did it already)
     this.stats.saved = up.length;
     dogHome(this);
     this.stats.left = this.fielded.length - up.length;
@@ -1252,6 +1257,7 @@ export class Sim {
     patchStep(this, dt);
     propStep(this, dt);
     crashStep(this, dt);
+    graftStep(this, dt);
     fire(this, dt);
     supportStep(this, dt);
     pickups(this, dt);
@@ -1582,6 +1588,7 @@ export class Sim {
       },
       rescued: this.rescued,
       ...foeSummary(this),
+      graft: graftSummary(this),
       ...lootSummary(this),
       ...useSummary(this),
       props: propSummary(this),

@@ -21,6 +21,7 @@ import { chassisStats } from './sim/bots';
 import type { AnomalyId, BiomeId, PartKind, SupportId, WeaponId } from './sim/defs';
 import type { DungeonSpec } from './sim/dungeon';
 import { syncWeapons } from './sim/gear';
+import type { Grafted } from './sim/graft';
 import { loadLand } from './sim/lands';
 import type { PartyBot, Sim } from './sim/sim';
 import type { SimOptions } from './sim/types';
@@ -32,10 +33,12 @@ export interface Hands {
   secondary: WeaponId | null;
   support: Partial<Record<SupportId, number>>;
   call: SupportId;
+  /** The limb grafted on him (`sim/graft.ts`), if any. */
+  graft?: Grafted | null;
 }
 
 /** What he holds in this Sim. */
-export const handsOf = (s: Sim): Hands => ({ weapons: [...s.weapons], weapon: s.weapon, secondary: s.secondary, support: { ...s.support }, call: s.call });
+export const handsOf = (s: Sim): Hands => ({ weapons: [...s.weapons], weapon: s.weapon, secondary: s.secondary, support: { ...s.support }, call: s.call, graft: s.graft && { kind: s.graft.kind, from: s.graft.from, dmg: s.graft.dmg } });
 
 /** What the Communicator takes down a dungeon (`DungeonLink.descend`). */
 export interface DungeonCarry {

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" data-theme="machinerra">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homecoming mock</title>
+<link rel="stylesheet" href="../../../harness/ui/tokens.css">
+<link rel="stylesheet" href="../src/theme.css">
+<link rel="stylesheet" href="../src/punchcard.css">
+<link rel="stylesheet" href="mock.css">
+</head>
+<body class="mk" data-page="home">
+<nav class="mk-chrome">
+  <a href="drydock.html">Dry dock</a>
+  <a href="homecoming.html" aria-current="page">Arrival and pre-flight</a>
+  <span class="mk-chrome__flows">
+    <button data-flow="loop">Arrival to the lift</button>
+    <button data-flow="free">Free play</button>
+  </span>
+  <span class="mk-chrome__step"></span>
+  <span class="mk-chrome__count"></span>
+</nav>
+<div class="mk-fit"><div class="stage"><div class="mk-deck"></div><div id="ui"></div></div></div>
+<script type="module" src="mock.js"></script>
+</body>
+</html>

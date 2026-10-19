@@ -22,6 +22,7 @@ import { ANOMALIES, BERSERK, BIOMES, DAY, HORNET, LOOT, MISSION, PARTS, STEAM, T
 import type { Lamp } from './lamps';
 import { BURIED, FOOT, OURS, UNDRESSED, dressed, makeDressArt, paintFoes } from './biomedress';
 import { clampTier } from './sim/dungeon';
+import { wear } from './sim/graft';
 import { NO_INPUT, Sim } from './sim/sim';
 import { installSounds } from './sound';
 import { hub } from './hub/save';
@@ -257,6 +258,7 @@ export class Play extends Phaser.Scene {
       if (hands) {
         sim.support = { ...hands.support };
         sim.call = hands.call;
+        wear(sim, hands.graft); // a limb grafted on the land comes down with him
       }
     }
     const W = sim.W * T, H = sim.H * T;

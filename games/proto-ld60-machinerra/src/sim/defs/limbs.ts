@@ -22,6 +22,22 @@ export const LIMBS = {
   whip: { reach: 2, width: 14, wind: 0.55, strike: 0.15, cooldown: 1.1, dmg: 0.9 },
 };
 
+/**
+ * Grafting (Gasket's capstone, `gasket.3`; every number a guess): a killed twisted or menacing elite drops one of its limbs
+ * as a part on the ground; holding Use beside it for `hold` s grafts it on the Communicator for the mission. The limb works
+ * as the elite's did (`LIMBS` times, the blow the donor's own times `dmg`) but hurts foes only. `reach`: the press' reach to
+ * the part (px); `claw`, `whip`: the graft's reach in px (the elites' reach is their kind's sting reach times `LIMBS`);
+ * `socket`: where it grows from, `out` px to its side of him and `up` px above his feet.
+ */
+export const GRAFT = {
+  hold: 1.2,
+  reach: 54,
+  claw: { reach: 64 },
+  whip: { reach: 130 },
+  dmg: 2,
+  socket: { out: 13, up: 30 },
+};
+
 /** How many menacing elites draw their full tentacle rope at once (the nearest to the view); the rest draw a stub (`limbview.ts`). */
 export const LIMB_CAP = 6;
 

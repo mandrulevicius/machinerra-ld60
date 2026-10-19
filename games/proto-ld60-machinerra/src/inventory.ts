@@ -36,6 +36,8 @@ import './inventory.css';
 import './punchcard.css';
 
 export type InvTab = 'comm' | 'crew' | 'cards' | 'stats' | 'mats' | 'bench';
+/** Two clicks on one item within this many ms wear it (a guess). */
+const DOUBLE_MS = 300;
 const TABS: [InvTab, string][] = [['comm', 'Communicator'], ['crew', 'Underlings'], ['cards', 'Cards'], ['stats', 'Stats'], ['mats', 'Materials'], ['bench', 'Workbench']];
 const ROLE_NAMES: Record<CrewRole, string> = { gatherer: 'Gatherers', guard: 'Guards', repairer: 'Repairers', mule: 'Mules', marksman: 'Marksmen', boilermancer: 'Boilermancers', lamplighter: 'Lamplighters', stalker: 'Stalkers' };
 const ROLE_ONE: Record<CrewRole, string> = { gatherer: 'gatherer', guard: 'guard', repairer: 'repairer', mule: 'mule', marksman: 'marksman', boilermancer: 'boilermancer', lamplighter: 'lamplighter', stalker: 'stalker' };
@@ -101,6 +103,10 @@ export class Inventory {
   /** The Stats tab (`stats.ts`). */
   private statsView = new StatsView();
   private note = '';
+  /** The item whose Salvage was pressed once and waits for the second press (salvage cannot be undone, as taking a robot apart cannot). */
+  private armed: number | null = null;
+  /** The last item clicked, for the double-click. */
+  private lastItem: { uid: number; at: number } | null = null;
   /** What is being dragged (an item's uid or a card's id), while a drag lasts. */
   private dragging: { kind: 'item'; uid: number } | { kind: 'card'; id: string } | null = null;
   /** Why the last action failed (the dev commands report it). */
@@ -123,7 +129,6 @@ export class Inventory {
       this.el = document.createElement('div');
       this.el.className = 'ui-backdrop inv-backdrop';
       this.el.addEventListener('click', (e) => this.click(e));
-      this.el.addEventListener('dblclick', (e) => this.dbl(e));
       this.el.addEventListener('input', (e) => this.type(e));
       this.el.addEventListener('mouseover', (e) => this.tab === 'stats' && this.statsView.hover(this.el!, e, true));
       this.el.addEventListener('mouseout', (e) => this.tab === 'stats' && this.statsView.hover(this.el!, e, false));
@@ -284,6 +289,8 @@ export class Inventory {
     if (!t) return;
     const a = t.dataset.a!, v = t.dataset.v ?? '';
     const f = this.filter;
+    const armed = this.armed;
+    this.armed = null;
     switch (a) {
       case 'close': return this.hide();
       case 'tab': this.tab = v as InvTab; this.pick = null; this.recipe = null; this.cardSlot = null; this.lugFor = null; f.slot = undefined; this.reveal = null; break;
@@ -309,7 +316,18 @@ export class Inventory {
         if (uid !== undefined && f.slot) this.pick = uid;
         break;
       }
-      case 'item': this.pick = Number(v); this.reveal = null; break;
+      case 'item': {
+        // The click redraws the panel, so the browser never sees a double-click on one element: catch it here, by item.
+        const uid = Number(v), twice = this.lastItem?.uid === uid && e.timeStamp - this.lastItem.at < DOUBLE_MS;
+        this.lastItem = twice ? null : { uid, at: e.timeStamp };
+        this.pick = uid;
+        this.reveal = null;
+        if (twice) {
+          this.wearFirst(uid);
+          return this.render();
+        }
+        break;
+      }
       case 'lug': {
         // A lug on a weapon: show the mods that fit it (again: show all); a filled one also picks its mod.
         const [w, i] = v.split(':').map(Number);
@@ -331,7 +349,19 @@ export class Inventory {
       }
       case 'off': this.takeOff(this.pick!); return;
       case 'craft': this.make(v as ItemId); return;
-      case 'salvage': this.scrapIt(this.pick!); return;
+      case 'salvage': {
+        // The first press asks, the second (on the same item) does it.
+        if (armed !== this.pick) {
+          this.armed = this.pick;
+          const o = owned(gearSlice.get(), this.pick ?? undefined);
+          this.note = `Take the ${o ? ITEMS[o.id].name : 'item'} apart for good? Press Salvage again to confirm.`;
+          this.host.sound('click');
+          this.render();
+          return;
+        }
+        this.scrapIt(this.pick!);
+        return;
+      }
       default: return;
     }
     this.host.sound('click');
@@ -493,11 +523,9 @@ export class Inventory {
   }
 
   /** Double-click an item: wear it in the first slot it fits (on the Underlings tab, on the crew shown). */
-  private dbl(e: MouseEvent) {
-    const t = (e.target as HTMLElement).closest('[data-a="item"]') as HTMLElement | null;
-    if (!t) return;
+  private wearFirst(uid: number) {
     const g = gearSlice.get();
-    const o = owned(g, Number(t.dataset.v));
+    const o = owned(g, uid);
     if (!o) return;
     const d = ITEMS[o.id];
     if (d.mod) {
@@ -506,9 +534,24 @@ export class Inventory {
       if (w) this.fit(o.uid, w.uid);
       return;
     }
-    if (this.tab === 'crew' && d.bot && fitsBot(d, this.role)) this.wear(o.uid, this.role, d.bot);
-    else if (this.tab === 'comm' && d.weapon) this.wear(o.uid, 'comm', this.filter.slot === 'secondary' || (g.comm.primary !== undefined && !wornAt(g, o.uid)) ? 'secondary' : 'primary');
-    else if (this.tab === 'comm' && d.comm) this.wear(o.uid, 'comm', d.comm);
+    const t = this.wearTarget(g, o);
+    if (t) this.wear(o.uid, t.who, t.slot);
+  }
+
+  /**
+   * Where a non-mod item goes with one press: on the Communicator tab his weapon slot or body part, on the Underlings tab the crew shown.
+   * On the Workbench (a crafted piece): his slot for a weapon or body part, else the robot type shown if the piece fits it, else the first type it is made for.
+   */
+  private wearTarget(g: Gear, o: Owned): { who: 'comm' | CrewRole; slot: CommSlot | BotSlot } | null {
+    const d = ITEMS[o.id];
+    const onComm = this.tab === 'comm' || (this.tab === 'bench' && !!(d.weapon || d.comm));
+    if (onComm) {
+      if (d.weapon) return { who: 'comm', slot: this.filter.slot === 'secondary' || (g.comm.primary !== undefined && !wornAt(g, o.uid)) ? 'secondary' : 'primary' };
+      return d.comm ? { who: 'comm', slot: d.comm } : null;
+    }
+    if (!d.bot) return null;
+    const role = this.tab === 'crew' ? this.role : fitsBot(d, this.role) ? this.role : CREW_ROLES.find((r) => fitsBot(d, r));
+    return role && fitsBot(d, role) ? { who: role, slot: d.bot } : null;
   }
 
   // ---- drawing ----
@@ -638,7 +681,7 @@ export class Inventory {
         <ul class="inv__stats">${statLines(m.roles[this.role]) || '<li class="inv__dim">Nothing yet.</li>'}</ul>
         ${m.auras.length ? `<h3 class="inv__h">Auras</h3><ul class="inv__stats">${m.auras.map((a) => `<li>${a.who === 'controller' ? 'You' : ROLE_NAMES[a.who]}: ${statLines(a.stats, 'inline')} within ${a.r} px</li>`).join('')}</ul>` : ''}
       </div>
-      <div class="inv__col inv__list" data-drop="off">${this.filters()}<div class="inv__hits">${this.grid(g, list, this.filter.text.trim() ? 'Nothing you own matches the search.' : `Nothing for ${this.role}s yet. Craft some at the Workbench.`)}</div></div>
+      <div class="inv__col inv__list" data-drop="off">${this.filters()}<div class="inv__hits">${this.grid(g, list, this.filter.text.trim() ? 'Nothing you own matches the search.' : `Nothing for ${this.role}s yet. <button class="inv-link" data-a="tab" data-v="bench">Craft some at the Workbench.</button>`)}</div></div>
       <div class="inv__col inv__card">${this.card(g)}</div>`;
   }
 
@@ -660,17 +703,15 @@ export class Inventory {
     const r = researchSave.get();
     const aboard = this.host.where === 'hub';
     const owned = r.owned.map(cardOf).filter((c): c is Card => !!c);
-    const shown = this.cardSlot ? owned.filter((c) => slotsFor(c).includes(this.cardSlot!)) : owned;
+    // A fitted card shows in its slot only, not in the collection too.
+    const loose = owned.filter((c) => !fittedAt(r, c.id));
+    const shown = this.cardSlot ? loose.filter((c) => slotsFor(c).includes(this.cardSlot!)) : loose;
     const typeKeys = (CREW_ROLES as string[]).filter(isBotType).map(typeSlot);
-    const at = (c: Card) => {
-      const k = fittedAt(r, c.id);
-      return k ? slotName(k) + (k.startsWith('comm:') ? ' (you)' : '') : '';
-    };
     const tile = (c: Card) =>
-      `<button class="inv-ctile ${c.pool === 'keystone' ? 'is-key' : ''} ${this.cardId === c.id ? 'is-selected' : ''} ${pcClass(c, 'sm')}" ${pcStyle(c)} data-a="cpick" data-v="${c.id}" title="${esc(c.text)}"${aboard ? ` draggable="true" data-drag="card|${c.id}"` : ''}>${STOCK}<span class="pc__head"><b class="pc__name">${esc(c.name)}</b><em class="pc__tag">${POOL_NAMES[c.pool]}${at(c) ? ` · ${esc(at(c))}` : ''}</em></span>${holesSvg(c.id)}</button>`;
+      `<button class="inv-ctile ${c.pool === 'keystone' ? 'is-key' : ''} ${this.cardId === c.id ? 'is-selected' : ''} ${pcClass(c, 'sm')}" ${pcStyle(c)} data-a="cpick" data-v="${c.id}" title="${esc(c.text)}"${aboard ? ` draggable="true" data-drag="card|${c.id}"` : ''}>${STOCK}<span class="pc__head"><b class="pc__name">${esc(c.name)}</b><em class="pc__tag">${POOL_NAMES[c.pool]}</em></span>${holesSvg(c.id)}</button>`;
     const list = shown.length
       ? `<div class="inv__ctiles">${shown.map(tile).join('')}</div>`
-      : `<p class="inv__empty">${owned.length ? `No card of yours fits ${this.cardSlot ? slotName(this.cardSlot).toLowerCase() : 'here'}.` : 'No cards yet. The Oracle offers one pick of three each time you return from the sands, and one more for every insight you spend.'}</p>`;
+      : `<p class="inv__empty">${!owned.length ? 'No cards yet. The Oracle offers one pick of three each time you return from the sands, and one more for every insight you spend.' : !loose.length ? 'All your cards are fitted.' : `No loose card of yours fits ${this.cardSlot ? slotName(this.cardSlot).toLowerCase() : 'here'}.`}</p>`;
     return `
       <div class="inv__col inv__doll">
         <h3 class="inv__h">You</h3>
@@ -751,7 +792,7 @@ export class Inventory {
       .join('');
     const id = this.recipe;
     let card = '<p class="inv__dim">Pick a recipe. What you craft rolls a quality: mostly Standard, sometimes Fine, Rare or Epic, once in a long while Legendary. A weapon mod has none: it is a behaviour, one of a kind.</p>';
-    if (this.reveal) card = `<div class="inv-reveal q-${this.reveal.q}">${ITEMS[this.reveal.id].mod ? 'Made!' : `${QUALITIES[this.reveal.q].name}!`}</div>` + this.itemCard(g, this.reveal);
+    if (this.reveal) card = `<div class="inv-reveal q-${this.reveal.q}">${ITEMS[this.reveal.id].mod ? 'Made!' : `${QUALITIES[this.reveal.q].name}!`}</div>` + this.revealCard(g, this.reveal);
     else if (id) {
       const r = ITEMS[id].recipe;
       const need = (have: number, n: number, name: string, icon = '') => `<li class="${have >= n ? '' : 'is-bad'}">${icon}${n} ${esc(name)} <span>(${have})</span></li>`;
@@ -766,6 +807,17 @@ export class Inventory {
     return `
       <div class="inv__col inv__list inv__list--bench">${this.filters(true)}<div class="inv__hits">${list || '<p class="inv__empty">No recipe matches the filters.</p>'}${waiting ? `<p class="inv__dim">${esc(waiting)}</p>` : ''}</div></div>
       <div class="inv__col inv__card">${card}</div>`;
+  }
+
+  /** A crafted piece's card with its Wear (or Fit to <type>) button: the same wear as the Communicator and Underlings tabs. A mod gets its Fit buttons. */
+  private revealCard(g: Gear, o: Owned) {
+    if (ITEMS[o.id].mod) return this.modCard(g, o);
+    const t = this.wearTarget(g, o);
+    const at = wornAt(g, o.uid);
+    const label = t?.who === 'comm' ? (ITEMS[o.id].weapon ? `Wear as ${SLOT_NAMES[t.slot].toLowerCase()}` : 'Wear') : t ? `Fit to ${ROLE_NAMES[t.who].toLowerCase()}` : '';
+    const worn = at ? `<p class="inv__dim">Worn: ${at.who === 'comm' ? 'by you' : `by every ${at.who}`}, ${SLOT_NAMES[at.slot].toLowerCase()}.</p>` : '';
+    const act = t && !(at && at.who === t.who) ? `<div class="inv__acts"><button class="ui-btn ui-btn--primary" data-a="wear" data-v="${t.who}:${t.slot}">${label}</button></div>` : '';
+    return this.itemCard(g, o) + worn + act;
   }
 
   /** The picked owned item's card, with what can be done with it here. */

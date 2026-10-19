@@ -15,7 +15,7 @@ import { junkPrice, sellJunk } from '../relics';
 import type { HubState, PerkId } from '../state';
 import { BOONS, buyBoon, offered, type Boon } from '../specials';
 import { talkSave } from '../talkslice';
-import { TIERS, buy, buyBack, discounted, left, sell, sellable, shelf, type Stall, type Ware } from '../trade';
+import { TIERS, buy, buyBack, discounted, left, sell, sellAll, sellable, shelf, type Stall, type Ware } from '../trade';
 import { titleStat } from '../titles';
 import { questBook, titleSave } from '../talkslice';
 import { roster } from '../workshop';
@@ -60,7 +60,7 @@ export function shopHtml(o: {
       '',
       `${esc(PARTS[k].name)} ×${n}`,
       `she pays ${buyBack(k)} scrap each`,
-      `<button class="ui-btn ui-btn--secondary" data-a="sell" data-k="${k}">Sell one</button>`,
+      `<button class="ui-btn ui-btn--secondary" data-a="sell" data-k="${k}">Sell one</button>${n > 1 ? `<button class="ui-btn ui-btn--secondary" data-a="sellall" data-k="${k}" title="Sell all ${n} for ${buyBack(k) * n} scrap">Sell all</button>` : ''}`,
     ))
     .join('');
   const old = (o.junk ?? [])
@@ -136,6 +136,14 @@ export function sellPart(host: HubHost, k: PartKind) {
   return `Sold: ${PARTS[k].name}`;
 }
 
+/** Every unit of a part kind at once: the same as selling them one by one (each counts for her story's sales). */
+export function sellAllParts(host: HubHost, k: PartKind) {
+  const n = host.s.parts[k] ?? 0;
+  keepStall(host, sellAll(stall(host), k));
+  questBook.set({ ...questBook.get(), sold: questBook.get().sold + n }); // trader.story 1
+  return `Sold ${n}: ${n === 1 ? PARTS[k].name : PARTS[k].plural}`;
+}
+
 const REPLIES = ['No refunds!', 'Pleasure doing business, friend.', 'Polished it myself. Mostly.', 'Honest brass. Honestly.', 'A fine choice. They are all fine choices.'];
 
 /** A click at her stall: the trade, a banner and a line from her, and the panel redrawn; a refusal is said, not thrown. */
@@ -199,5 +207,6 @@ export const traderOffer: OfferPanel = {
       }),
     );
     el.querySelectorAll<HTMLElement>('[data-a="sell"]').forEach((btn) => act(btn, () => sellPart(host, btn.dataset.k as PartKind)));
+    el.querySelectorAll<HTMLElement>('[data-a="sellall"]').forEach((btn) => act(btn, () => sellAllParts(host, btn.dataset.k as PartKind)));
   },
 };

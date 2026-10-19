@@ -1,5 +1,5 @@
 /* SAMPLE, not a style to copy. pixel: chunky retro, hard shadows, no radii. */
-@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+/* Its font, Press Start 2P, is in fonts.css: only the lab and the preview pages load it. */
 
 [data-theme="pixel"] {
   --ui-c-scene-text: #fff6d5;

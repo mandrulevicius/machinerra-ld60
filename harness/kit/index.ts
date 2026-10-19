@@ -26,5 +26,5 @@ export { setRim, setShading, setMaterialRim, type Shading } from './rim';
 export { ensureNormalMap, setNormalMaps, normalOptions, material, setMaterials } from './normals';
 export { MATERIALS, materialOptions, type MaterialDef, type MaterialName, type MaterialSpec, type MaterialOpts, type WearMix, type EmissiveDef } from './material';
 export * from './world';
-export { loadAtlas, atlas, assetBase, sequences, type Atlas, type AnimOpts } from './assets';
+export { loadAtlas, warmAtlas, atlas, assetBase, sequences, type Atlas, type AnimOpts } from './assets';
 export { rng, type Rng } from './rng';

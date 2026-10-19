@@ -1,0 +1,3 @@
+/* The sample themes' web fonts, apart from pixel.css and fantasy.css so a game that ships (bundled through harness/ui.ts) does not fetch fonts it never shows. Import where the samples are on show: the lab, harness/ui/all.css. */
+@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:wght@400;600&display=swap");

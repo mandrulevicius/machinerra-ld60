@@ -349,6 +349,9 @@ export const stokeAll = (s: Shop) => eachInOrder(s, (b) => !b.wreck && !b.downed
 /** Repair every robot carried home down (the "Repair all" button): one `repairDowned` each, in order, until the scrap runs out. A wreck is rebuilt on its own row. */
 export const repairAll = (s: Shop) => eachInOrder(s, (b) => !!b.downed && !b.wreck, repairDowned);
 
+/** Rebuild every wreck (the Dry dock's "Rebuild all"): one `rebuild` each, in order, until the scrap runs out. */
+export const rebuildAll = (s: Shop) => eachInOrder(s, (b) => b.wreck, rebuild);
+
 /** Fit a relic (or clear it with null). One socket per robot; the relic stays through a wreck. */
 export function fitRelic(r: Roster, uid: string, relic: string | null): Roster {
   const { relic: _old, ...b } = find(r, uid);

@@ -10,7 +10,7 @@ import type { Plugin } from 'vite';
  */
 const NAME = '[A-Za-z0-9_-]+';
 export const CAPTURE_PATH = new RegExp(
-  `^games/${NAME}/(?:capture/(?:${NAME}\\.frames/\\d{1,6}\\.png|bugs/${NAME}\\.(?:json|png)|matrix/${NAME}/(?:index|${NAME}=${NAME}(?:__${NAME}=${NAME})*)\\.png|${NAME}\\.(?:png|webm))|public/previews/${NAME}\\.webp)$`,
+  `^games/${NAME}/(?:capture/(?:${NAME}\\.frames/\\d{1,6}\\.png|bugs/${NAME}\\.(?:json|png)|matrix/${NAME}/(?:index|${NAME}=${NAME}(?:__${NAME}=${NAME})*)\\.png|${NAME}\\.(?:png|webm))|GameDevDocs/\\.review/${NAME}/(?:\\d{2}\\.png|contact\\.png|manifest\\.json)|public/previews/${NAME}\\.webp)$`,
 );
 
 /** Absolute file for a repo-relative capture path, or null if it is not an allowed one. */
@@ -29,7 +29,7 @@ export function capturePlugin(): Plugin {
   return {
     name: 'capture',
     apply: 'serve',
-    config: () => ({ server: { watch: { ignored: ['**/games/*/capture/**'] } } }),
+    config: () => ({ server: { watch: { ignored: ['**/games/*/capture/**', '**/games/*/GameDevDocs/.review/**'] } } }),
     configResolved: (c) => void (root = c.root),
     configureServer(server) {
       server.middlewares.use('/__capture/save', (req, res) => {

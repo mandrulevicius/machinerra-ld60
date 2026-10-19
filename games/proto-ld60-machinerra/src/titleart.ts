@@ -10,7 +10,7 @@ import type { TitleArt } from '../../../harness/kit';
 import { audioFor } from '../../../harness/kit';
 import { GROUND_PX, paintGround } from './art';
 import { MesaShadows, fixedLean } from './mesashadow';
-import { shadeOf } from './shadowview';
+import { PROP_CASTS, shadeOf } from './shadowview';
 import { sunLean } from './sun';
 import { BIOMES } from './sim/defs';
 import { generate } from './sim/mapgen';
@@ -193,7 +193,7 @@ export const titleArt: TitleArt = {
         ground.setPosition(W / 2 + Math.sin(t * 0.00004) * slack.x * 0.8 - px * 14, H / 2 + Math.sin(t * 0.000027 + 1) * slack.y * 0.6);
         const gs = ground.scaleX;
         lay.setPosition(ground.x - ground.displayWidth / 2, ground.y - ground.displayHeight / 2).setScale(gs);
-        mesas.update(new Phaser.Geom.Rectangle(-lay.x / gs, -lay.y / gs, W / gs, H / gs), fixedLean(sunLean(TITLE_HOUR)));
+        mesas.update(new Phaser.Geom.Rectangle(-lay.x / gs, -lay.y / gs, W / gs, H / gs), fixedLean(sunLean(TITLE_HOUR)), PROP_CASTS);
         // The leave: k 0..1, eased in so it gathers speed.
         if (leaving >= 0) leaving += Math.min(delta, 50);
         const k = leaving < 0 ? 0 : Math.min(1, leaving / LEAVE.ms);

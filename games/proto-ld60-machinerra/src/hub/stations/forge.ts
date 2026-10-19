@@ -11,6 +11,7 @@ import { gear } from '../carry';
 import { esc } from '../panels';
 import type { HubHost, OfferPanel } from './host';
 import { teacherOffer } from './recipes';
+import { DOCK_BUTTON, wireDock } from './dockbtn';
 
 const recipes = teacherOffer('hob');
 
@@ -31,7 +32,9 @@ export const forgeOffer: OfferPanel = {
     const base = recipes.tabs!(host);
     return pick ? [{ id: 'fitted', label: 'Fitted mod', html: fittedHtml(pick) }, ...base] : base;
   },
+  actions: DOCK_BUTTON,
   wire(host, el, again) {
+    wireDock(host, el, 'forge');
     el.querySelectorAll<HTMLElement>('[data-modpick]').forEach((b) =>
       b.addEventListener('click', () => {
         const id = b.dataset.modpick as ModId;

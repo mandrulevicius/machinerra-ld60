@@ -442,5 +442,8 @@ export function createCapture(game: Phaser.Game, step: (n?: number) => void) {
     }
   });
 
-  return { shot, thumb, start, stop, record, render, matrix, report };
+  const api = { shot, thumb, start, stop, record, render, matrix, report };
+  // A game may add commands from its own src/dev/places.ts (`installPlaces`).
+  try { void (import.meta.glob('../../games/*/src/dev/places.ts') as Record<string, () => Promise<{ installPlaces?: (a: object) => void }>>)[`../../games/${gameName()}/src/dev/places.ts`]?.().then((m) => m.installPlaces?.(api)); } catch { /* no game page */ }
+  return api;
 }

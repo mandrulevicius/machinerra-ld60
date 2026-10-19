@@ -166,6 +166,66 @@ describe('leeway: the oil reserve', () => {
     expect(s.controller.hp).toBeLessThan(s.controller.maxHp * REVIVE.oil);
   });
 
+  it('a revive is a moment: he stands a beat, foes are shoved off, time slows then returns, and he is safe for a real second', () => {
+    const s = alone(3);
+    s.controller.x += 300;
+    const c = s.controller;
+    s.reserve = REVIVE.cost;
+    const near = s.spawnHornet(c.x + 60, c.y, 0, false, false);
+    const far = s.spawnHornet(c.x + REVIVE.push.radius + 80, c.y, 0, false, false);
+    s.hurt(c, 999);
+    expect(s.slowT).toBe(0);
+    let steps = 0;
+    while (s.downT > 0) (s.step(1 / 30, NO_INPUT), (s.events.length = 0));
+    expect(s.stats.revived).toBe(1);
+    // pushed: the near foe flies away from him; the far one is untouched
+    expect(near.vx).toBeGreaterThan(REVIVE.push.force * 0.5);
+    expect(far.vx).toBeLessThan(REVIVE.push.force * 0.5);
+    expect(near.hp).toBe(near.maxHp);
+    // he stands there for `stand` real seconds
+    const at = c.x;
+    const go = { ...NO_INPUT, mx: 1 };
+    for (; steps < Math.floor(REVIVE.stand * 30) - 1; steps++) (s.step(1 / 30, go), (s.events.length = 0));
+    expect(c.x).toBe(at);
+    // time is slowed: the sim clock gains less than the real step
+    expect(s.slowT).toBeGreaterThan(0);
+    const t0 = s.time;
+    s.step(1 / 30, NO_INPUT);
+    expect(s.time - t0).toBeLessThan((1 / 30) * 0.6);
+    // invulnerable for one real second from the revive, not a step more
+    const real = (n: number) => { for (let i = 0; i < n; i++) (s.step(1 / 30, NO_INPUT), (s.events.length = 0)); };
+    const hp = c.hp;
+    s.hurt(c, 50);
+    expect(c.hp).toBe(hp);
+    real(Math.round(REVIVE.grace * 30) + 2 - steps - 1);
+    expect(s.graceT).toBe(0);
+    s.hurt(c, 10);
+    expect(c.hp).toBeLessThan(hp);
+    // the slow is over and the scale is back to 1
+    real(Math.ceil((REVIVE.slow.hold + REVIVE.slow.ease) * 30));
+    expect(s.slowT).toBe(0);
+    const t1 = s.time;
+    s.step(1 / 30, NO_INPUT);
+    expect(s.time - t1).toBeCloseTo(1 / 30, 6);
+    // and he moves again
+    const x1 = c.x;
+    real(10);
+    expect(c.x).toBe(x1);
+    for (let i = 0; i < 10; i++) s.step(1 / 30, go);
+    expect(c.x).toBeGreaterThan(x1);
+  });
+
+  it('the push leaves a Steady foe where it stands', () => {
+    const s = alone(3);
+    s.controller.x += 300;
+    s.reserve = REVIVE.cost;
+    const h = s.spawnHornet(s.controller.x + 50, s.controller.y, 0, false, false);
+    s.engine.apply(h, 'steady');
+    s.hurt(s.controller, 999);
+    while (s.downT > 0) (s.step(1 / 30, NO_INPUT), (s.events.length = 0));
+    expect(h.vx).toBeLessThan(REVIVE.push.force * 0.5);
+  });
+
   it('with less than a can, the winch takes over, and the night comes closer', () => {
     const s = alone(3);
     s.controller.x += 300;

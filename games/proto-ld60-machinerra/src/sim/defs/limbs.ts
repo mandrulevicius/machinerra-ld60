@@ -94,6 +94,7 @@ export const SOCKETS: Partial<Record<Enemy, Socket>> = {
 /** A kind that can be an elite and has no limbs, and why. */
 export const LIMBLESS: Partial<Record<Enemy, string>> = {
   spider: 'the Crawlcam has its own eight legs and its own view (spider.ts)',
+  caterpillar: 'a segmented body on its own legs and its own view (caterpillar.ts)',
   snake: 'a chain of plates: the rattler is all body',
   veinworm: 'a chain of plates: the vein-crawler is all body',
 };

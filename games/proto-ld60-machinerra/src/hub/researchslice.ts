@@ -15,6 +15,7 @@ import { hasDog } from './companions';
 const sample: Research = {
   owned: ['twinNozzle', 'acidEdge', 'overpressure', 'conductors'],
   fit: { 'comm:0': 'twinNozzle', 'comm:2': 'acidEdge', 'type:repairer': 'overpressure' },
+  fourth: true,
   credit: 1,
   seen: '4242:1760000000000',
   offer: ['scaldingRounds', 'bootPolish', 'deepDraw'],

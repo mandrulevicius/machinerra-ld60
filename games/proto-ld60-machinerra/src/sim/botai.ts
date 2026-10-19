@@ -17,6 +17,7 @@ import { COAL, DOWNED, FOES, GATHER, MARKSMAN, NEST, MISSION, MULE, REPAIR, ROLE
 import { carrySkill, castSkills, live, numOf, stab, stalk } from './botskills';
 import { carriedBy, downedNear, pickUp, putDown } from './downed';
 import { sawStroke, untouchable } from './combat';
+import { CLIMB } from './path';
 import { typeMul } from './missionfx';
 import { propTeles } from './props';
 import { weatherTeles } from './weather';
@@ -199,6 +200,8 @@ export function goalOf(sim: Sim, b: Bot): Goal {
 
 // ---------------------------------------------------------------- the step
 
+/** How far its shots reach: its range stat and the day's, and 20% farther from rock in spider legs (P53, `CLIMB.high`). */
+export const reachOf = (sim: Sim, b: Bot, base: number) => sim.engine.stat(b, 'range', base) * sim.fx.reach * (b.climbs && sim.onRock(b) ? 1 + CLIMB.high : 1);
 const fighter = (b: Bot) => b.role === 'guard' || b.role === 'marksman' || b.role === 'stalker';
 const weaponOf = (b: Bot) => (b.role === 'marksman' ? WEAPON.marksman : b.role === 'stalker' ? { dmg: STALKER.dmg, rate: STALKER.rate, speed: 0, range: STALKER.reach } : WEAPON.guard);
 const specOf = (b: Bot) => (b.spec && isBotType(b.role) ? behaviourOf(b.role, b.spec as SpecId) : {});
@@ -283,7 +286,7 @@ function decide(sim: Sim, b: Bot, m: Mind, w: World) {
       emit(sim, b, 'brace');
       continue;
     }
-    const ways = sidesteps(t, b.x, b.y, r).filter((p) => !sim.blocked(p.x, p.y) && !w.tele.some((o) => o !== t && covers(o, p.x, p.y, r)));
+    const ways = sidesteps(t, b.x, b.y, r).filter((p) => !sim.blocked(p.x, p.y, b) && !w.tele.some((o) => o !== t && covers(o, p.x, p.y, r)));
     if (ways[0]) {
       m.dodge = { x: ways[0].x, y: ways[0].y, until: now + AI.dodgeTime, tele: t.id };
       if (t.kind !== 'patch') emit(sim, b, 'dodge', { x: ways[0].x, y: ways[0].y });
@@ -421,7 +424,7 @@ function scoreFoes(sim: Sim, b: Bot, m: Mind, w: World, g: Goal): Scored[] {
   const W = weaponOf(b);
   const stalker = b.role === 'stalker';
   const sight = sim.sight(b, (mk ? MARKSMAN.sightTiles : stalker ? STALKER.sight : 8) * T);
-  const range = stalker ? W.range : sim.engine.stat(b, 'range', W.range) * sim.fx.reach;
+  const range = stalker ? W.range : reachOf(sim, b, W.range);
   const rate = W.rate / Math.max(0.3, sim.engine.stat(b, 'attackRate', 1));
   const me: Self = { role: b.role, spec: b.spec, range, rate, gun: !stalker, ranged: !stalker, current: m.target, crewTarget: w.crewTarget.get(b.crew) ?? 0 };
   const c = sim.controller;
@@ -680,7 +683,7 @@ function fight(sim: Sim, b: Bot, tgt: Hornet | Nest, g: Goal, dt: number) {
   if (b.role === 'stalker') return stalk(sim, b, tgt, g, dt); // round to its back, then the blade
   const mk = b.role === 'marksman';
   const W = weaponOf(b);
-  const range = sim.engine.stat(b, 'range', W.range) * sim.fx.reach;
+  const range = reachOf(sim, b, W.range);
   const bd = dist(b.x, b.y, tgt.x, tgt.y) || 1;
   b.state = 'fight';
   b.target = tgt.id;
@@ -709,7 +712,7 @@ function fight(sim: Sim, b: Bot, tgt: Hornet | Nest, g: Goal, dt: number) {
     const ad = dist(g.x, g.y, tgt.x, tgt.y) || 1;
     const out = Math.min(AI.lineOut * T, ad * 0.5);
     const L = { x: g.x + ((tgt.x - g.x) / ad) * out, y: g.y + ((tgt.y - g.y) / ad) * out };
-    if (g.kind !== 'evac' && !sim.blocked(L.x, L.y) && !patched(sim, L.x, L.y, r) && dist(L.x, L.y, tgt.x, tgt.y) <= range * 0.9) sim.go(b, L.x, L.y, dt, 8);
+    if (g.kind !== 'evac' && !sim.blocked(L.x, L.y, b) && !patched(sim, L.x, L.y, r) && dist(L.x, L.y, tgt.x, tgt.y) <= range * 0.9) sim.go(b, L.x, L.y, dt, 8);
     else if (bd > range * 0.9) advance();
   }
   shootIf(sim, b, tgt);
@@ -732,7 +735,7 @@ function shootIf(sim: Sim, b: Bot, tgt: Hornet | Nest) {
   if (b.role === 'stalker') return stab(sim, b, tgt); // a blade; `stalk` closes in
   const mk = b.role === 'marksman';
   const W = weaponOf(b);
-  const range = sim.engine.stat(b, 'range', W.range) * sim.fx.reach;
+  const range = reachOf(sim, b, W.range);
   if (b.role === 'guard') {
     // Up close the saw, at range the gun: a foe in reach of the blade is sawed (the target first, else the nearest) and the gun waits.
     const near = sawFoe(sim, b, tgt);

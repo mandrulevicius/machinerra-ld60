@@ -65,7 +65,61 @@ describe('level 1: Bellows', () => {
   });
 });
 
-describe('level 1: the toaster, the mast, the Foreman, Sprocket', () => {
+describe('level 1: Bellows already ours (the intro mended him)', () => {
+  const owned = (crew: { role: 'gatherer'; name: string }[] = [{ role: 'gatherer', name: 'Bellows' }]) => new Sim('level1', [], 'desert', [], undefined, undefined, { land: loadLand('level1'), crew, owned: ['Bellows'] });
+
+  it('lays no Bellows at the wreck: no robot, no strays, no command lesson; he rides down with the crew', () => {
+    const s = owned();
+    run(s, 5);
+    const w = place(s, 'wreck');
+    expect(w.state).toBe('empty');
+    expect(w.bot).toBeUndefined();
+    expect(s.bots.filter((b) => b.name === 'Bellows')).toHaveLength(1);
+    expect(s.hornets.filter((h) => !h.dead && !h.boss && h.home)).toHaveLength(0);
+    expect(s.crew.map((b) => b.name)).toEqual(['Bellows']);
+    expect(s.said.has('l1-command')).toBe(false);
+    expect(s.said.has('l1-mast')).toBe(false); // the objective names the mast (sim/lessons.ts)
+    expect(s.objective).toMatch(/mast/);
+  });
+
+  it('a wrecked Bellows (owned, not riding) is not laid at his wreck either', () => {
+    const s = owned([]);
+    run(s, 1);
+    expect(place(s, 'wreck').bot).toBeUndefined();
+    expect(s.bots.some((b) => b.name === 'Bellows')).toBe(false);
+  });
+
+  it('the chain still runs: mast, reveal, her guard, Sprocket, the lift; the haul fetches no second Bellows', () => {
+    const s = owned();
+    s.god = true;
+    run(s, 0.2);
+    const mast = place(s, 'mast');
+    const at = mast.parts.find((q) => q.kind === 'mast')!;
+    go(s, at.x, at.y + 20);
+    tap(s);
+    run(s, LEVEL1.decode + 0.5);
+    expect(mast.state).toBe('lit');
+    expect(s.signals.some((x) => x.kind === 'pilgrim')).toBe(true);
+    const sp = place(s, 'sprocket');
+    expect(s.objective).toMatch(/guard/);
+    s.hornets.forEach((h) => h.id === sp.boss!.id && s.slay(h));
+    run(s, 0.2);
+    go(s, s.pilgrim!.bot.x, s.pilgrim!.bot.y + 20);
+    tap(s);
+    run(s, 3);
+    expect(s.pilgrim?.state).toBe('follow');
+    go(s, s.lift.x, s.lift.y);
+    s.pilgrim!.bot.x = s.lift.x + 50;
+    s.pilgrim!.bot.y = s.lift.y;
+    rideLift(s);
+    expect(s.phase).toBe('done');
+    const haul = haulFrom(s, 'run');
+    expect(haul.rescued).toEqual(['sprocket']);
+    expect(haul.fetched).toBeUndefined();
+  });
+});
+
+describe('level 1: the toaster, the mast, her guard, Sprocket', () => {
   it('the car ruin always gives the toaster', () => {
     const s = level1();
     const car = s.ruins.find((r) => r.kind === 'car')!;
@@ -95,12 +149,12 @@ describe('level 1: the toaster, the mast, the Foreman, Sprocket', () => {
     expect(s.insight).toBeGreaterThan(0);
   });
 
-  it('the Foreman guards her, and once he falls her cables go slack; she is freed and rides up even left off the lift', () => {
+  it('her guard (an elite Crawlcam) holds her, and once it falls her cables go slack; she is freed and rides up even left off the lift', () => {
     const s = level1();
     run(s, 0.2);
     const p = place(s, 'sprocket');
     const f = p.boss!;
-    expect(f.kind).toBe('foreman');
+    expect(f.kind).toBe('spider'); // an elite Crawlcam mini-boss (spawntiers.ts)
     expect(f.twisted).toBe(false);
     expect(p.state).toBe('guarded');
     expect(s.pilgrim?.state).toBe('stuck');
@@ -155,7 +209,7 @@ describe('level 1: the first can and the hand-off', () => {
 });
 
 describe('level 1: the whole run', () => {
-  it('wreck, repair, toaster, mast, Foreman, Sprocket freed, the lift: the haul carries Sprocket and Bellows, the toaster and the insight', () => {
+  it('wreck, repair, toaster, mast, guard, Sprocket freed, the lift: the haul carries Sprocket and Bellows, the toaster and the insight', () => {
     const s = level1();
     s.god = true;
     run(s, 0.2);
@@ -189,6 +243,7 @@ describe('level 1: the whole run', () => {
     expect(s.phase).toBe('done');
     const haul = haulFrom(s, 'run');
     expect(haul.rescued).toEqual(['sprocket']);
+    expect(s.said.has('pilgrim-left')).toBe(false); // the Oracle and the rescue agree
     expect(haul.fetched).toEqual([{ name: 'Bellows', role: 'gatherer' }]);
     expect(haul.cores).toBe(1);
     expect(haul.junk).toEqual(['toaster']);

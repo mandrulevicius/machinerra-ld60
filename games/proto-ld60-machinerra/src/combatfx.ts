@@ -91,7 +91,7 @@ export class CombatFx extends ViewBase {
           });
           this.flash(e.x, e.y - 18, 0xff2060, 2.4);
           this.k.juice.hit('big');
-          this.hud.banner('The Hornet Queen falls', 3400);
+          this.hud.banner(`${bossOf(e.h.kind).name} falls`, 3400);
           w.marks.stamp('world-soft', e.x, e.y, { tint: 0x1a0c18, alpha: 0.6, scale: 2.4, kind: false });
         } else if (e.on === 'hornet') {
           fx.burst(e.x, e.y - 18, { color: e.h?.twisted ? VIOLET : 0x3df2ff });

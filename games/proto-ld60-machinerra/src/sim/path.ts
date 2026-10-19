@@ -1,4 +1,19 @@
-/** Grid paths for robots on foot: A* (8 directions, no corner cutting) and a line-of-sight test for straight walks. */
+/** Grid paths for robots on foot: A* (8 directions, no corner cutting) and a line-of-sight test for straight walks; which rock a legged robot may climb (P53). */
+import { SPIDER } from './defs';
+import { RIM, Ter } from './mapgen';
+
+/**
+ * Spider legs (P53): the pace on rock is the Crawlcam's (`SPIDER.stalk.rock`, Minos: legs "step onto low rock"; the share is the plan's guess), and a shot
+ * from high ground reaches 20% farther (`systems.md`, Mobility). The rim band is the deepest `RIM` the generator draws.
+ */
+export const CLIMB = { pace: SPIDER.stalk.rock, high: 0.2, rim: RIM.base + RIM.wobble };
+
+/** Is this tile rock a legged robot may stand on: a mesa, never the land's rim band, never a dungeon's walls (a guess: the plan reads "low rock" as any rock but those). */
+export function climbable(ter: ArrayLike<number>, w: number, h: number, i: number, dungeon = false): boolean {
+  if (dungeon || ter[i] !== Ter.Rock) return false;
+  const x = i % w, y = (i - x) / w;
+  return Math.min(x, y, w - 1 - x, h - 1 - y) >= CLIMB.rim;
+}
 
 /** Path of tile indices from `from` to `to` (both tile indices), excluding `from`; [] when there is none. */
 export function astar(walk: (i: number) => boolean, w: number, h: number, from: number, to: number, limit = 6000): number[] {

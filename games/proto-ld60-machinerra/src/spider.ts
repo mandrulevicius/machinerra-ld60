@@ -12,7 +12,7 @@ import Phaser from 'phaser';
 import type { Audio } from '../../../harness/kit';
 import type { World } from '../../../harness/kit/world';
 import { S as TEX, } from './art';
-import { SPIDER, TWISTED } from './sim/defs';
+import { SPIDER, TWISTED, bossOf } from './sim/defs';
 import { hipHeight, hipOf, legLayout, makeLegs, plantAtRest, stepLegs, toWorld, twoBone, type Body, type GaitOpts, type Leg, type V3 } from './sim/gait';
 import type { Hornet, Sim, SimEvent } from './sim/sim';
 import { elevAt, legCount } from './sim/spider';
@@ -32,12 +32,16 @@ export interface SpiderHooks {
   flash: (x: number, y: number, color: number, intensity?: number) => void;
   burst: (x: number, y: number, o: { color: number; size?: number }) => void;
   shake: (size: 'small' | 'medium') => void;
+  /** Hit-stop for `ms` (the kit's juice). */
+  stop: (ms: number) => void;
   flashSprite: (obj: Img, ms?: number) => void;
   ring: (g: Gfx, x: number, y: number, r: number, color: number, alpha: number, t: number, flat?: number) => void;
 }
 
 /** Design numbers (px at scale 1; every length is multiplied by the spider's size). */
 const D = { scale: 0.8, elite: 1.3, thigh: 22.5, shin: 25, stand: 14, stride: 19, lift: 6, dip: 2.2 };
+/** The smash when one dies (guesses): hit-stop ms and the least gap between two, the pieces' flight s, how far they fly (px, times its size), how high, how long they lie (s). */
+const SMASH = { stop: 40, gap: 220, fly: 0.5, far: [16, 46] as [number, number], high: [12, 30] as [number, number], lie: 5, bodyLie: 7 };
 const RED = DANGER;
 const CYAN = 0x3df2ff;
 
@@ -79,11 +83,13 @@ interface View {
 
 export class SpiderViews {
   private views = new Map<number, View>();
+  private stopAt = 0;
 
   constructor(private h: SpiderHooks) {}
 
   private sizeOf(h: Hornet) {
-    return D.scale * (h.elite ? D.elite : 1) * (h.twisted ? 1.04 : 1) * (h.small ? 0.65 : 1);
+    // A Crawlcam boss (level 1's, `BOSSES.spider`) is its def's `scale` times a plain one.
+    return D.scale * (h.boss ? bossOf(h.kind).scale : h.elite ? D.elite : 1) * (h.twisted ? 1.04 : 1) * (h.small ? 0.65 : 1);
   }
 
   private build(h: Hornet): View {
@@ -366,13 +372,16 @@ export class SpiderViews {
     v.eyes.forEach((e) => e.setVisible(on));
   }
 
-  /** A downed spider: the body goes through the world's remains (it decays into a smudge), the legs curl up under it and fade. */
+  /**
+   * A downed spider smashes: the lens, the rear plate and the legs fly off in one arc each (a single tween drives them all)
+   * and lie on the sand for `SMASH.lie` s as remains; the front plate stays with the body. A bigger one throws farther.
+   * A little hit-stop and a burst, at most one stop in `SMASH.gap` ms so a pack dying together does not stall the game.
+   */
   private fall(id: number, v: View) {
     const { scene, world } = this.h;
     this.views.delete(id);
     v.aura?.destroy();
     v.eyes.forEach((e) => e.destroy());
-    v.lens.destroy();
     v.led.destroy();
     v.shadow.destroy();
     if (v.off) {
@@ -381,19 +390,64 @@ export class SpiderViews {
         l.shin.destroy();
         l.knee.destroy();
       }
+      v.lens.destroy();
       v.body.destroy();
       return;
     }
-    v.body.setTint(0x506070).setDepth(v.body.y + 2);
-    scene.tweens.add({ targets: v.body, y: v.body.y + 8, angle: v.body.angle + (v.rand() < 0.5 ? 40 : -40), scaleX: v.body.scaleX * 0.92, duration: 280, ease: 'Quad.easeIn' });
-    world.remains.add(v.body, { life: 10, smudge: { key: 'world-splat', tint: 0x202830, alpha: 0.45, scale: 0.3, kind: false } });
-    for (const l of v.views) {
-      for (const im of [l.femur, l.shin, l.knee]) {
-        im.setTint(0x506070);
-        scene.tweens.add({ targets: im, x: v.body.x + (im.x - v.body.x) * 0.45, y: im.y + 4, rotation: im.rotation + (v.rand() - 0.5) * 2.4, duration: 380, ease: 'Quad.easeIn' });
-        scene.tweens.add({ targets: im, alpha: 0, delay: 900, duration: 700, onComplete: () => im.destroy() });
-      }
+    const cx = v.body.x, cy = v.body.y;
+    const now = performance.now();
+    if (now - this.stopAt > SMASH.gap) {
+      this.stopAt = now;
+      this.h.stop(SMASH.stop);
     }
+    this.h.burst(cx, cy, { color: 0x9aa4ae, size: 0.9 * v.size });
+    this.h.flash(cx, cy, v.twisted ? DANGER_TWISTED : RED, 0.9);
+    // The body: the front plate stays and lies; the rear half is a piece of its own.
+    const bw = v.body.width, bh = v.body.height, half = bw / 2;
+    const plate = scene.add.image(v.body.x, v.body.y, 'spider-body').setCrop(0, 0, half, bh).setScale(v.body.scaleX, v.body.scaleY).setRotation(v.body.rotation).setFlipY(v.body.flipY).setTint(0x506070);
+    v.body.setCrop(half, 0, half, bh).setTint(0x506070).setDepth(cy + 2);
+    scene.tweens.add({ targets: v.body, y: cy + 8, angle: v.body.angle + (v.rand() < 0.5 ? 40 : -40), duration: 280, ease: 'Quad.easeIn' });
+    world.remains.add(v.body, { life: SMASH.bodyLie, smudge: { key: 'world-splat', tint: 0x202830, alpha: 0.45, scale: 0.3, kind: false } });
+    // The pieces: where each starts, how far it goes (away from the body, with a twist), how high, how it spins, whether it stays.
+    const drop = v.z * 0.5 + 4;
+    interface Piece { im: Img; x0: number; y0: number; dx: number; dy: number; peak: number; r0: number; spin: number; keep: boolean }
+    const pieces: Piece[] = [];
+    const add = (im: Img, keep: boolean, far = 1) => {
+      const a = Math.atan2(im.y - cy, im.x - cx) + (v.rand() - 0.5) * 1.6;
+      const d = (SMASH.far[0] + v.rand() * (SMASH.far[1] - SMASH.far[0])) * v.size / D.scale * far;
+      pieces.push({ im, x0: im.x, y0: im.y, dx: Math.cos(a) * d, dy: Math.sin(a) * d * 0.7, peak: (SMASH.high[0] + v.rand() * (SMASH.high[1] - SMASH.high[0])) * (0.6 + v.size), r0: im.rotation, spin: (v.rand() - 0.5) * 9, keep });
+      im.setTint(0x7a8a98);
+    };
+    add(plate, true, 0.8);
+    v.views.forEach((l, i) => {
+      const keep = i % 2 === 0; // half the legs lie there; the rest vanish on landing, so a pack dying together stays cheap
+      add(l.femur, keep);
+      add(l.shin, keep);
+      add(l.knee, false);
+    });
+    add(v.lens, false, 1.1);
+    const lens = v.lens;
+    scene.tweens.addCounter({
+      from: 0, to: 1, duration: SMASH.fly * 1000, ease: 'Linear',
+      onUpdate: (t: Phaser.Tweens.Tween) => {
+        const u = t.getValue() ?? 1, e = 1 - (1 - u) * (1 - u), up = 4 * u * (1 - u);
+        for (const p of pieces) {
+          if (!p.im.scene) continue;
+          const y = p.y0 + p.dy * e - p.peak * up + drop * u * u;
+          p.im.setPosition(p.x0 + p.dx * e, y).setRotation(p.r0 + p.spin * e).setDepth(p.y0 + p.dy * e + drop + 3);
+        }
+      },
+      onComplete: () => {
+        for (const p of pieces) {
+          if (!p.im.scene) continue;
+          if (p.im === lens) scene.tweens.add({ targets: lens, alpha: 0, scale: lens.scale * 0.4, duration: 260, onComplete: () => lens.destroy() });
+          else if (p.keep) {
+            p.im.setDepth(p.im.y - 2);
+            world.remains.add(p.im, { life: SMASH.lie, smudge: false });
+          } else scene.tweens.add({ targets: p.im, alpha: 0, delay: 150, duration: 300, onComplete: () => p.im.destroy() });
+        }
+      },
+    });
   }
 
   /** Events the spiders react to: footfalls are their own; these are the moments (tells, the leap, the cable, the landing, a hit). */

@@ -9,7 +9,8 @@
  */
 import { freshLoadout, cleanLoadout, type Loadout } from '../sim/loadout';
 import { persist, hub } from './save';
-import { RESCUE_THANKS, aboard, aboardFacts, arrive, freedBy, type Haul, type HubState } from './state';
+import type { HudId } from '../sim/onboard';
+import { RESCUE_THANKS, aboard, aboardFacts, arrive, freedBy, npc, type Haul, type HubState } from './state';
 import { homecoming } from './princess';
 import { princessSave } from './princessslice';
 import { cleanGear, freshGear, gearWeapons, slotWeapons, syncWeapons, type Gear } from '../sim/gear';
@@ -19,7 +20,8 @@ import { DISTRICT, STAGES, finishDistrict } from './district';
 import { settle, withExpedition } from './expeditions';
 import { autoStart, count } from './lines';
 import { catHome, companionsAfter } from './companions';
-import { lineSave, questBook, talkSave, titleSave } from './talkslice';
+import { bondSave, lineSave, questBook, talkSave, titleSave } from './talkslice';
+import { lightBond } from './bonds';
 import { bankPick } from './research';
 import { researchSave } from './researchslice';
 import { earn } from './titles';
@@ -86,6 +88,7 @@ const gearSample: Gear = {
   crafted: 3,
   lugs: 2,
   modPicks: [['bootSpur', 'magnetHead']],
+  heart: true,
 };
 const gearSlice = persist<Gear>('gear', freshGear, { sample: gearSample });
 export const gear = {
@@ -109,6 +112,12 @@ export const totals = persist<Totals>('totals', () => ({}), {
 export interface Discovered { places: string[] }
 export const discovered = persist<Discovered>('discovered', () => ({ places: [] }), {
   sample: { places: ['shrine', 'mast', 'graveyard'] },
+});
+
+/** The HUD elements the player has been shown (`sim/onboard.ts`): a run that starts with an empty HUD starts from these, and its reveals come home in the haul (`Haul.onboard`). */
+export interface OnboardSave { shown: HudId[] }
+export const onboardSave = persist<OnboardSave>('onboard', () => ({ shown: [] }), {
+  sample: { shown: ['face', 'oil', 'clock'] },
 });
 
 /** The mission stats that are worth a lifetime count (not the lift's saved/left). */
@@ -174,12 +183,20 @@ export function landed(s: HubState, h0: Haul): { state: HubState; unlocked: Spec
     // The quests (P38): the best haul of robots on one lift, then every open step counts the mission (the acts' facts decide which are open).
     if (h.carry.stats.scripture) titleSave.set(earn(titleSave.get(), 'pilgrimOfTheSign')); // the First Scripture read (P36)
     // The companions (P42): the dog home on the lift, the stray tamed, the boot and the toy; the special lines that start themselves (`lines.ts` `autoStart`).
+    const jobBefore = questBook.get().job;
     const comp = companionsAfter(next, questBook.get(), h.carry.stats);
     next = comp.hub;
     news = comp.news;
     questBook.set(comp.book);
     talkSave.set(autoStart(talkSave.get(), { ...actFacts(next, questBook.get()), ...aboardFacts(next), missions: next.missions }));
     questBook.set(settleJob(bookAfter(questBook.get(), h.carry.stats, s.biome), { ...h.carry.stats, scrap: h.scrap ?? 0, copper: h.copper ?? 0, home: 1 }, h.id));
+    // A repeatable paid at the dock hands in a quest to its giver: their track lights a step (P52, `bonds.ts`).
+    const jobGiver = questBook.get().lastJob?.done && jobBefore ? jobBefore.giver : '';
+    const lit = jobGiver ? lightBond(bondSave.get(), jobGiver) : null;
+    if (lit?.lit) {
+      bondSave.set(lit.bond);
+      news = [...news, `${npc(jobGiver)?.name ?? jobGiver}: ${lit.step}`];
+    }
     lineSave.set(count(lineSave.get(), talkSave.get(), { ...h.carry.stats, scrap: h.scrap ?? 0, copper: h.copper ?? 0, clean: cleanReturn(h) }, s.biome, actFacts(next, questBook.get())));
     // What each kind of bot did fills the deed gauges, as `lines` fill: only a lift that docked counts.
     const filled = fill(profile.get(), h.carry.stats);
@@ -206,6 +223,7 @@ export function landed(s: HubState, h0: Haul): { state: HubState; unlocked: Spec
       perks: next.perks,
     }));
     if (h.discovered?.length) discovered.set({ places: [...new Set([...discovered.get().places, ...h.discovered])] });
+    if (h.onboard?.length) onboardSave.set({ shown: [...new Set([...onboardSave.get().shown, ...h.onboard])] });
   }
   return { state: hub.set(next), unlocked, news: [...news, ...rose] };
 }

@@ -25,6 +25,8 @@ export interface LandRules {
   morningSwarm?: number;
   duskBoss?: false;
   guided?: true;
+  /** The land starts with an empty HUD (`onboard.ts`). */
+  emptyHud?: true;
 }
 export interface MapData {
   w: number;

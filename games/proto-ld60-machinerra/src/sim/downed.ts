@@ -12,11 +12,13 @@ import { noteDown } from './botai';
 import {
   DOWNED,
   REVIVE,
+  bossKnock,
   TYPE_WRECK,
   WINCH,
   type Role,
 } from './defs';
 import { dist } from './geom';
+import { INTRO } from './intro';
 import { say } from './oracle';
 import { PERK_FX } from './perks';
 import type { Sim } from './sim';
@@ -27,7 +29,7 @@ export type DownedEvent =
   /** The Communicator is out of oil: a `revive` (from the reserve, back up in place) or a winch back to the lift. */
   | { e: 'downed'; revive: boolean }
   /** He is back up where he fell (a spare can spent). */
-  | { e: 'revived'; cost: number }
+  | { e: 'revived'; cost: number; pushed: number }
   /** The winch hauled him to the lift (`cost` scrap). */
   | { e: 'winched'; cost: number }
   /** A crew robot ran out of oil and lies where it fell (P5). */
@@ -36,7 +38,16 @@ export type DownedEvent =
   | { e: 'carry'; bot: Bot; by: Bot }
   | { e: 'putDown'; bot: Bot }
   /** A downed robot was fixed in the field and stands up. */
-  | { e: 'fixed'; bot: Bot };
+  | { e: 'fixed'; bot: Bot }
+  /** The Roll-call (Sprocket's gift): a downed robot lying at (x, y) is brought up to the platform as the lift rises. */
+  | { e: 'rollCall'; bot: Bot; x: number; y: number };
+
+/**
+ * The Homing Signal (P52, the Princess's gift at the fifth step of her track): once a mission, with her home (her voice is on the antenna),
+ * the Communicator going down is not a spare can or a winch: her voice comes over the antenna and he stands again where he fell at
+ * `PERK_FX.homingSignal.oil` of his oil. It stops the moment she is taken (the voice is then static: `princessvoice.ts`). Not down a dungeon.
+ */
+export const homingReady = (sim: Sim) => sim.perks.has('homingSignal') && sim.voice?.wife === 'home' && !sim.dungeon && !sim.stats.homing;
 
 /** A robot's oil ran out. The Communicator goes down (a revive from the reserve, or the winch); a crew robot lies down to be carried, fixed or left. */
 
@@ -44,10 +55,19 @@ export function botDown(sim: Sim, b: Bot) {
   if (b.dead || (b.role === 'controller' && sim.downT > 0)) return;
   b.hp = 0;
   if (b.role === 'controller') {
-    // Leeway: a can in the reserve gets you back up where you fell; with none, the Oracle winches you back to the lift.
-    const revive = sim.reserve >= REVIVE.cost;
-    sim.downKind = revive ? 'revive' : 'winch';
+    // Leeway: the Princess's signal first, once a mission (P52: it costs nothing); then a can in the reserve gets you back up where you fell; with none, the Oracle winches you back to the lift.
+    // The intro's old works: a fall costs nothing, he stands up at the last checkpoint (`intro.ts` `respawn`).
+    if (sim.intro) {
+      sim.downKind = 'respawn';
+      sim.downT = INTRO.down;
+      sim.events.push({ e: 'downed', revive: true });
+      return;
+    }
+    const homing = homingReady(sim);
+    const revive = homing || sim.reserve >= REVIVE.cost;
+    sim.downKind = homing ? 'homing' : revive ? 'revive' : 'winch';
     sim.downT = revive ? REVIVE.time : WINCH.time;
+    if (homing) sim.stats.homing = 1;
     if (!revive) sim.stats.winched++;
     sim.events.push({ e: 'downed', revive });
     return;
@@ -180,6 +200,25 @@ export function layWreck(sim: Sim, role: Role, name: string, x: number, y: numbe
   return b;
 }
 
+/**
+ * The Roll-call (P52, Sprocket's gift, `PERK_FX.rollCall`): as the lift rises, every robot of ours lying downed on the land, wherever it lies,
+ * is brought to the platform and comes up with it ("Count them out, count them in"). Not a carried one (it rides with its carrier), not
+ * a type wreck (not yet one of ours), not down a dungeon. Returns how many came.
+ */
+export function rollCall(sim: Sim): number {
+  if (!sim.perks.has('rollCall') || sim.dungeon) return 0;
+  const lying = sim.fielded.filter((b) => b.downed && b.downed.by === null && !sim.onLift(b, 1.6));
+  lying.forEach((b, i) => {
+    const a = (i / lying.length) * Math.PI * 2;
+    const at = sim.passableNear(sim.lift.x + Math.cos(a) * PERK_FX.rollCall.ring, sim.lift.y + Math.sin(a) * PERK_FX.rollCall.ring * 0.75);
+    sim.events.push({ e: 'rollCall', bot: b, x: b.x, y: b.y });
+    b.x = at.x;
+    b.y = at.y;
+  });
+  if (lying.length) say(sim, 'rollcall', `Count them out, count them in. ${lying.length === 1 ? `${lying[0].name} is` : `${lying.length} robots are`} coming up with you, dears.`, 'calm');
+  return lying.length;
+}
+
 /** `summary().fallen`: each robot lying down or carried. */
 export function downedSummary(sim: Sim) {
   return sim.bots
@@ -192,16 +231,24 @@ export function downStep(sim: Sim, dt: number) {
   const c = sim.controller;
   c.moving = false;
   sim.downT -= dt;
-  if (sim.downT <= 0 && sim.downKind === 'revive') {
-    sim.reserve -= REVIVE.cost;
-    sim.stats.revived++;
-    sim.engine.revive(c, sim.perks.has('goodOil') ? PERK_FX.goodOil : REVIVE.oil);
-    sim.graceT = REVIVE.grace;
+  if (sim.downT <= 0 && (sim.downKind === 'revive' || sim.downKind === 'homing')) {
+    const homing = sim.downKind === 'homing';
+    if (!homing) {
+      sim.reserve -= REVIVE.cost;
+      sim.stats.revived++;
+    }
+    sim.engine.revive(c, homing ? PERK_FX.homingSignal.oil : sim.perks.has('goodOil') ? PERK_FX.goodOil : REVIVE.oil);
+    sim.graceT = graceFor(REVIVE.grace);
+    sim.slowT = SLOW_TOTAL;
+    sim.standT = REVIVE.stand;
+    const pushed = revivePush(sim, c);
     sim.engine.emit({ kind: 'cast', self: c, via: 'spareOil' }); // Last Gasp (a punch card): spending the can releases a steam nova
     sim.drainFx();
-    sim.events.push({ e: 'revived', cost: REVIVE.cost });
-    say(sim, 'revive', 'Got you. A spare can off your pack, poured in where you lay. Oil you carry is oil you can fall on. Do not make a habit of it.', 'warn');
-  } else if (sim.downT <= 0 && sim.dungeon) {
+    sim.events.push({ e: 'revived', cost: homing ? 0 : REVIVE.cost, pushed });
+    if (homing) sim.events.push({ e: 'oracle', id: 'princess:homing', text: 'Get up. I just cleaned this floor.', tone: 'warn', who: 'princess' });
+    else say(sim, 'revive', 'Got you. A spare can off your pack, poured in where you lay. Oil you carry is oil you can fall on. Do not make a habit of it.', 'warn');
+  } else if (sim.downT <= 0 && sim.downKind === 'respawn') sim.intro?.respawn();
+  else if (sim.downT <= 0 && sim.dungeon) {
     // Down a dungeon the winch hauls you all the way out, and what you found down there stays down there.
     sim.engine.revive(c, WINCH.oil);
     sim.events.push({ e: 'winched', cost: 0 });
@@ -217,4 +264,53 @@ export function downStep(sim: Sim, dt: number) {
     sim.events.push({ e: 'winched', cost });
     sim.events.push({ e: 'oracle', id: `winch-${sim.stats.winched}`, text: `Got you. Winching your carcass back cost me ${cost ? `${cost} scrap and ` : ''}${WINCH.clock} seconds of daylight. Keep a spare can on your pack and I will not have to.`, tone: 'warn' });
   }
+}
+
+// ---- The revive's moment ---------------------------------------------------------------------------------------------
+
+const SLOW_TOTAL = REVIVE.slow.hold + REVIVE.slow.ease;
+
+/** The time scale `elapsed` real seconds into the revive's slow: `factor` for `hold`, then eased back to 1 over `ease`. */
+export function slowAt(elapsed: number) {
+  const { factor, hold, ease } = REVIVE.slow;
+  if (elapsed <= hold) return factor;
+  if (elapsed >= hold + ease) return 1;
+  const k = (elapsed - hold) / ease;
+  return factor + (1 - factor) * k * k * (3 - 2 * k);
+}
+
+/** The sim's time scale now (1 outside the slow). */
+export const slowScale = (sim: Sim) => (sim.slowT > 0 ? slowAt(SLOW_TOTAL - sim.slowT) : 1);
+
+/** The sim seconds that `real` real seconds from the start of the slow take: the grace is real time (a second of it), the engine counts sim time. */
+export function graceFor(real: number) {
+  let sim = 0;
+  for (let t = 0; t < real; t += 0.01) sim += slowAt(t + 0.005) * Math.min(0.01, real - t);
+  return sim;
+}
+
+/** Run the revive's real-time clocks and return the step's sim dt (`raw` scaled by the slow). Called first in `Sim.step`. */
+export function slowStep(sim: Sim, raw: number) {
+  sim.standT = Math.max(0, sim.standT - raw);
+  if (sim.slowT <= 0) return raw;
+  const k = slowScale(sim);
+  sim.slowT = Math.max(0, sim.slowT - raw);
+  return raw * k;
+}
+
+/** Foes close to the revived Communicator are shoved away (a shove, no damage; a Steady foe stays, a boss barely budges, a stagger holds them off for a beat). Returns how many moved. */
+export function revivePush(sim: Sim, c: Bot) {
+  let n = 0;
+  for (const h of sim.hornets) {
+    if (h.dead) continue;
+    const d = dist(c.x, c.y, h.x, h.y);
+    if (d > REVIVE.push.radius) continue;
+    if (sim.engine.flag(h, 'steady') && !sim.stunned(h)) continue;
+    const k = REVIVE.push.force * bossKnock(h), a = d || 1;
+    h.vx += d ? ((h.x - c.x) / a) * k : k;
+    h.vy += d ? ((h.y - c.y) / a) * k : 0;
+    h.cd = Math.max(h.cd, 0.5);
+    n++;
+  }
+  return n;
 }

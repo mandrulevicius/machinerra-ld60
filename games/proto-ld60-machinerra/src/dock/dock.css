@@ -1,0 +1,122 @@
+/* The Dry dock's layout (`dockview.ts`), built from the management kit (`../manage/manage.css`) and the theme's `--mg-*` tokens.
+   Sizes are px on the 1280x720 stage. The drawing's plate places are classes (`dk-at--<c|b><l|r><row>`), not inline styles. */
+
+.dk-backdrop { pointer-events: auto; }
+.dk-panel {
+  position: absolute; left: 20px; top: 16px; width: 1240px; height: 688px; display: grid; grid-template-rows: 54px minmax(0, 1fr);
+  background: var(--ui-panel-bg); box-shadow: var(--ui-shadow); border-radius: var(--ui-radius-lg);
+}
+
+/* ---- Head: the name plate, where it was opened, the inventory's other tabs, the stores, Close ---- */
+.dk-head { display: flex; align-items: center; gap: 14px; padding: 0 16px 0 12px; border-bottom: 2px solid var(--mg-brass-lo); }
+.dk-head__plate { padding: 6px 26px 5px; font: 26px/1 var(--ui-font-display); letter-spacing: 0.02em; white-space: nowrap; }
+.dk-head__from { font: 14px var(--mg-mono); color: var(--ui-c-text-dim); white-space: nowrap; }
+.dk-head__inv { display: flex; gap: 2px; margin-left: auto; }
+.dk-head .mg-btn--faint { color: var(--ui-c-text-dim); }
+.dk-head .mg-btn--faint:hover { color: var(--ui-c-text); background: rgb(240 207 122 / 0.08); border-color: var(--mg-brass-lo); }
+.dk-close { margin-left: 4px; }
+
+.dk { display: grid; grid-template-columns: 224px minmax(0, 1fr) 392px; gap: 12px; padding: 12px; min-height: 0; }
+
+/* ---- Roster: a rack of time cards, the bulk buttons at its foot ---- */
+.dk-roster { display: flex; flex-direction: column; gap: 6px; min-height: 0; padding: 8px 8px 8px 6px; overflow: hidden auto; }
+.dk-roster__sep { height: 1px; background: var(--mg-brass-lo); margin: 4px 2px; opacity: 0.6; flex: none; }
+.dk-roster__bulk { margin-top: auto; display: grid; gap: 6px; padding-top: 8px; }
+.dk-roster__bulk .mg-btn { justify-content: space-between; font-size: 14px; padding: 7px 9px; }
+.dk-roster__bulk .dk-roster__shop { justify-content: center; color: var(--ui-c-text-dim); font-size: var(--mg-fs-md); }
+.dk-roster__bulk .dk-roster__shop:hover { color: var(--ui-c-text); background: rgb(240 207 122 / 0.08); }
+.dk-roster__hint { margin: auto 2px 0; font: var(--mg-fs-md)/1.3 var(--ui-font-body); color: var(--ui-c-text-dim); }
+
+/* ---- The drawing sheet: a patent drawing of the picked entry ---- */
+.dk-sheet { position: relative; display: grid; grid-template-rows: 34px 370px minmax(0, 1fr); min-height: 0; border-radius: 2px; overflow: hidden; }
+.dk-sheet::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
+  background: repeating-linear-gradient(0deg, var(--mg-rule) 0 1px, transparent 1px 24px), repeating-linear-gradient(90deg, var(--mg-rule) 0 1px, transparent 1px 24px);
+}
+.dk-title { display: flex; align-items: baseline; justify-content: space-between; padding: 8px 14px 0; font: var(--mg-fs-sm) var(--mg-mono); color: var(--mg-print); }
+.dk-title b { font: var(--mg-fs-xl)/1 var(--ui-font-display); color: var(--mg-ink); font-weight: 400; }
+.dk-doll { position: relative; margin: 0 14px; height: 364px; }
+.dk-leads { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.dk-lead { fill: none; stroke: var(--mg-typed); stroke-width: 1.2; }
+.dk-lead-dot { fill: var(--mg-typed); stroke: var(--mg-stock-hi); stroke-width: 1; }
+.dk-paint { position: absolute; pointer-events: none; }
+.dk-paint img { width: 100%; height: 100%; object-fit: contain; filter: sepia(0.5) saturate(0.85) drop-shadow(0 3px 4px rgb(40 25 5 / 0.5)); }
+.dk-paint--comm { left: 190px; top: 18px; width: 169px; height: 300px; }
+.dk-paint--bot { left: 204px; top: 34px; width: 140px; height: 210px; }
+
+/* Plate places: the Communicator's two columns of four, a type's two of two. */
+.dk-doll .dk-plate { position: absolute; }
+.dk-at--cl0, .dk-at--cl1, .dk-at--cl2, .dk-at--cl3, .dk-at--bl0, .dk-at--bl1 { left: 0; }
+.dk-at--cr0, .dk-at--cr1, .dk-at--cr2, .dk-at--cr3, .dk-at--br0, .dk-at--br1 { left: 366px; }
+.dk-at--cl0, .dk-at--cr0 { top: 0; }
+.dk-at--cl1, .dk-at--cr1 { top: 92px; }
+.dk-at--cl2, .dk-at--cr2 { top: 184px; }
+.dk-at--cl3, .dk-at--cr3 { top: 276px; }
+.dk-at--bl0, .dk-at--br0 { top: 16px; }
+.dk-at--bl1, .dk-at--br1 { top: 168px; }
+.dk-typecard { position: absolute; left: 182px; top: 278px; width: 184px; }
+
+/* Card pockets. */
+.dk-cardslot { cursor: pointer; }
+.dk-cardslot .pc { width: 100%; }
+.dk-cardslot__label { font: var(--mg-fs-sm) var(--ui-font-display); color: var(--mg-typed); margin: 0 0 2px 2px; }
+.dk-cardslot.is-sel .pc, .dk-cardslot.is-new .pc { filter: drop-shadow(2px 0 0 var(--ui-c-accent)) drop-shadow(-2px 0 0 var(--ui-c-accent)) drop-shadow(0 2px 0 var(--ui-c-accent)) drop-shadow(0 -2px 0 var(--ui-c-accent)); }
+.dk-cardslot.is-new:not(.is-sel) .pc { filter: drop-shadow(2px 0 0 var(--mg-green)) drop-shadow(-2px 0 0 var(--mg-green)) drop-shadow(0 2px 0 var(--mg-green)) drop-shadow(0 -2px 0 var(--mg-green)); }
+.dk-cardslot:focus-visible { outline: 2px solid var(--ui-c-focus); outline-offset: 2px; }
+
+/* ---- Under the drawing: the cards and chassis, or the type's robots ---- */
+.dk-under { position: relative; display: flex; gap: 10px; padding: 8px 14px 8px; align-items: stretch; border-top: 1.5px dashed var(--mg-edge); min-height: 0; overflow: hidden auto; }
+.dk-cards { display: flex; flex-direction: column; gap: 8px; flex: 0 0 236px; }
+.dk-side { flex: 1; display: grid; gap: 8px; align-content: start; }
+.dk-heart .dk-plate { position: relative; }
+.dk-chassis { display: grid; gap: 6px; align-content: start; font: var(--mg-fs-md) var(--mg-mono); color: var(--mg-typed); }
+.dk-chassis h4 { margin: 0; font: 15px var(--ui-font-display); color: var(--mg-ink); font-weight: 400; }
+.dk-chassis__row { display: flex; align-items: center; gap: 8px; }
+.dk-chassis__row span:not(.mg-g):not(.dk-pips) { min-width: 58px; }
+.dk-pips { letter-spacing: 2px; color: var(--mg-brass-lo); }
+
+.dk-under--bots { flex-wrap: wrap; align-content: start; }
+.dk-bot { position: relative; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 8px; padding: 8px 10px; min-width: 0; flex: 1 1 170px; max-width: 182px; align-self: start; background: var(--mg-stock-hi); box-shadow: inset 0 0 0 1px var(--mg-edge), var(--mg-card-shadow); border-radius: 3px; }
+.dk-bot.is-sel { box-shadow: inset 0 0 0 2px var(--ui-c-accent), var(--mg-card-shadow); }
+.dk-bot__name { font: var(--mg-fs-lg)/1.1 var(--ui-font-display); color: var(--mg-ink); }
+.dk-bot__stars { display: block; color: var(--mg-brass-lo); font-size: var(--mg-fs-md); letter-spacing: 1px; }
+.dk-bot__row { grid-column: 1 / -1; display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.dk-bot__row .mg-btn { font-size: var(--mg-fs-sm); padding: 5px 6px; }
+.dk-bot__stamp { position: absolute; right: 6px; top: 6px; }
+.dk-bot__stamp .mg-stamp { font-size: var(--mg-fs-sm); }
+.dk-socket { border: 0; cursor: pointer; }
+.dk-socket.is-sel { box-shadow: inset 0 0 0 2px var(--ui-c-accent), 0 0 0 2px var(--ui-c-accent); }
+.dk-socket.is-new:not(.is-sel) { box-shadow: inset 0 0 0 2px var(--mg-green), 0 0 0 2px var(--mg-green); }
+.dk-socket.is-target { box-shadow: inset 0 0 0 2px var(--mg-brass-hi), 0 0 0 2px var(--mg-brass-lo); }
+.dk-socket.is-over { box-shadow: inset 0 0 0 2px var(--ui-c-accent), 0 0 0 3px var(--ui-c-accent); }
+.dk-socket img[draggable="true"] { cursor: grab; }
+
+/* ---- The drawer ---- */
+.dk-drawer .mg-drawer__note .mg-fr { --fr: 28px; }
+.dk-drawer .mg-tag .mg-btn { font-size: var(--mg-fs-md); padding: 6px 8px; }
+.dk-sum { padding: 4px 4px 8px; }
+.dk-sum h4 { margin: 0 0 6px; font: 15px var(--ui-font-display); font-weight: 400; color: var(--ui-c-text); }
+.dk-sum .mg-chip { color: var(--ui-c-text); }
+.dk-sum .mg-chip.is-bad { color: var(--ui-c-danger); }
+.dk-sum__skill { margin: 0 0 4px; font: var(--mg-fs-md)/1.3 var(--mg-mono); color: var(--ui-c-text-dim); }
+.dk-sum__skill b { font-weight: 400; color: var(--ui-c-text); }
+.dk-cardrow { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.dk-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px; font: var(--mg-fs-md) var(--mg-mono); color: var(--ui-c-text); }
+.dk-spec { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 8px; background: var(--mg-stock-hi); color: var(--mg-ink); box-shadow: inset 0 0 0 1px var(--mg-edge); border-radius: 3px; }
+.dk-spec b { font: var(--mg-fs-md) var(--ui-font-display); font-weight: 400; }
+.dk-spec p { margin: 2px 0 0; font: var(--mg-fs-sm)/1.3 var(--mg-mono); color: var(--mg-typed); }
+.dk-spec.is-locked { background: var(--mg-stock-short); }
+.dk-spec__deed { color: var(--mg-print); }
+.dk-spec__text { margin: 0; padding: 4px; font: var(--mg-fs-md)/1.35 var(--mg-mono); color: var(--ui-c-text-dim); }
+.dk-spec__text b { color: var(--ui-c-text); font: 15px var(--ui-font-display); margin-right: 6px; }
+.dk-gauge { font: var(--mg-fs-md) var(--mg-mono); color: var(--mg-print); white-space: nowrap; }
+.dk-apart { margin-top: 10px; display: flex; justify-content: flex-end; }
+.dk-apart .mg-btn--faint { color: var(--ui-c-text-dim); }
+.dk-apart .mg-btn--faint:hover { color: var(--ui-c-text); }
+.dk-recipes { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
+.dk-drawer .mg-drawer__head .mg-btn--faint { color: var(--ui-c-text-dim); }
+.dk-drawer .mg-drawer__head .mg-btn--faint:hover { color: var(--ui-c-text); background: rgb(240 207 122 / 0.08); }
+
+/* A drawer entry in the air: the plates it may go on, and the one it is over. */
+.dk-plate.is-target { box-shadow: 0 0 0 2px var(--mg-brass-hi), 0 0 0 4px var(--mg-brass-lo); }
+.dk-plate.is-over { box-shadow: var(--mg-ring-sel); }

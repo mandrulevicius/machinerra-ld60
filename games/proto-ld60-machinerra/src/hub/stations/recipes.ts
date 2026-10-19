@@ -44,7 +44,7 @@ export const teacherOffer = (teacher: Exclude<Teacher, 'basics'>): OfferPanel =>
       {
         id: 'recipes',
         label: 'Recipes',
-        html: `<p class="hb-note hb-note--dim">${esc(t.who)} teaches the workbench every ${esc(t.teaches.replace(/s$/, ''))} recipe below. Craft them in the inventory (I), Workbench tab.</p><div class="hb-offers hb-recipes">${recipeRows(teacher)}</div>`,
+        html: `<p class="hb-note hb-note--dim">${esc(t.who)} teaches the workbench every ${esc(t.teaches.replace(/s$/, ''))} recipe below. Craft them in the Dry dock (I), at the slot they go in or on its Recipes tab.</p><div class="hb-offers hb-recipes">${recipeRows(teacher)}</div>`,
       },
     ];
   },

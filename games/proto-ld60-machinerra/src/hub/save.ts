@@ -40,6 +40,7 @@ export const registeredKeys = registry.keys;
 /** A mission's haul with every field filled (the hub sample's `lastHaul`). */
 const haulSample: Haul = {
   id: '4242:1760000000000',
+  onboard: ['oil', 'clock'],
   parts: { 'hornet-head': 2, 'spider-lens': 1 },
   robots: [{ name: 'Bellows', role: 'gatherer', uid: 'r1' }],
   went: ['r1', 'r4'],
@@ -73,7 +74,7 @@ const hubSample: HubState = {
   stranded: { trader: 'jungle' },
   city: 340,
   stations: { expeditioner: 'north-1', trader: 'south-2' },
-  buildings: { built: ['foundry', 'scrapyard'], raising: ['aqueducts'], pickedAt: 4, cored: true },
+  buildings: { built: ['foundry', 'scrapyard'], raising: ['aqueducts'], pickedAt: 4, cored: true, picks: 2 },
   district: { stage: 2, poured: 120, raising: false, perks: ['copperWiring', 'crowsNest'] },
   expedition: { load: 12, out: 20, charted: ['jungle'], sent: 2 },
   civilians: 3,

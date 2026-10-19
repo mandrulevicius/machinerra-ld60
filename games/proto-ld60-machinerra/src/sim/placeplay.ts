@@ -17,6 +17,10 @@ import { distOf } from './geom';
 import { mastSees } from './fogplay';
 import { hearFragment } from './questcount';
 import { spawnBoss } from './boss';
+import { FIRST_SPAWNS, spawnPick } from './spawntiers';
+
+/** Level 1's guard at Sprocket's wreck (`spawntiers.ts`). */
+const GUARD = FIRST_SPAWNS[1].boss!;
 import { spawnHornet } from './foes';
 import { tie } from './leash';
 import { BEHAVE36 } from './placebehave';
@@ -131,7 +135,7 @@ function level1Reveal(sim: Sim, p: PlaceRT, m: Spot) {
   const sp = sim.places.find((q) => q.id === 'sprocket');
   sim.releaseSignals();
   sim.events.push({ e: 'place', id: 'mast', what: 'climb', x: m.x, y: m.y });
-  sim.say('mast-decoded', sp ? `Done: the ${sim.biome.talk.hive}, the tap and a signal ${compass(m, sp)} of here. Someone is pinned under a wreck, and a foreman sits on it. That nest is the Hornet Queen's: bring her down one day, and the Wanderer flies on.` : `Done: the ${sim.biome.talk.hive} and the tap are on your map.`, 'warn');
+  sim.say('mast-decoded', sp ? `Done. Someone is pinned under a wreck ${compass(m, sp)} of here, a big Crawlcam on top. That ${sim.biome.talk.hive} is the Hornet Queen's: one day, bring her down.` : `Done: the ${sim.biome.talk.hive} and the tap are on your map.`, 'warn');
 }
 
 /**
@@ -221,7 +225,7 @@ const pilgrimBehaviour: Behaviour = {
     if (!pil || pil.state !== 'follow') return;
     const b = pil.bot;
     b.moving = false;
-    if (sim.phase === 'rising' && !sim.onLift(b, 1.6)) sim.say('pilgrim-left', `${pil.npc.name} did not make the lift. I will light a candle. A small one.`, 'warn');
+    if (sim.phase === 'rising' && !sim.rescued.includes(pil.npc.id)) sim.say('pilgrim-left', `${pil.npc.name} did not make the lift. I will light a candle. A small one.`, 'warn');
     if (sim.phase === 'rising' || sim.phase === 'done' || sim.controller.dead) return;
     const c = sim.controller;
     if (distOf(b, c) > PILGRIM.follow) sim.go(b, c.x, c.y, dt, PILGRIM.follow);
@@ -382,7 +386,7 @@ export const BEHAVE: Record<PlaceId, Behaviour> = {
       text: (sim) => `A phone mast. Heresy, but useful. Climb it and every ${sim.biome.talk.hive} on ${sim.biome.talk.land} shows on your map; the light will wake the nearest one, naturally.`,
     },
     use: {
-      verb: (sim) => (sim.land?.id === 'level1' ? 'wake the mast' : 'climb the mast'),
+      verb: (sim) => `${sim.land?.id === 'level1' ? 'wake the mast' : 'climb the mast'} (wakes the nearest ${sim.biome.talk.hive})`,
       hold: MAST.hold,
       holdFor: (sim) => (sim.land?.id === 'level1' ? LEVEL1.decode : MAST.hold),
       pulls: (sim) => sim.land?.id === 'level1',
@@ -394,7 +398,10 @@ export const BEHAVE: Record<PlaceId, Behaviour> = {
         sim.said.add('wake');
         if (!n) return;
         sim.wake(n, 'the mast');
-        for (let i = 0; i < LEVEL1.burst; i++) sim.spawnHornet(n.x + sim.r.range(-14, 14), n.y - 10, n.id);
+        for (let i = 0; i < LEVEL1.burst; i++) {
+          const pick = spawnPick(sim, 'hive'); // the hive's own kind (`spawntiers.ts`)
+          sim.spawnHornet(n.x + sim.r.range(-14, 14), n.y - 10, n.id, pick?.elite, undefined, pick?.kind);
+        }
       },
       reach: MAST.reach,
       at: (_s, p) => part(p, 'mast'),
@@ -421,9 +428,15 @@ export const BEHAVE: Record<PlaceId, Behaviour> = {
 
   // Level 1's first friend (P9): Bellows, a gatherer, lies at his wreck as a downed robot with two hornets pecking at him. A free
   // 3 s field fix stands him up (E, stay in the zone: the downed fix, `LEVEL1.fix`); he brings his own core and is always aboard after.
+  // Only for a save that skipped the intro: the intro mends him (`sim/intro.ts`), and an owned Bellows leaves just the heap.
   wreck: {
     state: 'down',
     step(sim, p) {
+      // The intro's old works mended him already: only the heap stays.
+      if (!p.bot && sim.owned.has('Bellows')) {
+        p.state = 'empty';
+        return;
+      }
       const w = part(p, 'wreck');
       if (!p.bot) {
         const b = (p.bot = sim.addBot('gatherer', 'Bellows', w.x, w.y + 8, 0));
@@ -476,7 +489,7 @@ export const BEHAVE: Record<PlaceId, Behaviour> = {
     status: (_s, p) => `${p.state}${p.bot ? ` (${p.bot.name}, ${p.bot.role})` : ''}`,
   },
 
-  // Level 1's rescue (P9): Sprocket, pinned under a wreck guarded by the Hive Foreman (`leash.ts`: it wakes when a robot comes near
+  // Level 1's rescue (P9): Sprocket, pinned under a wreck guarded by a mini-boss (`GUARD`: Minos, an elite Crawlcam; was the Hive Foreman) (`leash.ts`: it wakes when a robot comes near
   // and never follows off its ground). Beat it and her cables fall; then she is freed as any pilgrim is, and follows. Level 1 is
   // guided: she is aboard even if the lift left her (`Sim.rescued`).
   sprocket: {
@@ -485,19 +498,18 @@ export const BEHAVE: Record<PlaceId, Behaviour> = {
       pilgrimBehaviour.setup!(sim, p);
       if (sim.pilgrim) p.state = 'guarded';
     },
-    sight: { tiles: PILGRIM.sight, id: 'sprocket-sight', text: (sim) => (sim.pilgrim && p0(sim)?.state === 'guarded' ? 'A hornet the size of a tram, sitting on a wreck, and someone pinned under it. That is the Foreman. He rears before he rams.' : ''), tone: 'warn' },
+    sight: { tiles: PILGRIM.sight, id: 'sprocket-sight', text: (sim) => (sim.pilgrim && p0(sim)?.state === 'guarded' ? 'A Crawlcam the size of a tram, sitting on a wreck, and someone pinned under it. It rears before it pounces.' : ''), tone: 'warn' },
     step(sim, p, dt) {
       const at = part(p, 'wreck');
       if (p.state === 'guarded') {
-        const f = (p.boss ??= spawnBoss(sim, 'foreman', { x: at.x, y: at.y }, { leash: LEVEL1.foreman }));
-        if (f.target && !sim.said.has('foreman-wake')) sim.say('foreman-wake', BOSSES.foreman!.arrive, 'warn');
+        const f = (p.boss ??= spawnBoss(sim, GUARD, { x: at.x, y: at.y }, { leash: LEVEL1.foreman }));
+        if (f.target && !sim.said.has('foreman-wake')) sim.say('foreman-wake', BOSSES[GUARD]!.arrive, 'warn');
         if (f.dead) {
           p.state = 'pinned';
           sim.events.push({ e: 'place', id: 'sprocket', what: 'cables', x: at.x, y: at.y });
-          sim.say('foreman-down', 'The Foreman is scrap, and the cables have gone slack. Go and let her out.', 'warn');
+          sim.say('foreman-down', 'Its guard is scrap, and the cables have gone slack. Go and let her out.', 'warn');
         }
       }
-      if (sim.land?.guided && sim.phase === 'rising') sim.said.add('pilgrim-left'); // the Wanderer's grapple fetches her
       pilgrimBehaviour.step!(sim, p, dt);
     },
     use: {

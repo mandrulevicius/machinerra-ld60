@@ -12,6 +12,8 @@ import { NPCS, npc, type HubState } from './state';
 import { STORY } from './story';
 import { QUESTS, SCRIPTS, factsFor } from './talk';
 import { TITLES, type Titles } from './titles';
+import { BONDS, bondOf } from './bonds';
+import { bondSave } from './talkslice';
 
 export type QuestState = 'available' | 'active' | 'done';
 
@@ -35,6 +37,8 @@ export interface JournalEntry {
   progress?: { have: number; n: number; pending: number };
   /** The current step is met: talk to the giver to hand it in. */
   ready: boolean;
+  /** The giver's relationship track (P52): who, and the steps lit; the log draws the gauge beside the quest. */
+  bond?: { npc: string; n: number };
   /** The title its finish earns. */
   grants?: { name: string; passive: string; earned: boolean };
 }
@@ -90,6 +94,7 @@ export function journal(talk: Talk, lines: LineProgress, s: HubState, titles: Ti
       const now = have(id, talk, lines, facts);
       e.progress = { have: Math.min(goal.n, now), n: goal.n, pending: Math.max(0, Math.min(goal.n, have(id, talk, after, facts)) - Math.min(goal.n, now)) };
     }
+    if (BONDS[giver]) e.bond = { npc: giver, n: bondOf(bondSave.get(), giver) };
     if (q.grants && TITLES[q.grants]) e.grants = { name: TITLES[q.grants].name, passive: TITLES[q.grants].passive, earned: titles.earned.includes(q.grants) };
     entries.push(e);
   }

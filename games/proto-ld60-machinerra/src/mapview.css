@@ -1,0 +1,26 @@
+/*
+ * The map's weights (P33, attention.ts; the base look is the `.mc-map` block of style.css, whose rules these outrank by one
+ * class). What reads first: the survey and the crews (the choice); the legend, the help line and the empty crews rest; the way
+ * home comes forward at evening and midnight (`data-w` on `.mc-evac`, set by mapview.ts); robots picked make the other crews
+ * the place to click (`.is-picking`). The marks on the survey are drawn in mapview.ts.
+ */
+.mc-map .mc-map__frame { position: relative; }
+.mc-map canvas { border-width: 2px; border-color: color-mix(in srgb, var(--brass) 60%, transparent); box-shadow: none; }
+.mc-map .mc-map__title { font-size: 22px; }
+.mc-map .mc-map__title span { font-size: 13px; opacity: 0.7; }
+.mc-map .mc-map__title span.is-warn { opacity: 1; font-size: 15px; }
+.mc-map .mc-map__legend { opacity: 0.45; transition: opacity 240ms; }
+.mc-map .mc-map__frame:hover .mc-map__legend { opacity: 1; }
+
+.mc-map .mc-crews__help { font-size: 12px; opacity: 0.55; }
+.mc-map .mc-crew { transition: opacity 240ms, border-color 240ms; }
+.mc-map .mc-crew--empty:not(.is-active) { opacity: 0.55; }
+.mc-map .mc-crew--empty:hover { opacity: 1; }
+.mc-map .mc-crews.is-picking .mc-crew:not(.is-active) { border-style: dashed; border-color: var(--brass); opacity: 1; }
+.mc-map .mc-crews.is-picking .mc-crew:not(.is-active):hover { background: rgb(70 52 32 / 0.9); }
+
+.mc-map .mc-evac { transition: opacity 240ms, background 240ms, border-color 240ms, color 240ms; }
+.mc-map .mc-evac[data-w="rest"] { background: transparent !important; border-color: #4a3a28 !important; color: var(--ui-c-text-dim) !important; opacity: 0.8; }
+.mc-map .mc-evac[data-w="rest"]:hover { opacity: 1; border-color: var(--friend) !important; color: #d8f8ff !important; }
+.mc-map .mc-close { opacity: 0.6; }
+.mc-map .mc-close:hover { opacity: 1; }

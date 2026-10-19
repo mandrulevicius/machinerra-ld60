@@ -1,0 +1,15 @@
+/* The relationship gauge (bondview.ts): five brass teeth round a cog. Shared by the station panel and the quest log. */
+.hb-bond { display: flex; align-items: center; gap: 12px; }
+.hb-bond__cog { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; min-width: 84px; text-align: center; }
+.hb-bond__cog small { font-size: var(--ui-fs-sm); color: var(--brass-hi, var(--ui-c-accent)); line-height: 1.1; }
+.hb-cog { overflow: visible; }
+.hb-cog .hb-tooth { fill: rgb(0 0 0 / 0.45); stroke: var(--ui-c-border, #8a6a3a); stroke-opacity: 0.55; stroke-width: 1.6; }
+.hb-cog .hb-tooth.is-lit { fill: var(--brass-hi, var(--ui-c-accent, #f0b848)); stroke: var(--brass-hi, var(--ui-c-accent, #f0b848)); }
+.hb-cog .hb-tooth.is-new { animation: hb-tooth-pop 0.9s ease-out; }
+.hb-cog__body { fill: rgb(0 0 0 / 0.35); stroke: var(--ui-c-border, #8a6a3a); stroke-width: 2; }
+.hb-cog__hub { fill: var(--ui-c-border, #8a6a3a); }
+.hb-cog__spokes { stroke: var(--ui-c-border, #8a6a3a); stroke-width: 2; stroke-linecap: round; }
+.hb-cog.is-turning { animation: hb-cog-turn 1.4s ease-in-out; }
+@keyframes hb-tooth-pop { 0% { filter: brightness(3); } 100% { filter: brightness(1); } }
+@keyframes hb-cog-turn { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .hb-cog .hb-tooth.is-new, .hb-cog.is-turning { animation: none; } }

@@ -13,7 +13,7 @@ import { MARK_SOFT } from '../../../harness/kit';
 import { LIFT_SCALE, liftFoot } from './art';
 import { LIFT, liftUp, reach } from './liftrise';
 import { ViewBase, kick, type Img, type PlayHost } from './playhost';
-import { leanAt } from './shadowview';
+import { PROP_CASTS, leanAt } from './shadowview';
 import { MISSION } from './sim/defs';
 import type { SimEvent } from './sim/sim';
 
@@ -56,7 +56,7 @@ export class LiftView extends ViewBase {
     // On the ground it casts under the deck; left behind as it climbs, it shows how high the platform is: it slides off to the
     // light's side (the sun's, or the lamps' at night), spreads and fades.
     const high = Math.max(0, rise), lean = leanAt(this.w, sim.lift.x, sim.lift.y);
-    this.shade.setVisible(this.w.shadows.enabled && !this.host.down && !sim.exitUsed).setPosition(sim.lift.x + lean.x * (high + 6), sim.lift.y + 14 + lean.y * (high + 6)).setScale(3.1 * (1 + high / 700), 2 * (1 + high / 700)).setAlpha(0.4 * lean.a * Math.max(0, 1 - high / (0.8 * (this.end || 1e9))));
+    this.shade.setVisible(PROP_CASTS && this.w.shadows.enabled && !this.host.down && !sim.exitUsed).setPosition(sim.lift.x + lean.x * (high + 6), sim.lift.y + 14 + lean.y * (high + 6)).setScale(3.1 * (1 + high / 700), 2 * (1 + high / 700)).setAlpha(0.4 * lean.a * Math.max(0, 1 - high / (0.8 * (this.end || 1e9))));
     // A dungeon's climb-out fades to black as the platform leaves the screen, so the cut comes under the dark, not on a freeze.
     if (this.host.down && rising && !this.faded && (sim.exitUsed ? sim.run!.wallAt().y : sim.lift.y) - rise < cam.worldView.y) {
       this.faded = true;

@@ -53,14 +53,17 @@ export function rollQuality(u: number): Quality {
 
 // ---- Slots, tags, stats, skills --------------------------------------------------------------------------------------
 
-export type CommSlot = 'primary' | 'secondary' | 'head' | 'arm' | 'core' | 'legs' | 'rear' | 'pack';
-export const COMM_SLOTS: CommSlot[] = ['primary', 'secondary', 'head', 'arm', 'core', 'legs', 'rear', 'pack'];
+export type CommSlot = 'primary' | 'secondary' | 'head' | 'arm' | 'core' | 'legs' | 'rear' | 'pack' | 'heart';
+/** `heart` is the Second Heart (P52, Gasket's gift): a second core, there only once `Gear.heart` is set (`commSlots`); it takes the pieces a core takes. */
+export const COMM_SLOTS: CommSlot[] = ['primary', 'secondary', 'head', 'arm', 'core', 'legs', 'rear', 'pack', 'heart'];
+/** The slots he has: all of them but the Second Heart until Gasket has put it in. */
+export const commSlots = (g: Pick<Gear, 'heart'>): CommSlot[] => COMM_SLOTS.filter((s) => s !== 'heart' || g.heart);
 export type BotSlot = 'head' | 'arms' | 'back' | 'mobility';
 export const BOT_SLOTS: BotSlot[] = ['head', 'arms', 'back', 'mobility'];
 export type CrewRole = 'gatherer' | 'guard' | 'repairer' | 'mule' | 'marksman' | 'boilermancer' | 'lamplighter' | 'stalker';
 export const CREW_ROLES: CrewRole[] = ['gatherer', 'guard', 'repairer', 'mule', 'marksman', 'boilermancer', 'lamplighter', 'stalker'];
 export const SLOT_NAMES: Record<CommSlot | BotSlot, string> = {
-  primary: 'Primary', secondary: 'Secondary', head: 'Head', arm: 'Arm', core: 'Core', legs: 'Legs', rear: 'Rear', pack: 'Pack',
+  primary: 'Primary', secondary: 'Secondary', head: 'Head', arm: 'Arm', core: 'Core', legs: 'Legs', rear: 'Rear', pack: 'Pack', heart: 'Second heart',
   arms: 'Arms', back: 'Back', mobility: 'Mobility',
 };
 
@@ -123,7 +126,7 @@ export interface ItemDef {
   /** A weapon mod (P57, `defs/mods.ts`): fitted on a weapon's lug, not worn in a slot; no quality. */
   mod?: ModId;
   /** A body part (the Communicator's) and its slot. */
-  comm?: Exclude<CommSlot, 'primary' | 'secondary'>;
+  comm?: Exclude<CommSlot, 'primary' | 'secondary' | 'heart'>;
   /** A bot piece and its socket; `roles` limits it to some crews (absent: any robot). */
   bot?: BotSlot;
   roles?: CrewRole[];
@@ -161,7 +164,7 @@ export interface ItemDef {
 }
 
 export type BaseItemId =
-  | 'mainBrush'
+  | 'mainBrush' | 'oldEarful'
   | 'shovel' | 'steamGun' | 'arcGun' | 'pistonCannon' | 'kettleScalder' | 'censerGun' | 'slingshot' | 'hornetSpear' | 'pipeWrench' | 'tazer' | 'rivetScatter' | 'fangWhip' | 'snakeskinPlating'
   | 'hornetHead' | 'kettleHelm' | 'monocle'
   | 'autoTrigger' | 'pistonFist' | 'gatlingCuff'
@@ -171,7 +174,7 @@ export type BaseItemId =
   | 'supportAntenna' | 'steamWhistle' | 'scrapMagnet'
   | 'rivetRepeater' | 'autoloader' | 'deepHose' | 'wideNozzle'
   | 'lampOfFaith' | 'boilerHalo' | 'scrapPlating'
-  | 'tankTreads' | 'pramWheels' | 'wingRig'
+  | 'tankTreads' | 'pramWheels' | 'wingRig' | 'spiderLegs'
   | 'ectoRepeater' | 'ectoGauntlet' | 'ectoCoating' | 'shadeVent'
   | 'hookhand' | 'megaphone' | 'hemoFlail' | 'iceLance' | 'swanGlider' | 'saleSticker' | 'leechGauntlet' | 'frostPauldrons'
   // Each land's crew set (gatherer, guard, repairer, mule, marksman, boilermancer, lamplighter, stalker).
@@ -198,6 +201,12 @@ const BASE_ITEMS: Record<BaseItemId, ItemDef> = {
     name: WEAPONS.mainBrush.name, weapon: 'mainBrush', tags: ['melee'], recipe: { scrap: 40 }, gift: 'princess', // the recipe is never taught; it is what salvage reads
     look: 'A spinning roller brush on a brass pole, bristles worn to one side, a little copper motor at the hub.',
     flavour: 'Her spare. Every swing is a full turn: small things go flying, loose scrap comes to heel. "Main brush stuck" was the first thing she ever asked for help with.',
+  },
+  // Hob's gift at the fifth step of his track (P52); never on the workbench.
+  oldEarful: {
+    name: WEAPONS.oldEarful.name, weapon: 'oldEarful', tags: ['ranged', 'steam'], recipe: { scrap: 150 }, gift: 'hob', // the recipe is never taught; it is what salvage reads
+    look: 'A twin-bore brass blunderbuss with two bell mouths, a barrel-stave stock, and a dented ear trumpet bolted to the breech.',
+    flavour: 'Forty years in the making. A wide cone that sends whatever it hits flying into whatever is behind it. So loud the nearest hive wakes to see what the fuss is.',
   },
   shovel: {
     name: WEAPONS.shovel.name, weapon: 'shovel', tags: ['melee'], recipe: { scrap: 10 },
@@ -526,6 +535,13 @@ const BASE_ITEMS: Record<BaseItemId, ItemDef> = {
     recipe: { scrap: 35, parts: { 'hornet-wings': 2 } },
     look: 'A pair of mechahornet wings on a brass rig; the bot hovers a hand above the sand, buzzing.',
     flavour: 'Fast, and fragile. The faithful look away when it flies over.',
+  },
+  // P53: the one piece that changes where a robot can stand. Speed is the plain wheels' (no bonus), the recipe a guess.
+  spiderLegs: {
+    name: "Spider legs", bot: 'mobility', tags: ['speed'], effects: [{ when: 'always', do: { do: 'flag', flag: 'climbs' } }],
+    recipe: { scrap: 30, parts: { 'spider-legs': 2 } },
+    look: 'Four brass legs on a hub under the body, stepping where the wheels would roll.',
+    flavour: "It climbs the mesas, shoots farther from the top, and a Crawlcam's cable finds nothing to hold. Half as fast on rock.",
   },
 
   // -- Bots: each land's set, one piece for every crew role, made from what that land's machines drop (`landsOf`) --
@@ -1052,6 +1068,8 @@ export interface Gear {
   lugs?: number;
   /** Fitted mods Hob owes (his repeatable job): each a pick of two mods (`takeMod`), the first waiting at his forge. */
   modPicks?: ModId[][];
+  /** The Second Heart (P52): Gasket has put a second core slot in the Communicator. */
+  heart?: boolean;
   /** Tune-ups Gasket owes (his repeatable job): each one picks a worn body part that is not tuned yet (`tuneUp`). */
   tunes?: number;
   /** The Communicator's slots: item uid in each. */
@@ -1079,7 +1097,7 @@ export function cleanGear(g: Gear): Gear {
     return o.uid;
   };
   const comm: Gear['comm'] = {};
-  for (const s of COMM_SLOTS) {
+  for (const s of commSlots({ heart: g.heart === true })) {
     const u = take(g.comm?.[s], (d) => fitsCommSlot(d, s));
     if (u !== undefined) comm[s] = u;
   }
@@ -1109,10 +1127,10 @@ export function cleanGear(g: Gear): Gear {
   });
   const picks = (Array.isArray(g.modPicks) ? g.modPicks : []).map((p) => (Array.isArray(p) ? p.filter((m) => typeof m === 'string' && m in MODS).slice(0, 2) : [])).filter((p) => p.length);
   const tunes = Number.isInteger(g.tunes) && g.tunes! > 0 ? g.tunes : 0;
-  return { items: clean, comm, bots, next, crafted: Number.isFinite(g.crafted) ? g.crafted : 0, ...(lugs === 2 && { lugs }), ...(picks.length && { modPicks: picks }), ...(tunes && { tunes }) };
+  return { items: clean, comm, bots, next, crafted: Number.isFinite(g.crafted) ? g.crafted : 0, ...(g.heart === true && { heart: true }), ...(lugs === 2 && { lugs }), ...(picks.length && { modPicks: picks }), ...(tunes && { tunes }) };
 }
 
-export const fitsCommSlot = (d: ItemDef, s: CommSlot) => (s === 'primary' || s === 'secondary' ? !!d.weapon : d.comm === s);
+export const fitsCommSlot = (d: ItemDef, s: CommSlot) => (s === 'primary' || s === 'secondary' ? !!d.weapon : s === 'heart' ? d.comm === 'core' : d.comm === s);
 export const fitsBotSlot = (d: ItemDef, s: BotSlot, r: CrewRole) => d.bot === s && fitsBot(d, r);
 
 /** Where an item is worn now, if anywhere. */
@@ -1142,7 +1160,7 @@ export function equip(g: Gear, uid: number, who: 'comm' | CrewRole, slot: CommSl
   const at = wornAt(g, uid);
   if (who === 'comm') {
     const s = slot as CommSlot;
-    if (!COMM_SLOTS.includes(s) || !fitsCommSlot(d, s)) throw new Error(`${d.name} does not go in ${SLOT_NAMES[s] ?? s}`);
+    if (!commSlots(g).includes(s) || !fitsCommSlot(d, s)) throw new Error(`${d.name} does not go in ${SLOT_NAMES[s] ?? s}`);
     if (at?.who === 'comm' && at.slot === s) return g;
     const was = comm[s];
     if (at?.who === 'comm') {

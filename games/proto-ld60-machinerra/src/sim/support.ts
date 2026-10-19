@@ -115,6 +115,7 @@ export function shadowPose(d: BarrageDef, s: Strike) {
 export function callSupport(sim: Sim, id: SupportId, x: number, y: number): string | null {
   const d = SUPPORT[id];
   if (!d || sim.support[id] === undefined) return 'no such call';
+  if (!sim.lessons.open('barrage')) return 'not taught yet'; // the Oracle asks for it on mission 4 (lessons.ts)
   if (sim.phase === 'rising' || sim.phase === 'done' || sim.phase === 'lost') return 'the lift is rising';
   if (sim.strike) return 'a call is already on its way';
   if (!(sim.support[id]! > 0)) return 'spent: the Wanderer reloads at the hub';
@@ -124,6 +125,7 @@ export function callSupport(sim: Sim, id: SupportId, x: number, y: number): stri
   sim.stats.strikes++;
   sim.strike = planStrike(id, d, c.x + (x - c.x) * k, c.y + (y - c.y) * k, sim.r, c.x, c.y);
   sim.events.push({ e: 'support', what: 'call', strike: sim.strike });
+  sim.lessons.did('barrage');
   if (d.kind === 'barrage') say(sim, 'support-call', 'The Wanderer copies. Shells on the mark in a few seconds. Our gunners aim by faith, and faith only hits modern tech: stand where you like.', 'warn');
   else if (d.kind === 'lance') say(sim, 'lance-call', 'The Wanderer opens its boilers along your aim. Stand aside from the line if you like your paint.', 'warn');
   else say(sim, 'drop-call', 'Brass Guards on the ropes. They are yours for a minute; then I want them back, polished.', 'warn');

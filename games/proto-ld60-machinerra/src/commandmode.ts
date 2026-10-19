@@ -190,9 +190,10 @@ export class CommandMode {
     const { scene, sim, map, pick, input } = this.api;
     prune(sim, pick);
     if (this.on && sim.phase !== 'mission') this.toggle(false);
-    if (!map.open && sim.phase === 'mission' && input.pressed('command')) this.toggle();
+    const taught = sim.lessons.open('command'); // mission 3 teaches it (sim/lessons.ts)
+    if (!map.open && sim.phase === 'mission' && taught && input.pressed('command')) this.toggle();
     // Groups, in both modes (and with the map open): n selects crew n, Shift+n puts the selection in it.
-    for (let n = 0; n <= 9; n++) if (input.pressed(`group${n}`) && sim.phase === 'mission' && !sim.dungeon) this.group(n, input.down('groupSet') || this.modDigits.has(n));
+    for (let n = 0; n <= 9; n++) if (input.pressed(`group${n}`) && sim.phase === 'mission' && !sim.dungeon && taught) this.group(n, input.down('groupSet') || this.modDigits.has(n));
     this.modDigits.clear();
     if (this.on && !map.open) this.mouse();
     // The camera: command mode pulls out to the widest zoom; leaving returns to the player's own.

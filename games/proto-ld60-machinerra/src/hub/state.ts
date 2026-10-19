@@ -5,6 +5,7 @@
 import { rng } from '../../../../harness/kit/rng';
 import type { BiomeId, PartKind, SupportId } from '../sim/defs';
 import { loadoutFrom, type Loadout } from '../sim/loadout';
+import type { HudId } from '../sim/onboard';
 import type { District } from './district';
 import { WORKBENCH, connected, openLots } from './layout';
 import { titleStat, type Titles } from './titles';
@@ -20,6 +21,8 @@ export interface Robot { name: string; role: string; uid?: string }
  */
 export interface Haul {
   id: string;
+  /** The HUD elements a run that started with an empty HUD showed (`sim/onboard.ts`): kept in the `onboard` slice. */
+  onboard?: HudId[];
   parts: Parts;
   robots: Robot[];
   /** The roster ids of every robot that went down (`landRoster` wrecks the ones not in `robots`). */
@@ -82,7 +85,8 @@ export type PerkId =
   | 'cheapBodies' | 'dreamAgain'
   | 'companionDog' | 'companionCat' | 'dogNose' | 'shootGrows' | 'greenhousePlans' | 'tramPlans' | 'rareBlueprints' | 'aqueductPlans'
   | 'sandBearings' | 'mossBrush' | 'receipts' | 'frostContacts'
-  | 'grafting';
+  | 'grafting'
+  | 'rollCall' | 'oldEarful' | 'secondHeart' | 'oldMap' | 'grandPlan' | 'openDoor' | 'backRoom' | 'fourthSlot' | 'homingSignal';
 export const PERKS: Record<PerkId, { name: string; how: 'teach' | 'sell'; text: string }> = {
   kick: { name: 'The Kick', how: 'teach', text: 'A boot to the chassis: {kick} sends whatever is in front of you flying. Little damage, a lot of distance.' },
   // Sprocket's free first thing (P9): the bench itself, which opens with her station (D29); no rule of its own. A placeholder gift, tabled for Minos.
@@ -139,6 +143,16 @@ export const PERKS: Record<PerkId, { name: string; how: 'teach' | 'sell'; text: 
   receipts: { name: 'Receipts', how: 'teach', text: 'Once a mission the Princess names the nearest ruin you have not searched, and the map circles it.' },
   frostContacts: { name: 'Frost on the contacts', how: 'teach', text: 'The Princess\'s sweepings turn up relics twice as often.' },
   // Gasket's capstone (`sim/graft.ts`): the limbs of the elites you break can be grafted on.
+  // The relationship track's gifts (P52, `bonds.ts`): the fifth step of an NPC's track pays one; `sim/perks.ts` `PERK_FX` holds their numbers.
+  rollCall: { name: 'The Roll-call', how: 'teach', text: 'When the lift rises, every downed robot of yours on the land comes up with it, wherever it lies.' },
+  oldEarful: { name: 'Old Earful', how: 'sell', text: "Hob's masterpiece: a twin-bore steam blunderbuss, a close-range blast that throws foes into things. So loud it wakes the nearest hive." },
+  secondHeart: { name: 'The Second Heart', how: 'teach', text: 'One more augment slot for the Communicator.' },
+  oldMap: { name: 'The Old Map', how: 'teach', text: "Every landing, the land's centrepiece is marked on the map from the start." },
+  grandPlan: { name: 'The Grand Plan', how: 'teach', text: 'The City Planner draws up two blueprints a visit instead of one.' },
+  openDoor: { name: 'The Open Door', how: 'teach', text: 'A kicked body crashes through any wall or prop it hits.' },
+  backRoom: { name: 'The Back Room', how: 'teach', text: "One more item on the Trader's shelf every lift, of the best grade she stocks." },
+  fourthSlot: { name: 'The Fourth Slot', how: 'teach', text: 'The Communicator has a fourth punch-card slot.' },
+  homingSignal: { name: 'The Homing Signal', how: 'teach', text: 'Once a mission, when the Communicator is downed, her voice comes over the antenna and he stands again at a quarter oil.' },
   grafting: { name: 'Grafting', how: 'teach', text: 'A twisted elite you break drops a claw, a menacing one a tentacle: hold {use} beside it to graft it on for the mission. It rakes or whips foes on its own, and falls off at the lift.' },
 };
 
@@ -212,7 +226,7 @@ export const CITY_STAGES = [
 
 /** The D-city's buildings (rules in `buildings.ts`): `raising` are drawn up and stand as scaffolding until the next lift docks; `pickedAt` is the `missions` count of the visit that drew one (one blueprint a visit, -1: none yet). */
 /** `cored`: the Reliquary's once-only core is paid (set when it is torn down: Rebuild, P55 B). */
-export interface CityBuildings { built: string[]; raising: string[]; pickedAt: number; cored?: boolean }
+export interface CityBuildings { built: string[]; raising: string[]; pickedAt: number; cored?: boolean; /** Blueprints drawn that visit (the Grand Plan allows two; absent is one). */ picks?: number }
 export const freshBuildings = (): CityBuildings => ({ built: [], raising: [], pickedAt: -1 });
 
 /** The colony's errand (rules in `expeditions.ts`): `load` is the coal fed for the next departure, `out` the coal that left with the last one (its results come home with the next lift), `charted` the lands it has charted. */
@@ -416,13 +430,15 @@ export function cityStage(s: HubState, all = false) {
 export const nextSeed = (s: HubState) => rng(`course:${s.missions}:${s.course}`).int(1, 999999);
 
 /** What a finished mission hands to the hub: the parts, the robots standing on the lift, the NPCs freed and brought to it, the ones missed, and the rest of what outlives the mission (scrap, insight, cores, copper, air support left, places found). */
-export function haulFrom(m: { tier?: number; land?: { guided?: boolean }; bossesDown?: string[]; found?: { name: string; role: string }[]; ghostFreed?: boolean; scrap?: number; insight?: number; cores?: number; junk?: string[]; copper?: number; coal?: number; places?: { id: string; visited: boolean }[]; pilgrim?: { npc: { id: string } } | null; parts: Parts; crew: { name: string; role: string; dead: boolean; x: number; y: number; uid?: string }[]; went?: string[]; downedHome?: string[]; rescued?: string[]; gathered?: string[]; stats?: Record<string, number>; onLift(b: { x: number; y: number }, k?: number): boolean } & Partial<Parameters<typeof loadoutFrom>[0]>, id: string): Haul {
+export function haulFrom(m: { onboard?: { saved: HudId[] | null }; tier?: number; land?: { guided?: boolean }; bossesDown?: string[]; found?: { name: string; role: string }[]; ghostFreed?: boolean; scrap?: number; insight?: number; cores?: number; junk?: string[]; copper?: number; coal?: number; places?: { id: string; visited: boolean }[]; pilgrim?: { npc: { id: string } } | null; owned?: ReadonlySet<string>; parts: Parts; crew: { name: string; role: string; dead: boolean; x: number; y: number; uid?: string }[]; went?: string[]; downedHome?: string[]; rescued?: string[]; gathered?: string[]; stats?: Record<string, number>; onLift(b: { x: number; y: number }, k?: number): boolean } & Partial<Parameters<typeof loadoutFrom>[0]>, id: string): Haul {
+  const fetchBellows = !!m.land?.guided && !m.owned?.has('Bellows'); // a guided land fetches him unless the intro already made him ours
   return {
     id,
+    ...(m.onboard?.saved && { onboard: [...m.onboard.saved] }),
     parts: { ...m.parts },
     robots: m.crew.filter((b) => !b.dead && m.onLift(b, 1.6)).map((b) => ({ name: b.name, role: b.role, ...(b.uid && { uid: b.uid }) })),
     ...(m.tier && { tier: m.tier }),
-    ...((m.land?.guided || m.found?.length) && { fetched: [...(m.land?.guided ? [{ name: 'Bellows', role: 'gatherer' }] : []), ...(m.found ?? [])] }),
+    ...((fetchBellows || m.found?.length) && { fetched: [...(fetchBellows ? [{ name: 'Bellows', role: 'gatherer' }] : []), ...(m.found ?? [])] }),
     ...(m.went?.length && { went: [...m.went] }),
     ...(m.downedHome?.length && { downed: [...m.downedHome] }),
     ...(m.rescued?.length && { rescued: [...m.rescued] }),

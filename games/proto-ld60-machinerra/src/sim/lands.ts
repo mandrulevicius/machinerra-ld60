@@ -15,6 +15,7 @@
  *   morningSwarm  the hives' morning trickle (P46's tune); 0 keeps the morning quiet
  *   duskBoss   false: this land has no dusk boss, and `lastNest` (every hive down brings it early) does not fire
  *   guided     true: a rescue cannot be missed (a freed one rides up even if left behind), as level 1's Sprocket
+ *   emptyHud   true: the land starts with an empty HUD (`sim/onboard.ts`)
  *   entities   in this order, later shapes paint over earlier ones:
  *     blob, band            ground shapes (props: ground, rx / ry or length / width / bend, rough, seed; rotation turns them)
  *     lift                  exactly one: where the lift stands (a rock tile there is a problem, not carved)
@@ -45,6 +46,7 @@ export interface LandFile {
   morningSwarm?: number;
   duskBoss?: boolean;
   guided?: boolean;
+  emptyHud?: boolean;
   entities?: { id: string; type: string; x: number; y: number; rotation?: number; scale?: number; props?: Record<string, number | string | boolean> }[];
 }
 export interface LandDef {
@@ -84,7 +86,7 @@ export function parseLand(id: string, f: LandFile): LandDef {
   const cell = f.cell ?? 1;
   if (!Number.isInteger(cell) || cell < 1) bad('"cell" must be a whole number of tiles');
   if (f.rows && !(f.rows.length * cell === h && f.rows.every((r) => typeof r === 'string' && r.length * cell === w))) bad(`"rows" must be ${h / cell} strings of ${w / cell} characters (size / cell)`);
-  const rules: LandRules = { id, ...(f.anomaly && { anomaly: f.anomaly as AnomalyId }), ...(f.morningSwarm !== undefined && { morningSwarm: f.morningSwarm }), ...(f.duskBoss === false && { duskBoss: false }), ...(f.guided && { guided: true }) };
+  const rules: LandRules = { id, ...(f.anomaly && { anomaly: f.anomaly as AnomalyId }), ...(f.morningSwarm !== undefined && { morningSwarm: f.morningSwarm }), ...(f.duskBoss === false && { duskBoss: false }), ...(f.guided && { guided: true }), ...(f.emptyHud && { emptyHud: true as const }) };
   const def: LandDef = { id, name: f.name!, biome: f.biome as BiomeId, w, h, ground, ...(f.rows && { rows: { cell, rows: f.rows } }), rules, shapes: [], lift: { x: -1, y: -1 }, seeps: [], nests: [], ruins: [], places: [] };
   const seen = new Set<string>();
   let lifts = 0;

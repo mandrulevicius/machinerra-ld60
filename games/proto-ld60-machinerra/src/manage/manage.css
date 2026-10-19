@@ -1,0 +1,214 @@
+/*
+ * Machinerra's management-screen kit (the Dry dock; Arrival and the course table build from it next): the components as classes, every
+ * value from the theme's `--mg-*` and `--ui-*` tokens (`theme.css`). `manage.ts` makes the markup; `kit.html` shows every piece in its
+ * states. No inline styles: a runtime value CSS cannot know (a tooltip's place) is a custom property set from TS.
+ * Attention (design.md): one strong signal at a time. The accent goes on the selected thing and the one main button; the rest is ink on stock.
+ */
+
+/* ---- Surfaces ---- */
+.mg { font-family: var(--ui-font-body); color: var(--ui-c-text); }
+.mg *, .mg *::before, .mg *::after { box-sizing: border-box; }
+.mg button { font: inherit; }
+/* Manila stock: the punch cards' paper. */
+.mg-stock {
+  background: repeating-linear-gradient(94deg, transparent 0 3px, rgb(110 76 30 / 0.06) 3px 4px), linear-gradient(172deg, var(--mg-stock-hi), var(--mg-stock) 40%, var(--mg-stock-lo));
+  color: var(--mg-ink); box-shadow: var(--mg-stock-shade);
+}
+/* An iron well: the roster's rack and the drawer's tray. */
+.mg-well { background: var(--mg-iron-2); border-radius: 6px; box-shadow: var(--mg-well); }
+/* A brass plate: engraved, two screws. */
+.mg-brass {
+  position: relative; color: var(--mg-iron); border-radius: 3px; box-shadow: var(--mg-plate-shade);
+  background: linear-gradient(175deg, var(--mg-brass-hi), var(--mg-brass) 55%, var(--mg-brass-lo));
+}
+.mg-brass::before, .mg-brass::after {
+  content: ""; position: absolute; top: 5px; width: 5px; height: 5px; border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, var(--mg-screw), var(--mg-brass-lo) 70%); box-shadow: 0 0 0 1px rgb(40 25 5 / 0.5);
+}
+.mg-brass::before { left: 5px; }
+.mg-brass::after { right: 5px; }
+.mg-typed { font-family: var(--mg-mono); color: var(--mg-typed); }
+.mg-up { color: var(--mg-green); }
+.mg-down { color: var(--mg-red); }
+.mg-flat { opacity: 0.5; }
+
+/* ---- Glyphs: one-colour silhouettes in the text's colour ---- */
+.mg-g { display: inline-block; width: 16px; height: 16px; vertical-align: -3px; flex: none; }
+.mg-g svg { width: 100%; height: 100%; display: block; }
+.mg-g--s { width: 13px; height: 13px; vertical-align: -2px; }
+
+/* ---- Key cap ---- */
+.mg-key { display: inline-block; min-width: 18px; padding: 1px 5px; border: 1px solid currentColor; border-radius: 3px; font: var(--mg-fs-sm) var(--mg-mono); text-align: center; }
+
+/* ---- Brass-framed picture: one frame for every picture, one size per context, the quality dot in its corner ---- */
+.mg-fr {
+  --fr: var(--mg-fr-m);
+  position: relative; flex: none; display: inline-grid; place-items: center; width: var(--fr); height: var(--fr); padding: 4px; border-radius: 6px;
+  background: radial-gradient(ellipse at 50% 40%, var(--mg-stock-hi), var(--mg-stock) 60%, var(--mg-stock-lo));
+  box-shadow: inset 0 0 0 2px var(--mg-brass), inset 0 0 0 3px var(--mg-brass-lo), inset 0 0 10px rgb(120 80 30 / 0.35), 0 2px 3px rgb(0 0 0 / 0.45);
+}
+.mg-fr img { width: 100%; height: 100%; min-width: 0; min-height: 0; object-fit: contain; filter: var(--mg-tint) var(--mg-lift); }
+.mg-fr--xs { --fr: var(--mg-fr-xs); padding: 2px; border-radius: 4px; }
+.mg-fr--s { --fr: var(--mg-fr-s); padding: 3px; border-radius: 5px; }
+.mg-fr--m { --fr: var(--mg-fr-m); }
+.mg-fr--l { --fr: var(--mg-fr-l); padding: 5px; }
+.mg-fr--xl { --fr: var(--mg-fr-xl); }
+.mg-fr--empty { background: rgb(29 26 23 / 0.25); box-shadow: inset 0 0 0 1.5px var(--mg-edge); }
+.mg-fr--empty::before { content: ""; position: absolute; inset: 22%; border: 1.5px dashed var(--mg-edge); border-radius: 3px; }
+.mg-fr--dim img { filter: var(--mg-tint) grayscale(1) brightness(0.7); opacity: 0.6; }
+.mg-fr[data-q]::after { content: ""; position: absolute; right: 3px; bottom: 3px; width: 7px; height: 7px; border-radius: 50%; box-shadow: 0 0 0 1px var(--mg-iron); }
+.mg-fr[data-q="standard"]::after { display: none; }
+.mg-fr[data-q="fine"]::after { background: var(--q-fine); }
+.mg-fr[data-q="rare"]::after { background: var(--q-rare); }
+.mg-fr[data-q="epic"]::after { background: var(--q-epic); }
+.mg-fr[data-q="legendary"]::after { background: var(--q-legendary); }
+.mg-fr__n { position: absolute; right: -6px; bottom: -6px; min-width: 14px; padding: 0 4px; font: var(--mg-fs-sm)/16px var(--mg-mono); color: var(--mg-stock-hi); background: var(--mg-iron); border: 1px solid var(--mg-brass); border-radius: 8px; text-align: center; }
+/* Gasket's Tune-up: a small spanner on the frame's top corner. */
+.mg-fr__tuned { position: absolute; left: -3px; top: -3px; width: 14px; height: 14px; display: grid; place-items: center; border-radius: 50%; color: var(--mg-stock-hi); background: var(--mg-iron); box-shadow: 0 0 0 1px var(--mg-brass); }
+.mg-fr__tuned .mg-g { width: 9px; height: 9px; vertical-align: 0; }
+
+/* ---- Damage type: its glyph in an ink disc (green: weak to it, red: resists it) ---- */
+.mg-dt { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--mg-stock-hi); background: var(--mg-typed); box-shadow: 0 0 0 1.5px var(--mg-brass); flex: none; }
+.mg-dt .mg-g { width: 14px; height: 14px; vertical-align: 0; }
+.mg-dt--up { background: var(--mg-green); }
+.mg-dt--dn { background: var(--mg-red); }
+.mg-dt--s { width: 16px; height: 16px; }
+.mg-dt--s .mg-g { width: 10px; height: 10px; }
+
+/* ---- Stat chip: a glyph beside its value, an optional arrow against what is worn ---- */
+.mg-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 10px; }
+.mg-chip { display: inline-flex; align-items: center; gap: 3px; font: var(--mg-fs-md)/1 var(--mg-mono); color: var(--mg-typed); white-space: nowrap; }
+.mg-chip b { font-weight: 400; }
+.mg-chip .mg-g { width: 14px; height: 14px; vertical-align: 0; }
+.mg-chip.is-bad { color: var(--mg-red); }
+.mg-chip__arrow { font-size: var(--mg-fs-xs); margin-left: 1px; }
+
+/* ---- Buttons: a secondary (iron) and the one main (brass) ---- */
+.mg-btn {
+  display: inline-flex; align-items: center; gap: 4px; font: 600 var(--mg-fs-md)/1 var(--ui-font-body); color: var(--ui-c-btn-text); white-space: nowrap; cursor: pointer;
+  background: var(--ui-c-btn); border: 1px solid var(--mg-brass-lo); border-radius: var(--ui-radius); padding: 6px 9px; box-shadow: var(--ui-shadow-raised);
+}
+.mg-btn:hover { background: var(--ui-c-btn-hover); }
+.mg-btn:focus-visible { outline: 2px solid var(--ui-c-focus); outline-offset: 2px; }
+.mg-btn--main { color: var(--ui-c-on-accent); border-color: var(--mg-brass-lo); background: linear-gradient(180deg, var(--mg-brass-hi), var(--ui-c-accent) 60%, var(--mg-brass)); }
+.mg-btn--main:hover { background: linear-gradient(180deg, var(--mg-brass-glow), var(--ui-c-accent-hover) 60%, var(--mg-brass)); }
+/* A quiet one on card stock: words, no frame, until hovered. */
+.mg-btn--faint { color: var(--mg-typed); background: none; border-color: transparent; box-shadow: none; padding: 3px 5px; font-weight: 500; }
+.mg-btn--faint:hover { background: rgb(120 84 36 / 0.15); border-color: var(--mg-edge); }
+/* A set state (stoked) stays quiet: sunk into the iron, brass type, never the signal colour. */
+.mg-btn.is-on, .mg-btn.is-on:hover { background: var(--mg-iron-2); color: var(--mg-brass-hi); box-shadow: var(--mg-well); }
+.mg-btn[disabled] { opacity: 0.45; cursor: default; filter: grayscale(0.6); }
+.mg-btn[disabled]:hover { background: var(--ui-c-btn); }
+.mg-btn small { font: var(--mg-fs-sm) var(--mg-mono); opacity: 0.85; margin-left: 2px; }
+.mg-btn .mg-g { width: 14px; height: 14px; vertical-align: 0; }
+
+/* ---- Stamp: rubber ink, slightly turned (Down, Wreck; green once done) ---- */
+.mg-stamp { display: inline-block; font: var(--mg-fs-md)/1 var(--ui-font-display); padding: 3px 6px 2px; border: 1.5px solid currentColor; border-radius: 3px; transform: rotate(-3deg); opacity: 0.9; white-space: nowrap; }
+.mg-stamp--red { color: var(--mg-red); }
+.mg-stamp--green { color: var(--mg-green); }
+.mg-stamp--ink { color: var(--mg-typed); }
+
+/* ---- Resource counter: a dial window in the iron ---- */
+.mg-counters { display: flex; gap: 6px; }
+.mg-counter {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 5px; color: var(--ui-c-accent-hover); font: var(--mg-fs-lg) var(--mg-mono);
+  background: var(--mg-iron-2); border: 1px solid var(--mg-brass-lo); border-radius: 4px; box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.6);
+}
+.mg-counter .mg-fr { --fr: 26px; padding: 2px; border-radius: 4px; }
+.mg-counter .mg-g { color: var(--ui-c-accent); width: 20px; height: 20px; }
+.mg-counter small { font-size: var(--mg-fs-sm); color: var(--ui-c-text-dim); }
+
+/* ---- Roster entry: a time card on the rack ---- */
+.mg-who { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 2px 8px; padding: 6px 8px; text-align: left; border: 0; border-radius: 2px; cursor: pointer; }
+.mg-who.mg-stock { box-shadow: inset 0 0 0 1px var(--mg-edge), inset 0 0 14px rgb(120 80 30 / 0.3); }
+.mg-who > .mg-fr { grid-row: 1 / span 2; }
+.mg-who__name { font: var(--mg-fs-lg)/1.1 var(--ui-font-display); color: var(--mg-ink); }
+.mg-who__n { font: 18px/1 var(--mg-mono); color: var(--mg-typed); }
+.mg-who__state { grid-column: 2 / -1; display: flex; gap: 8px; min-height: 16px; font: var(--mg-fs-sm) var(--mg-mono); color: var(--mg-typed); }
+.mg-who__state span { display: inline-flex; align-items: center; gap: 2px; }
+.mg-who__state .mg-down { color: var(--mg-red); }
+.mg-who.is-sel { transform: translateX(8px); box-shadow: inset 0 0 0 2px var(--mg-brass-hi), inset 0 0 0 3px var(--mg-brass-lo), 0 3px 8px rgb(0 0 0 / 0.6); }
+.mg-who.is-sel::before { content: ""; position: absolute; left: -10px; top: 50%; width: 6px; height: 22px; margin-top: -11px; background: var(--ui-c-accent); border-radius: 2px; }
+.mg-who:focus-visible { outline: 2px solid var(--ui-c-focus); outline-offset: 2px; }
+
+/* ---- Slot plate: the slot's glyph in the corner, the worn item's picture and name, its stats in columns, one line ---- */
+.mg-plate {
+  width: 182px; height: 88px; display: grid; grid-template-columns: 32px minmax(0, 1fr); grid-template-rows: auto auto 1fr; column-gap: 8px; row-gap: 3px; align-content: start;
+  padding: 6px 8px 5px 9px; text-align: left; border: 0; cursor: pointer;
+}
+.mg-plate::after { display: none; }
+.mg-plate > .mg-fr { grid-row: 2; align-self: center; }
+.mg-plate__slot { position: absolute; right: 7px; top: 6px; color: var(--mg-iron); opacity: 0.85; }
+.mg-plate__slot .mg-g { width: 17px; height: 17px; }
+.mg-plate__name { grid-column: 1 / -1; padding-right: 18px; letter-spacing: -0.01em; font: var(--mg-fs-md)/1.1 var(--ui-font-display); color: var(--mg-iron); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mg-plate__stats { grid-row: 2; grid-column: 2; align-self: center; display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto); justify-content: start; gap: 2px 9px; }
+.mg-plate__stats .mg-chip { color: var(--mg-iron); font-size: var(--mg-fs-sm); }
+.mg-plate__stats .mg-chip.is-bad { color: var(--mg-red); }
+.mg-plate__line { grid-column: 1 / -1; align-self: end; font: var(--mg-fs-xs)/1.1 var(--mg-mono); color: var(--mg-typed); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.mg-plate__lugs { position: absolute; right: 7px; bottom: 6px; display: flex; gap: 3px; }
+.mg-plate.is-empty { filter: saturate(0.5) brightness(0.92); }
+.mg-plate.is-empty .mg-plate__name { color: var(--mg-brass-lo); }
+.mg-plate.is-idle .mg-plate__line { color: var(--mg-red); }
+.mg-plate.is-sel { box-shadow: var(--mg-ring-sel); }
+/* Just fitted: the picture rings green, still; it fades when anything else is picked. */
+.mg-plate.is-new > .mg-fr { box-shadow: inset 0 0 0 2px var(--mg-green), 0 0 0 2px var(--mg-green); }
+.mg-plate:focus-visible { outline: 2px solid var(--ui-c-focus); outline-offset: 3px; }
+
+/* A lug on a weapon (P57): a small brass pip, the mod's picture in it. */
+.mg-lug { width: 16px; height: 16px; padding: 1px; border: 0; border-radius: 50%; cursor: pointer; background: var(--mg-iron); box-shadow: 0 0 0 1.5px var(--mg-brass), inset 0 1px 2px rgb(0 0 0 / 0.6); display: grid; place-items: center; }
+.mg-lug img { width: 100%; height: 100%; object-fit: contain; filter: var(--mg-tint); }
+.mg-lug.is-sel { box-shadow: 0 0 0 2px var(--ui-c-accent); }
+
+/* ---- Shipping tag: an item in a drawer, icon first, its stats against what is worn, one click to take it ---- */
+.mg-tag { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; padding: 6px 8px; background: var(--mg-stock-hi); box-shadow: inset 0 0 0 1px var(--mg-edge); border-radius: 3px; }
+.mg-tag.is-short { background: var(--mg-stock-short); }
+.mg-tag.is-short > .mg-fr img { opacity: 0.6; }
+.mg-tag__body { display: grid; gap: 5px; min-width: 0; }
+.mg-tag__name { font: var(--mg-fs-md)/1.1 var(--ui-font-display); color: var(--mg-typed); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mg-tag__name small { font: var(--mg-fs-sm) var(--mg-mono); color: var(--mg-print); margin-left: 4px; }
+.mg-tag__line { font: var(--mg-fs-sm)/1.25 var(--mg-mono); color: var(--mg-print); }
+.mg-tag__cost { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font: var(--mg-fs-sm) var(--mg-mono); color: var(--mg-typed); }
+.mg-tag__cost .mg-fr { --fr: 22px; padding: 2px; border-radius: 4px; }
+.mg-tag__cost span { display: inline-flex; align-items: center; gap: 3px; }
+.mg-tag__cost .is-short { color: var(--mg-red); }
+.mg-tag__cost small { opacity: 0.7; }
+.mg-tag__acts { display: grid; gap: 4px; justify-items: end; }
+.mg-tag[draggable="true"] { cursor: grab; }
+
+/* ---- Drawer: an iron tray of tags, filed behind brass divider tabs ---- */
+.mg-drawer { display: grid; grid-template-rows: auto 1fr auto; min-height: 0; padding: 10px 10px 8px; gap: 8px; }
+.mg-drawer__head { display: flex; align-items: center; gap: 10px; min-height: 30px; }
+.mg-drawer__head h3 { white-space: nowrap; margin: 0; font: var(--mg-fs-xl)/1 var(--ui-font-display); color: var(--ui-c-text); font-weight: 400; }
+.mg-drawer__note { min-width: 0; font: var(--mg-fs-md) var(--mg-mono); color: var(--ui-c-text-dim); display: inline-flex; align-items: center; gap: 4px; }
+.mg-drawer__tabs { display: flex; gap: 4px; margin-left: auto; }
+.mg-drawer__tab { white-space: nowrap; font: 600 var(--mg-fs-md) var(--ui-font-body); color: var(--ui-c-text-dim); background: none; border: 1px solid var(--mg-brass-lo); border-radius: 4px; padding: 3px 8px; cursor: pointer; }
+.mg-drawer__tab[aria-selected="true"] { color: var(--ui-c-text); border-color: var(--mg-brass); background: var(--ui-c-btn); }
+.mg-drawer__list { overflow: hidden auto; min-height: 0; padding-right: 4px; display: flex; flex-direction: column; gap: 6px; }
+.mg-drawer__foot { min-height: 0; }
+.mg-group { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.mg-group__tab { font: 14px/1 var(--ui-font-display); color: var(--mg-iron); padding: 5px 12px 4px; border-radius: 5px 5px 0 0; white-space: nowrap; background: linear-gradient(180deg, var(--mg-brass-hi), var(--mg-brass)); }
+.mg-group__note { font: var(--mg-fs-sm) var(--mg-mono); color: var(--ui-c-text-dim); }
+.mg-group__rule { flex: 1; height: 2px; background: var(--mg-brass-lo); }
+.mg-empty { font: var(--mg-fs-md)/1.35 var(--ui-font-body); color: var(--ui-c-text-dim); padding: 2px 4px 6px; margin: 0; }
+/* What just happened: one typed line, settled, no motion. */
+.mg-note { font: var(--mg-fs-md)/1.35 var(--mg-mono); color: var(--mg-typed); padding: 6px 10px 6px 12px; background: var(--mg-stock); box-shadow: inset 4px 0 0 var(--mg-green); }
+.mg-note.is-bad { box-shadow: inset 4px 0 0 var(--mg-red); }
+.mg-search { display: block; width: 100%; padding: 5px 8px; font: var(--mg-fs-md) var(--mg-mono); color: var(--mg-typed); background: var(--mg-stock-hi); border: 1px solid var(--mg-edge); border-radius: 2px; }
+.mg-search:focus { outline: 2px solid var(--ui-c-focus); outline-offset: 1px; }
+
+/* ---- The three-level tooltip: card stock with the numbers; Alt adds the full details ---- */
+.mg-tip {
+  position: absolute; left: var(--tip-x, 0); top: var(--tip-y, 0); z-index: 50; max-width: 330px; padding: 8px 10px; pointer-events: none; border-radius: 2px;
+  color: var(--mg-ink); font: 12.5px/1.4 var(--mg-mono);
+  background: linear-gradient(172deg, var(--mg-stock-hi), var(--mg-stock)); box-shadow: inset 0 0 0 1.5px var(--mg-edge), 0 0 0 2px var(--mg-iron), 0 6px 14px rgb(0 0 0 / 0.6);
+}
+.mg-tip[hidden] { display: none; }
+.mg-tip b { font: 15px/1.2 var(--ui-font-display); font-weight: 400; display: block; margin-bottom: 3px; }
+.mg-tip table { border-collapse: collapse; margin-top: 4px; }
+.mg-tip td, .mg-tip th { padding: 1px 10px 1px 0; text-align: left; font-weight: 400; }
+.mg-tip th { color: var(--mg-print); }
+.mg-tip p { margin: 4px 0 0; }
+.mg-tip__dim { color: var(--mg-print); }
+.mg-tip__alt { margin-top: 6px; padding-top: 4px; border-top: 1px dotted var(--mg-edge); color: var(--mg-print); font-size: var(--mg-fs-sm); }
+.mg-tip__full { margin-top: 6px; padding-top: 4px; border-top: 1px dotted var(--mg-edge); }
+.mg-tip__full p { color: var(--mg-typed); }

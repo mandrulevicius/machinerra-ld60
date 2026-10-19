@@ -8,6 +8,7 @@ import Phaser from 'phaser';
 import { atlas } from '../../../harness/kit/assets';
 import { commDir, commFlip, commFrame, type CommDir } from './comm';
 import { CommKick } from './commkick';
+import { MOUNTS } from './antennamounts';
 import { ANTENNA, antennaPoints, newAntenna, nudgeAntenna, stepAntenna, whipAntenna } from './antenna';
 import { accelOf, newDangle, nudge, stepDangle, type Dangle } from './dangle';
 import { owned } from './sim/gear';
@@ -199,7 +200,9 @@ export class CommView extends ViewBase {
         this.k.juice.shake('small');
         if (this.comm.spill) this.comm.spill.spent = 0.001;
         w.marks.stamp('world-splat', c.x + (c.face >= 0 ? 12 : -12), c.y + 2, { tint: CRUDE_STAIN, alpha: 0.7, scale: 0.35, kind: 'oil' });
-        this.floater(c.x, c.y - 56, 'Back up (spare can spent)', '#ffd98a', 1800);
+        // The moment is read at a glance (Minos): big, over him, with the small print under it.
+        this.floater(c.x, c.y - 70, 'REVIVED', '#ffd98a', 2200, 44);
+        this.floater(c.x, c.y - 36, e.cost ? 'spare can spent' : 'her voice on the antenna', '#f4e2bc', 2200, 18);
         break;
       }
       case 'winched':
@@ -239,10 +242,10 @@ export class CommView extends ViewBase {
       c.dir = 'side';
     }
     this.moveSecondary(b, v, dt, dx / Math.max(dt, 1e-3));
-    // The antenna: a chain up from the top of the head, a little forward in the side view; the tip keeps the glow and the ping.
-    const bx0 = v.spr.x + (c.dir === 'side' || c.dir === 'frontside' ? 2 * b.face : 0), by0 = v.spr.y - v.spr.displayHeight * 0.97 + 2.5;
+    // The antenna: a chain up from the painted antenna's tip (`antennamounts.ts`, in the frame shown, mirrored and turned as the sprite is); the tip keeps the glow and the ping.
+    const [bx0, by0] = this.mount(v.spr);
     const ant = this.sway.ant, pts = this.sway.pts;
-    stepAntenna(ant, bx0, by0, dt);
+    stepAntenna(ant, bx0, by0, dt, v.spr.x, v.spr.y);
     antennaPoints(ant, bx0, by0, pts);
     const tx = pts.x[ANTENNA.n + 1], ty = pts.y[ANTENNA.n + 1];
     if (v.spr.visible && this.sim.downT <= 0 && !(b.state === 'gather' && !b.moving)) {
@@ -266,6 +269,15 @@ export class CommView extends ViewBase {
         this.gfx.beginPath().arc(tx, ty, r, -Math.PI * 0.45, -Math.PI * 0.15).strokePath();
       }
     }
+  }
+
+  /** Where the painted antenna's tip is in the world: the shown frame's mount through the sprite's own flip, scale and turn (a frame with no mount, a kneel, takes the side view's). */
+  private mount(spr: Phaser.GameObjects.Image): [number, number] {
+    const m = /^communicator\/(\w+)-(\d+)$/.exec(spr.frame.name);
+    const [px, py] = (m && MOUNTS[m[1] as CommDir]?.[+m[2]]) || MOUNTS.side[0];
+    const lx = (px - spr.frame.realWidth * spr.originX) * (spr.flipX ? -1 : 1) * spr.scaleX, ly = (py - spr.frame.realHeight * spr.originY) * spr.scaleY;
+    const r = spr.rotation, co = Math.cos(r), si = Math.sin(r);
+    return [spr.x + lx * co - ly * si, spr.y + lx * si + ly * co];
   }
 
   /**

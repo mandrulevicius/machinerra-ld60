@@ -8,6 +8,7 @@ import { persist } from './save';
 import { freshTitles, type Titles } from './titles';
 import type { LineProgress } from './lines';
 import { freshBook, type QuestBook } from './questbook';
+import { freshBonds, type BondSave } from './bonds';
 
 export const talkSave = persist<Talk>('talk', freshTalk, {
   sample: { flags: { 'met.trader': 1, 'oracle.blessed': 2 }, quests: { sprocket: 2, hob: 99 } },
@@ -27,3 +28,5 @@ export const questBook = persist<QuestBook>('questbook', freshBook, {
     lastJob: { text: 'Kill 8 machines by crash', done: true }, repeatsDone: { hob: 2 }, items: ['boot'], cats: 2,
   },
 });
+/** The relationship track: the steps lit per NPC, and what the gauge last drew (`bonds.ts`). */
+export const bondSave = persist<BondSave>('bonds', freshBonds, { sample: { n: { sprocket: 3, hob: 5, princess: 1 }, shown: { sprocket: 2, hob: 5 } } });

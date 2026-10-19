@@ -10,7 +10,7 @@ import { chooseSpots, follow, inView, lampLook, type Spot } from './lamps';
 import { ViewBase, type Light, type PlayHost } from './playhost';
 import { BIOMES, T } from './sim/defs';
 import { sky } from './sim/clock';
-import { ambientOf } from './sim/dungeon';
+import { KITS, ambientOf } from './sim/dungeon';
 import { WeatherView } from './weatherview';
 import { TwistView } from './twistview';
 import type { SimEvent } from './sim/types';
@@ -36,7 +36,7 @@ export class LightView extends ViewBase {
   constructor(host: PlayHost) {
     super(host);
     const sim = host.sim, L = host.k.lights;
-    this.live = new GroundLive(host.scene, { w: sim.W * T, h: sim.H * T, seed: host.land.seed, paint: BIOMES[host.land.biome].paint, below: !!host.down, depth: -9.5 });
+    this.live = new GroundLive(host.scene, { w: sim.W * T, h: sim.H * T, seed: host.land.seed, paint: BIOMES[host.land.biome].paint, below: !!host.down || !!sim.intro, depth: -9.5 });
     this.lift = L.add(sim.lift.x, sim.lift.y - 10, { color: 0xffd070, radius: 200, intensity: 0.5 });
     for (let i = 0; i < 3; i++) this.flashes.push(L.add(-999, -999, { color: 0xffc070, radius: 160, intensity: 0 }));
     if (!host.down) this.weather = new WeatherView(host.scene, {
@@ -64,7 +64,8 @@ export class LightView extends ViewBase {
     for (const f of this.flashes) f.intensity = Math.max(0, f.intensity - dt * 9);
     // The sky follows the clock: the ambient light, and the lamps burn brighter as it darkens.
     // Down a dungeon there is no sky: the dark of a mine, only lamps.
-    const sk = this.host.down ? { night: 1, ambient: ambientOf(sim.run!.d.def) } : sky(sim.day.hour);
+    // The intro's old works (`sim/intro.ts`) are under the ground too: the desert mine's dark.
+    const sk = this.host.down ? { night: 1, ambient: ambientOf(sim.run!.d.def) } : sim.intro ? { night: 1, ambient: KITS.desert.ambient } : sky(sim.day.hour);
     this.night = sk.night;
     const sky0 = this.weather ? this.weather.ambient(sk.ambient, sim.fx, sk.night) : sk.ambient;
     const amb = this.twist ? this.twist.ambient(sky0, sim) : sky0;

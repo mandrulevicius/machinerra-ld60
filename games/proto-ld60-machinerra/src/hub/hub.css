@@ -187,9 +187,6 @@
 .hb-panel[data-kind="offer"]:has(.hb-tabs) { height: 600px; display: flex; flex-direction: column; overflow: hidden; }
 .hb-panel[data-kind="offer"]:has(.hb-tabs) .hb-panel__body { flex: 1; min-height: 0; }
 .hb-story { flex: none; display: flex; align-items: center; gap: 10px; margin: 2px 0 8px; font-size: var(--ui-fs-sm); color: var(--ui-c-text-dim); }
-.hb-story__teeth { display: inline-flex; gap: 4px; }
-.hb-tooth { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--ui-c-border, #8a6a3a); background: transparent; }
-.hb-tooth.is-lit { background: var(--ui-c-accent, #f0b848); border-color: var(--ui-c-accent, #f0b848); }
 .hb-note--intro { font-size: var(--ui-fs-sm); color: var(--ui-c-text-dim); font-style: italic; }
 .hb-tabs { flex: none; }
 .hb-tabs .ui-tab { padding: 4px 16px; }

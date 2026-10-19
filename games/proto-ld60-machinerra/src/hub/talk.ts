@@ -18,7 +18,8 @@ import { PARTS } from '../sim/defs';
 import { LINES, LINE_QUESTS, PART_FILTERS, lineFacts, lineScript, type LineProgress, type PartFilter } from './lines';
 import { S, STORY, storyFacts } from './story';
 import { questFacts } from './questfacts';
-import { questBook } from './talkslice';
+import { bondSave, questBook } from './talkslice';
+import { BONDS, bondFacts, bondTalk } from './bonds';
 import { gear } from './carry';
 import { roster } from './workshop';
 import { opened } from './landings';
@@ -405,6 +406,12 @@ export const SCRIPTS: Record<string, Script> = {
   },
 };
 
+// The relationship track's greetings and gifts (P52): before the lines' entries, so a hand-in and a first meeting still come first; each takes the place of the idle chatter.
+for (const id of Object.keys(BONDS)) {
+  const b = bondTalk(id), s = SCRIPTS[id], at = s.entry.length - 1; // the last entry is the idle chatter
+  s.entry.splice(at, 0, ...b.entry);
+  Object.assign(s.nodes, b.nodes);
+}
 // The quest lines' levers lead each giver's menu (work on offer is the first thing to talk about), their entries first (a step met is handed in on talking).
 for (const id of Object.keys(LINES)) {
   const l = lineScript(id), s = SCRIPTS[LINES[id].npc];
@@ -437,6 +444,7 @@ export function factsFor(s: HubState, id: string, talk?: Talk, lines: LineProgre
     ...storyFacts(s, scrap),
     ...questFacts(s, { book: questBook.get(), roster: roster.get(), gear: gear.get(), copper: economy.get().copper }),
     ...princessFacts(s),
+    ...bondFacts(bondSave.get()),
     ...extra,
   };
   return talk ? { ...facts, ...lineFacts(talk, lines, facts) } : facts;

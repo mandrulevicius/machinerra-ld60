@@ -39,14 +39,14 @@ export class HubCompanions {
 
   constructor(private scene: Phaser.Scene, shade: DeckShadows) {
     makeCompanionArt(scene);
-    const put = (key: string, p: { x: number; y: number }, oy = 0.9) => {
+    const put = (key: string, p: { x: number; y: number }, oy = 0.9, shaded = true) => {
       const img = scene.add.image(p.x, p.y, key).setScale(1 / S).setOrigin(0.5, oy).setDepth(p.y).setVisible(false);
-      shade.add(img);
+      if (shaded) shade.add(img); // the bowl is a prop: none
       return img;
     };
     this.dog = put('dog-stand', PETS.dog, 0.88).setFlipX(true);
     this.cat = put('cat-sit', PETS.cat);
-    this.bowl = put('dog-bowl', PETS.bowl, 0.7);
+    this.bowl = put('dog-bowl', PETS.bowl, 0.7, false);
     this.more = PETS.more.map((p, i) => put('cat-sit', p).setFlipX(i % 2 === 1));
     this.asleep = put('cat-sleep', PETS.asleep).setDepth(TABLE.y + 60); // on the glass: over the table's picture
     this.label = scene.add.text(0, 0, '', { fontSize: '11px', color: '#fff4d8', backgroundColor: 'rgba(20,16,12,0.75)', padding: { x: 4, y: 2 } }).setDepth(1e6).setOrigin(0.5, 1).setVisible(false);

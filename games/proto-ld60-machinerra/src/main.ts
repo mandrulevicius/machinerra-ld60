@@ -3,6 +3,7 @@ import { command } from '../../../harness/dev/commands';
 import { TITLE_SCENE } from '../../../harness/kit/menus';
 import { Dungeon, Play } from './Play';
 import { Ascent } from './hub/Ascent';
+import { Opening } from './opening';
 import { Hub } from './hub/Hub';
 import { PlaceBench } from './Place';
 import { registerPlaceCommands } from './placedev';
@@ -31,8 +32,9 @@ bootGame({
   // The build label in the title's corner: release.mjs sets VITE_BUILD ("v3 · c8904c9"); the dev server says dev, a plain build shows none.
   version: import.meta.env.VITE_BUILD ?? (import.meta.env.DEV ? 'dev' : undefined),
   // `Place` is the place bench (dev only, `?scene=Place&id=graveyard`).
-  scenes: { Play, Dungeon, Ascent, Hub, ...(import.meta.env.DEV ? { Place: PlaceBench } : {}) },
-  start: 'Play',
+  scenes: { Opening, Play, Dungeon, Ascent, Hub, ...(import.meta.env.DEV ? { Place: PlaceBench } : {}) },
+  // A new game opens on the Wanderer (`opening.ts`), then falls into the old works; with a mission flown it goes on to Play.
+  start: 'Opening',
   // The title (Continue, New game, Options, Credits) shows unless the URL names a scene: `?scene=Play` / `?scene=Hub` skip it.
   titleScreen: true,
   // The title's background: the zeppelin over the sands, brass cogs turning; it flies out on Continue or New game (titleart.ts).

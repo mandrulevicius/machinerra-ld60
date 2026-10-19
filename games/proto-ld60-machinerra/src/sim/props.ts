@@ -34,6 +34,8 @@ export interface Fling {
   kick: boolean;
   hit: number[];
   until: number;
+  /** The Open Door: until this time the body bursts on through a wall it broke: no steering, `PERK_FX.openDoor.friction`, the flight not cut short by slowness. */
+  door?: number;
 }
 
 export interface Prop {

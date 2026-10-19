@@ -9,6 +9,8 @@
 import Phaser from 'phaser';
 import { house, LINE } from './house';
 import { makeSpiderArt } from './spiderart';
+import { makeCaterpillarArt } from './caterpillarart';
+import { makeBotLegArt } from './botlegart';
 import { makeDungeonArt } from './dungeonart';
 import { makeBiomeArt } from './biomeart';
 import { makeEtherArt } from './etherart';
@@ -710,6 +712,8 @@ export function makeArt(scene: Phaser.Scene) {
     c.fillRect(0, 0, 8, 8);
   }, 1);
   makeSpiderArt(scene); // the crawlcam's body, legs and parts (spiderart.ts)
+  makeCaterpillarArt(scene); // the caterpillars' pods, heads, legs and the mother's jaw (caterpillarart.ts)
+  makeBotLegArt(scene); // a robot's spider legs (botlegart.ts)
   makeTraitArt(scene); // the elite traits' parts (traitart.ts)
   makeEtherArt(scene); // the Ether's ghosts, the Evil Oracle, the Princess (etherart.ts)
   makeBiomeArt(scene); // the jungle's, the city's and the mountains' machines and their parts (biomeart.ts)

@@ -125,6 +125,9 @@ export const FOES: Record<Enemy, FoeDef> = {
   evilOracle: { name: 'The Evil Oracle', type: 'dark', ethereal: true, hp: 60, dmg: 10, rate: 1, speed: 100, r: 20, reach: 30, aggroTiles: 16 },
   // Level 1's mini-boss (P9, `BOSSES.foreman`): a hornet sized up, standing guard over Sprocket's wreck. Never spawned by a hive.
   foreman: { name: 'Hive Foreman', type: 'pierce', hp: HORNET.hp * 6, dmg: HORNET.dmg, rate: HORNET.rate, speed: HORNET.speed, r: 18, reach: 34, aggroTiles: 9 },
+  // The intro's dungeon (Minos): a baby caterpillar, small and segmented, on procedural legs. It crawls in and bites (a plain
+  // walker's hunt in `fly`); an elite one is tusked, as is the intro's mini-boss (`CATERPILLAR`). Every number a guess.
+  caterpillar: { name: 'Baby caterpillar', type: 'pierce', hp: 10, dmg: 3, rate: 1, speed: 85, r: 9, reach: 18, aggroTiles: 10, ground: true },
 };
 
 /**
@@ -138,7 +141,7 @@ export const FOES: Record<Enemy, FoeDef> = {
  * - Web: from `min` to `range` tiles it spits a cable (`tell`, then a shot of `speed`, `life`). A robot it hits is
  *   tethered for up to `time` seconds and moves at `slow` of its speed; the cable lets go when the spider dies or the
  *   robot gets `leash` tiles away. It will not web one that is already webbed.
- * - Edge: the desert's off-map arrival is the spider (`BIOMES.desert.edge`; the timing is `EDGE`, defs/day.ts): it leaps in from
+ * - Edge: an off-map arrival of kind spider (a biome's `edge`; the desert's are hornets now, its hives send spiders; the timing is `EDGE`, defs/day.ts): it leaps in from
  *   beyond the map's rim (a `leap` of `time` s and `arc` px landing `in` tiles inside, no blow), has no hive and hunts the nearest robot
  *   from anywhere. `spread`: tiles an arrival slides along the rim (and its landing across), so they do not stack. `mix` (biome): the share of a hive's spawns that are spiders.
  * - Legs: `legs` (the twisted form has `twistedLegs`); the gait is sim/gait.ts, `ELEV` the ground height under a foot.
@@ -150,6 +153,37 @@ export const SPIDER = {
   pounce: { every: [1.8, 3.2] as [number, number], tell: 0.7, lock: 0.22, time: 0.38, range: 3.4, min: 1, rest: 0.95, dmgMul: 2, radius: 28, arc: 44 },
   web: { every: [6, 9] as [number, number], first: [1, 4] as [number, number], tell: 0.6, speed: 340, life: 1.5, range: 7, min: 2.5, time: 1.8, slow: 0.2, leash: 9 },
   edge: { time: 1.1, arc: 130, in: 6, spread: 3 },
+};
+
+/**
+ * The caterpillars (Minos; sim/caterpillar.ts, drawn in caterpillar.ts). The baby is `FOES.caterpillar`; an elite one is
+ * tusked (the lead: expedition 2's elites), and so is the intro's mini-boss `BOSSES.caterpillar`. Body: `segs` segments `gap`
+ * px apart (times the draw scale) following the head's path, a pair of legs on each. The tusked one's attack, in Minos's
+ * order: `spiral` (it winds into a coil fast, the head circling at `spin` turns a second from `r0` to `r1` round the coil's
+ * centre, at least `turns` turns, until its head points at him), `lift` (s: the head rises to `liftZ` and looks at him), then
+ * the rear and the lunge, whose numbers are its `charge` (the boss's `BOSSES.caterpillar.charge`, the elite's `elite.charge`:
+ * `tell` the rear with the jaw opening, `time` and `speed` the lunge, `dmg`, `knock`, `rest`). It starts the spiral when he
+ * is within `reach` of the lunge's length, `every` s after the last. `rearZ`: the head's height reared; `bite`: the head's hit
+ * radius in the lunge. `r0`, `r1`, `liftZ`, `rearZ` and `bite` are px per unit of the tusked one's draw `scale` (the boss's
+ * `BOSSES.caterpillar.scale`, the elite's `elite.scale`). `elite`: the tusked elite's body and moves, smaller than the boss
+ * and with a shorter tell. Every number a guess.
+ */
+export const CATERPILLAR = {
+  baby: { segs: 6, gap: 8.5 },
+  tusked: { segs: 10, gap: 8.5 },
+  spiral: { turns: 1.2, spin: 1.5, r0: 20, r1: 8.5, tol: 0.18 },
+  lift: 0.35,
+  liftZ: 6,
+  rearZ: 11.5,
+  bite: 10,
+  reach: 0.85,
+  elite: {
+    scale: 1.8,
+    speed: 80,
+    sting: { dmg: 5, rate: 1.1 },
+    every: 2.6,
+    charge: { tell: 0.8, time: 0.32, speed: 500, dmg: 9, knock: 30, rest: 1.1 },
+  },
 };
 
 /** Ground height (px) under a spider's foot: dunes are barely raised, a mesa's top is a climb. */
@@ -236,6 +270,7 @@ export const TWISTED: Record<Enemy, TwistDef> = {
   banshee: twistOf('Shrieking banshee', 'banshee', 0xb070ff),
   evilOracle: twistOf('The Evil Oracle', 'evilOracle', 0x9040ff),
   foreman: twistOf('Hive Foreman', 'foreman', 0xb040ff),
+  caterpillar: twistOf('Twisted caterpillar', 'caterpillar', 0xb040ff),
   piranha: twistOf('Frenzied piranha-tronic', 'piranha', 0xb040ff),
   cupid: twistOf('Heartbroken love-bot', 'cupid', 0xff40a0),
   croc: twistOf('Captain Croc', 'croc', 0x9fe060),
@@ -328,6 +363,7 @@ export const NEST = {
 };
 
 export type Enemy = 'hornet' | 'swarmer' | 'drone' | 'spider' | 'snake' | 'cat' | 'boar' | 'monkey' | 'commuter' | 'officer' | 'charger' | 'goat' | 'bleater' | 'kite' | 'gorilla' | 'knight' | 'bear' | 'wisp' | 'shade' | 'banshee' | 'evilOracle' | 'foreman'
+  | 'caterpillar'
   | DungeonFoe;
 
 /** The four designed dungeons' foes and mini-bosses (games/ludum-dare-60/docs/dungeons.md, sim/dungeon.ts `KITS`). */

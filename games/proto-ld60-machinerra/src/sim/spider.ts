@@ -15,6 +15,7 @@ import { Ter, passable } from './mapgen';
 import type { Bot, Hornet, Sim } from './sim';
 import { layOf } from './tiers';
 import { clamp, dist, lerp } from './geom';
+import { spawnPick } from './spawntiers';
 
 export type SpiderMode = 'stalk' | 'tellWeb' | 'tellPounce' | 'leap' | 'recover';
 export interface SpiderState {
@@ -300,6 +301,7 @@ function land(sim: Sim, h: Hornet, S: SpiderState, D: { every: [number, number];
 
 /** A robot hit by a cable: tethered to the spider until it dies, the robot gets away, or the cable gives. */
 export function snare(sim: Sim, b: Bot, spiderId: number) {
+  if (b.climbs) return void sim.say('web', `A spider's cable slides off ${b.name}'s legs.`, 'warn'); // spider legs are not held (P53)
   b.web = { by: spiderId, t: SPIDER.web.time };
   sim.engine.apply(b, 'webbed', { duration: SPIDER.web.time });
   const h = sim.hornets.find((x) => x.id === spiderId);
@@ -344,7 +346,8 @@ export function edgeArrivals(sim: Sim, dt: number) {
   W.edgeT = (a * (b / a) ** q * W.r.range(0.7, 1.3) * spawnMul(sim.day.step, sim.cfg.berserk)) / k;
   const cap = Math.round(lerp(EDGE.alive[0], EDGE.alive[1], q) * k);
   if (sim.hornets.filter((h) => h.rim && !h.dead).length >= cap) return;
-  spawnAtRim(sim, sim.biome.edge ?? W.r.weighted(sim.biome.foes));
+  const pick = spawnPick(sim, 'rim'); // the first expeditions' (`spawntiers.ts`)
+  spawnAtRim(sim, pick?.kind ?? sim.biome.edge ?? W.r.weighted(sim.biome.foes), undefined, undefined, pick?.elite);
 }
 
 /** An arrival stepping off the rock rim onto the land (P31): the view dresses it by the biome (`foeview.ts` `RIM_LOOK`). */
@@ -359,7 +362,7 @@ function rimIn(sim: Sim) {
 }
 
 /** One enemy just beyond the rim, a good way from the Communicator (the best of a few tries): a spider leaps in over the edge, any other kind walks or flies straight in. It hunts the nearest robot from anywhere (`Hornet.rim`). */
-export function spawnAtRim(sim: Sim, kind: Enemy = 'spider', x?: number, y?: number): Hornet {
+export function spawnAtRim(sim: Sim, kind: Enemy = 'spider', x?: number, y?: number, elite?: boolean): Hornet {
   const R = sim.spiders.r;
   const c = sim.controller;
   const w = sim.W * T, hh = sim.H * T;
@@ -382,7 +385,7 @@ export function spawnAtRim(sim: Sim, kind: Enemy = 'spider', x?: number, y?: num
     const side = ds.indexOf(Math.min(...ds));
     best = side === 0 ? { x, y: -out, ix: 0, iy: 1, miss: 0 } : side === 1 ? { x, y: hh + out, ix: 0, iy: -1, miss: 0 } : side === 2 ? { x: -out, y, ix: 1, iy: 0, miss: 0 } : { x: w + out, y, ix: -1, iy: 0, miss: 0 };
   }
-  const h = sim.spawnHornet(best.x, best.y, 0, undefined, undefined, kind);
+  const h = sim.spawnHornet(best.x, best.y, 0, elite, undefined, kind);
   h.rim = true;
   const S = h.spider;
   if (S) {

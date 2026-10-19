@@ -76,7 +76,7 @@ import { blizzardSight, type TwistWorld, twistStep, twistSummary, twistWorld } f
 import { beastSummary } from './beasts';
 import { rushHours, type Rush } from './commute';
 import { BISCUIT, type QuestOpts, freshQuestOpts, questStep } from './questcount';
-import { carryStep, downedSummary } from './downed';
+import { carryStep, downedSummary, slowScale, slowStep } from './downed';
 import {
   type AnomalyId,
   BARKS,
@@ -207,15 +207,17 @@ import {
   typeMul,
 } from './missionfx';
 import { newFog, landSignals, type Fog, type Signal } from './fog';
-import { fogStep, fogSummary } from './fogplay';
+import { fogStep, fogSummary, oldMap } from './fogplay';
 import {
   dungeonLines,
   oracle,
   say,
 } from './oracle';
 import {
+  CLIMB,
   astar,
   clearLine,
+  climbable,
 } from './path';
 import { PERK_FX } from './perks';
 import { crashStep } from './crash';
@@ -227,7 +229,10 @@ import {
   makePlace,
 } from './placeplay';
 import type { PlaceId } from './places';
+import { Onboard } from './onboard';
+import { Lessons, gates, lessonStep } from './lessons';
 import { tapOf } from './sites';
+import { makeIntro, type IntroRun } from './intro';
 import {
   type SpecId,
   sourcesOf,
@@ -238,6 +243,7 @@ import {
   spiderSummary,
   spiderWorld,
 } from './spider';
+import { grubSummary } from './caterpillar';
 import {
   type Strike,
   callSupport,
@@ -325,7 +331,10 @@ export class Sim {
   junkR?: Rng;
   /** Seconds left of the Communicator being down (0 = up and about), and how it ends: a revive in place or the winch. */
   downT = 0;
-  downKind: 'revive' | 'winch' = 'winch';
+  downKind: 'revive' | 'winch' | 'homing' | 'respawn' = 'winch';
+  /** Real seconds left of the revive's slowed time (`slowStep`) and of his standing there before he acts again (`REVIVE`). */
+  slowT = 0;
+  standT = 0;
   /** Seconds of grace after a revive (the `grace` status; setting it applies or ends it). */
   get graceT() {
     return this.engine.status(this.controller, 'grace')?.left ?? 0;
@@ -416,6 +425,10 @@ export class Sim {
   events: SimEvent[] = [];
   /** Oracle beats already said. */
   said = new Set<string>();
+  /** Which HUD elements are up and the world's cues (`onboard.ts`). */
+  onboard!: Onboard;
+  /** What is taught by now and the Oracle's pauses (`lessons.ts`). */
+  lessons!: Lessons;
   /** Counts of the mission, handed home with the haul. `deed.<type>.<counter>` are what each kind of bot did (`deed()`; the deeds' gauges fill from them, `hub/deeds.ts`). */
   stats: Record<string, number> = {
     killed: 0,
@@ -561,6 +574,8 @@ export class Sim {
   /** The robot types the hub knows already (`SimOptions.types`), and the type wrecks mended this mission (`downed.ts` `fixed`): banked through the haul (`fetched`), where each joins the roster and its type becomes buildable. */
   typesKnown = new Set<string>();
   found: { name: string; role: string }[] = [];
+  /** The names of the robots owned when the mission began: `SimOptions.owned` and the crew that rode down. */
+  owned = new Set<string>();
   /** Ruins searched (`insight` counts them) and the research found elsewhere (masts, the Parable, later live ruins and Wardens). */
   ruinsFound = { live: 0, dead: 0 };
   /**
@@ -589,6 +604,10 @@ export class Sim {
   /** Down a dungeon: the land's robots that came with him, in the order they were handed in (`opts.party`). */
   readonly party: Bot[] = [];
   denBoss: Hornet | null = null;
+  /** Mission 1's old works (`intro.ts`): no clock, no rim arrivals, its own beats and free respawns. */
+  intro: IntroRun | null = null;
+  /** Nothing in hand (the intro until the shovel is found): left and right click do nothing. */
+  unarmed = false;
   /** Down a dungeon: its rooms' rules (ambushes, the trap, the lever, Echoing's noise: `sim/dungeon.ts`). */
   run: DungeonRun | null = null;
   /** The land's threat tier (P40's landing sets it; 1 until then), and what the quest system or the dev commands put on the dungeon entrance: `handcrafted` an id in `HANDCRAFTED`, `twist` one forced (null: none). */
@@ -654,12 +673,16 @@ export class Sim {
     if (this.map.rules?.morningSwarm !== undefined) this.cfg.morningSwarm = this.map.rules.morningSwarm; // level 1's morning is quiet (P46's tune)
     this.W = this.map.w;
     this.H = this.map.h;
+    this.onboard = new Onboard({ empty: opts.onboard?.empty || this.map.rules?.emptyHud, shown: opts.onboard?.shown }, (e) => this.events.push(e));
+    this.lessons = new Lessons(opts.flown);
+    gates(this);
     this.fog = newFog(this.map);
     this.signals = landSignals(this.map);
     // Level 1 hides Sprocket's signal until the mast is decoded (`releaseSignals`).
     if (this.map.rules?.guided) this.signalsHeld = this.signals.filter((s) => s.kind === 'pilgrim');
     this.signals = this.signals.filter((s) => !this.signalsHeld.includes(s));
     for (const t of opts.types ?? []) this.typesKnown.add(t);
+    for (const n of [...(opts.owned ?? []), ...(opts.crew ?? START_CREW).map((c) => c.name)]) this.owned.add(n);
     // A type wreck of a type already found holds nothing: no signal for it.
     const empty = this.map.places.filter((p) => p.id === 'type-wreck' && this.typeWreckKnown());
     this.signals = this.signals.filter((s) => !empty.some((p) => p.x === s.at.x && p.y === s.at.y));
@@ -690,6 +713,7 @@ export class Sim {
     this.map.ruinSizes?.forEach((size, i) => {
       if (size && this.ruins[i]) this.ruins[i].size = size;
     });
+    oldMap(this); // the Expeditioner's gift (P52): the biggest ruin is on the map from the start
     for (const sp of this.map.props ?? []) addProp(this, sp, sp.ruin !== undefined ? this.ruins[sp.ruin]?.id : undefined);
     for (const n of this.map.nests) this.addNest((n.x + 0.5) * T, (n.y + 0.5) * T);
     for (const pl of this.map.places) this.places.push(makePlace(this, pl.id, pl.x, pl.y, pl.parts));
@@ -726,6 +750,7 @@ export class Sim {
     }
     this.setGear(gear ?? freshGear(), !!gear);
     this.party.forEach((b, i) => (b.hp = Math.max(1, Math.min(b.maxHp, opts.party![i].hp))));
+    makeIntro(this);
   }
 
   /** Wear this gear (`sim/gear.ts`): its sources on every robot, its skills and, with `weapons`, its two weapon slots (the gear and the loadout agree on them). */
@@ -798,6 +823,10 @@ export class Sim {
     const relic = relicSource(b.relic);
     this.setLayer(b, 'relic', relic ? [relic] : []);
     this.setLayer(b, 'stoke', b.stoked && !c ? [stokeSource(b.spec)] : []);
+    // Spider legs (P53): a robot that loses them on a mesa steps down to the ground at its foot.
+    const climbed = b.climbs;
+    b.climbs = !c && this.engine.flag(b, 'climbs');
+    if (climbed && !b.climbs && this.blocked(b.x, b.y)) Object.assign(b, this.passableNear(b.x, b.y));
   }
 
   /** Stoke a robot or let it go cold (the workshop's is `RosterBot.stoked`; this is the dev command's and the tests'). */
@@ -1016,7 +1045,7 @@ export class Sim {
   }
   get boss() {
     // Down a dungeon its mini-boss shows only once it has seen you.
-    // A mini-boss (level 1's Foreman) shows its bar once it has woken or been hurt.
+    // A mini-boss (level 1's guard) shows its bar once it has woken or been hurt.
     return this.hornets.find((h) => h.boss && !h.dead && !(this.dungeon && h === this.denBoss && !this.said.has('den')) && !(bossOf(h.kind).mini && !h.target && h.hp >= h.maxHp)) ?? null;
   }
   /** Jump the clock (dev `time`): a phase, `boss`, or `hh:mm`. Returns false when the spec is not a time. */
@@ -1052,6 +1081,7 @@ export class Sim {
   get objective() {
     if (this.phase === 'lost') return 'Signal lost.';
     if (this.phase === 'rising' || this.phase === 'done') return this.dungeon ? 'Climbing out.' : 'Rising to the colony.';
+    if (this.intro) return this.intro.objective;
     if (this.dungeon) return !this.denBoss?.dead ? `Find the den at the bottom of ${this.dungeon.name}.` : this.run?.exitOpen ? 'Through the opening ({use}) and up.' : 'Break the cracked wall in the den and climb out.';
     if (this.day.phase === 'midnight') return 'Midnight: every ten seconds the machines come stronger.';
     if (this.bossDown) return `${this.bossDownName} is down: ride the lift ({use}) or stay.`;
@@ -1060,22 +1090,12 @@ export class Sim {
     return 'Break machines for scrap, strip ruins for copper, mine coal.';
   }
 
-  /** Level 1's chain after the clause `objective` says now (the HUD tracker lists them: P38). */
-  get level1Rest(): string[] {
-    if (this.land?.id !== 'level1' || this.phase !== 'mission' || this.bossDown) return [];
-    const mast = this.places.find((p) => p.id === 'mast'), sp = this.places.find((p) => p.id === 'sprocket');
-    const rest: string[] = [];
-    if (mast?.state === 'dark') rest.push('Beat the Foreman and free Sprocket');
-    if (this.pilgrim?.state !== 'follow') rest.push('Walk Sprocket to the lift');
-    return sp ? rest : [];
-  }
-
   /** Level 1's chain as one clause: the mast, her guard, her cables, the lift. */
   private level1Objective() {
     const mast = this.places.find((p) => p.id === 'mast'), sp = this.places.find((p) => p.id === 'sprocket');
     if (this.pilgrim?.state === 'follow') return 'Walk Sprocket to the lift ({use} twice).';
     if (mast?.state === 'dark') return 'Wake the old mast to the east ({use}).';
-    if (sp?.state === 'guarded') return 'Beat the Foreman to free Sprocket.';
+    if (sp?.state === 'guarded') return 'Beat her guard to free Sprocket.';
     if (sp?.state === 'pinned') return 'Free Sprocket ({use}).';
     return 'Ride the lift ({use} twice) when you are ready.';
   }
@@ -1085,11 +1105,33 @@ export class Sim {
     const ty = Math.max(0, Math.min(this.H - 1, Math.floor(y / T)));
     return ty * this.W + tx;
   }
-  blocked = (x: number, y: number) => {
+  /** Can nobody stand here: off the map, rock, a solid prop. For a robot (`u`) wearing spider legs the rock it may climb is open (P53). */
+  blocked = (x: number, y: number, u?: Bot) => {
     const tx = Math.floor(x / T), ty = Math.floor(y / T);
-    return tx < 0 || ty < 0 || tx >= this.W || ty >= this.H || !passable(this.map.ter[ty * this.W + tx]) || this.props.solid[ty * this.W + tx] === 1;
+    if (tx < 0 || ty < 0 || tx >= this.W || ty >= this.H) return true;
+    const i = ty * this.W + tx;
+    return (!passable(this.map.ter[i]) && !(u?.climbs && this.climbable(i))) || this.props.solid[i] === 1;
   };
+  /** A rock tile legs may climb (`path.ts`: not the rim, not a dungeon's walls). */
+  climbable = (i: number) => climbable(this.map.ter, this.W, this.H, i, !!this.dungeon);
+  /** Does it stand on rock a climber may stand on. */
+  onRock = (b: Bot) => this.climbable(this.tileOf(b.x, b.y));
   private walkable = (i: number) => passable(this.map.ter[i]) && this.props.solid[i] === 0;
+  /** The tiles one robot may walk (`walkable`, and rock to a legged one). */
+  private walkableBy = (b: Bot) => (b.climbs ? (i: number) => this.walkable(i) || (this.climbable(i) && this.props.solid[i] === 0) : this.walkable);
+  /** A point sent to a legged robot may be on a mesa: `passableNear` for the rest (`order`, `orderBots`). */
+  orderSpot(x: number, y: number, bots: Bot[]): Spot {
+    const i = this.tileOf(x, y);
+    return bots.some((b) => b.climbs) && this.climbable(i) && this.props.solid[i] === 0 ? { x, y } : this.passableNear(x, y);
+  }
+  /** Where a robot is sent as it can reach it: the point, or for one that cannot climb the rock it lies on, the ground at its foot. */
+  private reach = new WeakMap<Spot, Spot>();
+  private reachable(b: Bot, p: Spot): Spot {
+    if (!this.blocked(p.x, p.y) || b.climbs) return p;
+    let at = this.reach.get(p);
+    if (!at) this.reach.set(p, (at = this.passableNear(p.x, p.y)));
+    return at;
+  }
   bot(id: number) {
     return this.bots.find((b) => b.id === id && !b.dead) ?? null;
   }
@@ -1142,9 +1184,9 @@ export class Sim {
   /** Send crew 1..3 to a point. */
   order(crew: number, x: number, y: number) {
     if (this.dungeon || crew < 1 || crew >= CREWS) return;
-    this.orders[crew] = this.passableNear(x, y);
-    this.following[crew] = false;
     const mates = this.crew.filter((b) => b.crew === crew);
+    this.orders[crew] = this.orderSpot(x, y, mates);
+    this.following[crew] = false;
     for (const b of mates) b.path = [];
     noteOrder(this, crew);
     if (mates.length) this.bark(this.r.pick(mates), this.onLift(this.orders[crew]!, 0.5) ? 'evac' : 'order', true);
@@ -1223,9 +1265,11 @@ export class Sim {
   /** One tick: the systems in order (the order is the rules: who acts, who is hit, what falls, what the Oracle says). */
   step(dt: number, input: Input) {
     if (this.phase === 'done' || this.phase === 'lost') return;
+    if (lessonStep(this, dt)) return; // the Oracle's pause: the world waits (lessons.ts)
+    dt = slowStep(this, dt);
     this.time += dt;
     // A dungeon has no sky: the clock stands still down there (and the land's waits above).
-    if (!this.dungeon && this.oilT <= 0) {
+    if (!this.dungeon && !this.intro && this.oilT <= 0) {
       this.dayT += dt;
       clockStep(this, dt);
       weatherStep(this, dt);
@@ -1248,7 +1292,7 @@ export class Sim {
     junkStep(this, dt);
     this.separate();
     hives(this, dt);
-    if (!this.dungeon) edgeArrivals(this, dt);
+    if (!this.dungeon && !this.intro) edgeArrivals(this, dt);
     else flowStep(this);
     for (const h of this.hornets) if (!h.dead) fly(this, h, dt);
     auras(this, dt);
@@ -1274,7 +1318,8 @@ export class Sim {
     if (this.dungeon) {
       dungeonLines(this);
       this.run!.step(dt, input);
-    } else {
+    } else if (this.intro) this.intro.step(dt);
+    else {
       oracle(this);
       voiceStep(this, dt);
       dockStep(this, dt);
@@ -1297,7 +1342,7 @@ export class Sim {
 
   /** A hive at (x, y) px. A place's hives are small and woken by the place alone (not by the clock or by siphoning). */
   addNest(x: number, y: number, o: { place?: PlaceId; hp?: number; scale?: number } = {}): Nest {
-    const hp = o.hp ?? NEST.hp;
+    const hp = o.hp ?? this.biome.hiveHp ?? NEST.hp;
     const n: Nest = { id: this.nextId++, x, y, hp, maxHp: hp, awake: false, dead: false, spawnT: 0, scale: o.scale ?? 1, ...(o.place && { place: o.place }) };
     this.nests.push(n);
     this.engine.add(n, { team: 'foe', tags: ['nest'] });
@@ -1352,8 +1397,9 @@ export class Sim {
 
   anchor(b: Bot): Spot {
     if (this.follows(b)) return this.controller.dead ? b.hold : this.controller;
-    if (b.own && b.own !== 'follow') return b.own;
-    return this.orders[b.crew] ?? b.hold;
+    if (b.own && b.own !== 'follow') return this.reachable(b, b.own);
+    const o = this.orders[b.crew];
+    return o ? this.reachable(b, o) : b.hold;
   }
 
   /** Where in its crew's formation this robot stands. */
@@ -1367,7 +1413,7 @@ export class Sim {
     const ring = trail ? 58 + Math.floor(i / 6) * 34 : 30 + Math.floor(i / 6) * 30;
     const a = (i / Math.min(6, mates.length || 1)) * Math.PI * 2 + (trail ? Math.PI / 2 : 0);
     const p = { x: a0.x + Math.cos(a) * ring, y: a0.y + Math.sin(a) * ring * 0.8 };
-    return this.blocked(p.x, p.y) ? a0 : p;
+    return this.blocked(p.x, p.y, b) ? a0 : p;
   }
 
   private think(b: Bot, dt: number) {
@@ -1410,12 +1456,12 @@ export class Sim {
       b.path = [];
       return true;
     }
-    const sp = ROLES[b.role].speed * this.walk(b) * mul * (d < 40 ? Math.max(0.35, d / 40) : 1);
+    const sp = ROLES[b.role].speed * this.walk(b) * mul * (d < 40 ? Math.max(0.35, d / 40) : 1) * (b.climbs && this.onRock(b) ? CLIMB.pace : 1);
     let tx = gx, ty = gy;
-    if (!clearLine(this.blocked, b.x, b.y, gx, gy, ROLES[b.role].r * 0.8)) {
+    if (!clearLine((x, y) => this.blocked(x, y, b), b.x, b.y, gx, gy, ROLES[b.role].r * 0.8)) {
       const goal = this.tileOf(gx, gy);
       if (!b.path.length || b.pathGoal !== goal || b.pathT <= 0) {
-        b.path = astar(this.walkable, this.W, this.H, this.tileOf(b.x, b.y), goal);
+        b.path = astar(this.walkableBy(b), this.W, this.H, this.tileOf(b.x, b.y), goal);
         b.pathGoal = goal;
         b.pathT = 1.5;
       }
@@ -1439,7 +1485,7 @@ export class Sim {
 
   moveBy(b: Bot, dx: number, dy: number) {
     const r = ROLES[b.role].r * 0.8;
-    const hit = (x: number, y: number) => this.blocked(x - r, y - r) || this.blocked(x + r, y - r) || this.blocked(x - r, y + r) || this.blocked(x + r, y + r);
+    const hit = (x: number, y: number) => this.blocked(x - r, y - r, b) || this.blocked(x + r, y - r, b) || this.blocked(x - r, y + r, b) || this.blocked(x + r, y + r, b);
     if (!hit(b.x + dx, b.y)) b.x += dx;
     if (!hit(b.x, b.y + dy)) b.y += dy;
   }
@@ -1522,7 +1568,10 @@ export class Sim {
           ...this.run?.summary(),
         },
       }),
+      ...(this.intro && { intro: this.intro.summary() }),
       mods: lugSummary(this),
+      onboard: this.onboard.summary(),
+      lessons: this.lessons.summary(),
       time: +this.time.toFixed(1),
       phase: this.phase,
       intensity: +this.intensity.toFixed(2),
@@ -1555,6 +1604,7 @@ export class Sim {
       downed: this.downT > 0 ? { kind: this.downKind, t: +this.downT.toFixed(2) } : null,
       fallen: downedSummary(this),
       grace: +this.graceT.toFixed(2),
+      slow: this.slowT > 0 ? { left: +this.slowT.toFixed(2), scale: +slowScale(this).toFixed(2), stand: +this.standT.toFixed(2) } : null,
       support: supportSummary(this),
       crew: this.crew.map((b) => ({
         id: b.id,
@@ -1595,6 +1645,7 @@ export class Sim {
       fog: fogSummary(this),
       ...coalSummary(this),
       spiders: spiderSummary(this),
+      caterpillars: grubSummary(this),
       tiers: tierSummary(this),
       beasts: beastSummary(this),
       fx: this.fxSummary(),

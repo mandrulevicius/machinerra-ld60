@@ -92,13 +92,27 @@ function crashFoe(sim: Sim, h: Hornet, speed: number, by: Bot | null, kick: bool
   sim.drainFx();
 }
 
-/** What a flying body ran into at a point: a prop breaks (true if it did) and takes crash damage; rock only rings. */
-function hitSurface(sim: Sim, x: number, y: number, speed: number, by: Bot | null): boolean {
+/** The Open Door (P52, the Kicker's gift): a kicked body breaks any wall or prop it hits, whatever its health ("A wall is a door"). */
+const openDoor = (sim: Sim, kick: boolean) => kick && sim.perks.has('openDoor');
+
+/** True while a body is in the Open Door's flight (it broke a wall and is still bursting on). */
+export const inDoor = (sim: Sim, f: Fling | undefined) => !!f && f.door !== undefined && sim.time < f.door;
+
+/** The Open Door's burst: through the wall it broke the body keeps flying at least `speed`, a foe unsteered for `time` s. Returns the factor to scale its velocity by. */
+function burst(sim: Sim, f: Fling, sp: number) {
+  const D = PERK_FX.openDoor;
+  f.door = sim.time + D.time;
+  f.until = Math.max(f.until, f.door);
+  return Math.max(sp * D.keep, D.speed) / (sp || 1);
+}
+
+/** What a flying body ran into at a point: a prop breaks (true if it did) and takes crash damage; rock only rings. A kicked body with the Open Door always breaks it. */
+function hitSurface(sim: Sim, x: number, y: number, speed: number, by: Bot | null, kick = false): boolean {
   const prop = solidAt(sim, x, y);
   sim.events.push({ e: 'crash', x, y, dmg: crashDmg(speed), what: prop ? 'prop' : 'rock' });
   sim.noise(x, y);
   if (!prop) return false;
-  return hitProp(sim, prop, crashDmg(speed) * CRASH.prop * crashMul(sim), { by, via: 'crash' });
+  return hitProp(sim, prop, openDoor(sim, kick) ? prop.hp + 1 : crashDmg(speed) * CRASH.prop * crashMul(sim), { by, via: 'crash' });
 }
 
 /** A foe struck by a flying body: both take the crash, and the foe is sent on with its share of the speed. */
@@ -122,8 +136,13 @@ export function crashStep(sim: Sim, dt: number) {
   for (const h of sim.hornets) {
     const f = h.fling;
     if (!f) continue;
+    const door = inDoor(sim, f);
+    if (door) {
+      h.vx *= Math.exp(-PERK_FX.openDoor.friction * dt);
+      h.vy *= Math.exp(-PERK_FX.openDoor.friction * dt);
+    }
     const sp = Math.hypot(h.vx, h.vy);
-    if (h.dead || sim.time > f.until || sp < CRASH.min) {
+    if (h.dead || sim.time > f.until || (sp < CRASH.min && !door)) {
       h.fling = undefined;
       continue;
     }
@@ -134,12 +153,13 @@ export function crashStep(sim: Sim, dt: number) {
       h.x -= h.vx * dt;
       h.y -= h.vy * dt;
       crashFoe(sim, h, sp, by, f.kick);
-      const broke = hitSurface(sim, hx, hy, sp, by);
+      const broke = hitSurface(sim, hx, hy, sp, by, f.kick);
       if (broke && !h.dead) {
         h.x = hx;
         h.y = hy;
-        h.vx *= 0.5;
-        h.vy *= 0.5;
+        const keep = openDoor(sim, f.kick) ? burst(sim, f, sp) : 0.5; // the Open Door bursts through; any other broken prop slows it
+        h.vx *= keep;
+        h.vy *= keep;
       } else {
         h.vx = h.vy = 0;
         h.fling = undefined;
@@ -157,23 +177,34 @@ export function crashStep(sim: Sim, dt: number) {
   for (const b of sim.bots) {
     const f = b.fling;
     if (!f) continue;
+    const door = inDoor(sim, f);
     const sp = Math.hypot(f.vx, f.vy);
-    if (b.dead || sim.time > f.until || sp < 60) {
+    if (b.dead || sim.time > f.until || (sp < 60 && !door)) {
       b.fling = undefined;
       continue;
     }
     const by = sim.bot(f.by);
     const nx = b.x + f.vx * dt, ny = b.y + f.vy * dt;
     if (sim.blocked(nx, ny)) {
-      if (sp >= CRASH.min) hitSurface(sim, nx, ny, sp, by);
+      const broke = sp >= CRASH.min && hitSurface(sim, nx, ny, sp, by, f.kick);
+      if (broke && openDoor(sim, f.kick) && !sim.blocked(nx, ny)) {
+        // The Open Door: a robot kicked at a wall bursts through it like a foe (`burst`).
+        const m = burst(sim, f, sp);
+        f.vx *= m;
+        f.vy *= m;
+        b.x = nx;
+        b.y = ny;
+        continue;
+      }
       b.fling = undefined;
       continue;
     }
     b.x = nx;
     b.y = ny;
-    f.vx *= k;
-    f.vy *= k;
-    if (sp < CRASH.min) continue;
+    const kb = door ? Math.exp(-PERK_FX.openDoor.friction * dt) : k;
+    f.vx *= kb;
+    f.vy *= kb;
+    if (sp < CRASH.min && !door) continue;
     for (const o of sim.hornets) {
       if (o.dead || o.under || o.air || f.hit.includes(o.id) || dist(b.x, b.y, o.x, o.y) > ROLES[b.role].r + o.r) continue;
       f.hit.push(o.id);

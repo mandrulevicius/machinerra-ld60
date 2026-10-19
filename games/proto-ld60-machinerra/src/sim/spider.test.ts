@@ -106,7 +106,7 @@ describe('the web', () => {
 
 describe('rock and the rim', () => {
 
-  it('spiders leap in over the rim from the day on, even with every hive dead, and never in the morning', () => {
+  it('arrivals come in over the rim from the day on (hornets, in the desert), even with every hive dead, and never in the morning', () => {
     const calm = new Sim(4);
     calm.bots = [calm.controller];
     calm.cfg.morningSwarm = 0;
@@ -115,16 +115,13 @@ describe('rock and the rim', () => {
 
     const s = alone(4);
     for (const n of s.nests) n.dead = true;
-    const ev = run(s, 90);
+    run(s, 90);
     const w = s.W * T, hh = s.H * T;
-    // They landed inside the map, with a thud and no blow.
-    const drops = spiderEvents(ev, 'drop') as Extract<SimEvent, { e: 'spider' }>[];
-    expect(drops.length).toBeGreaterThan(0);
-    for (const e of drops) expect(e.hits).toBeUndefined();
-    const rim = s.hornets.filter((h) => h.rim && h.spider && !h.spider.drop);
+    const rim = s.hornets.filter((h) => h.rim && !h.dead);
     expect(rim.length).toBeGreaterThan(0);
-    for (const h of rim) expect(h.x > 0 && h.x < w && h.y > 0 && h.y < hh).toBe(true);
-    // From anywhere they come for the nearest robot.
+    for (const h of rim) expect(h.kind).toBe('hornet');
+    // They come for the nearest robot from anywhere, once they are in.
+    expect(rim.some((h) => h.x > 0 && h.x < w && h.y > 0 && h.y < hh)).toBe(true);
     expect(s.spiders.edgeT).toBeGreaterThan(0);
   });
 

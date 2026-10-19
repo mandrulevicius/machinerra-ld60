@@ -338,7 +338,8 @@ const bell: Behaviour36 = {
   near: { tiles: PLACE_PARTS.near, run: (sim, p) => partsOf(p, 'can').forEach((q) => sim.restLoot(q.x, q.y, 'oil')) },
   sight: { tiles: BELL.sight, id: 'bell-sight', text: () => 'An Old Way chapel bell, and the rope still hanging. Do not ring it. Every hive on the land hears that bell, and they come thicker and in finer clothes, with fatter pockets. I forbid it. There, now you will.' },
   use: {
-    verb: (_s, p) => `ring the bell (${(p.v.tolls ?? 0) + 1}/${BELL.tolls})`,
+    verb: (_s, p) => `ring the bell (${(p.v.tolls ?? 0) + 1}/${BELL.tolls})
+${tollWords()}`,
     hold: BELL.hold,
     reach: BELL.reach,
     at: (_s, p) => part(p, 'bell'),
@@ -348,6 +349,9 @@ const bell: Behaviour36 = {
   status: (sim, p) => `${p.v.tolls ?? 0}/${BELL.tolls} tolls (spawns x${sim.mods.spawn.toFixed(2)}, elites x${sim.mods.elite.toFixed(1)}, loot x${sim.mods.loot.toFixed(2)})`,
   dev: { toll: (sim, p) => (bell.use!.ready(sim, p) ? (toll(sim, p), `toll ${p.v.tolls}`) : 'error: rung three times already') },
 };
+
+/** What one toll adds on top of what the land has now, in the prompt before the press (Minos: costs at the moment of choice). */
+export const tollWords = () => `Each toll: foes x${BELL.spawn}, elites x${BELL.elite}, loot x${BELL.loot}`;
 
 function toll(sim: Sim, p: PlaceRT) {
   p.v.tolls = (p.v.tolls ?? 0) + 1;

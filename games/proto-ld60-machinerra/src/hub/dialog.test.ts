@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { Conversation, DONE, apply, freshTalk, holds, validate, weigh, type Flags, type Script, type Talk } from './dialog';
+import { Conversation, DONE, apply, freshTalk, holds, kindOf, validate, weigh, type Flags, type Script, type Talk } from './dialog';
 import { QUESTS, SCRIPTS, unscripted } from './talk';
 
 const quests = { q: { title: 'Q', kind: 'main' as const, steps: ['a', 'b'] } };
@@ -217,5 +217,40 @@ describe('lever weights (P33)', () => {
     c.pick(1);
     for (let i = 0; i < 6 && c.phase === 'line'; i++) c.next();
     expect(c.weights).toEqual(['story', 'heard', 'leave']);
+  });
+});
+
+describe('lever kinds', () => {
+  const script: Script = {
+    entry: [{ go: 'menu' }],
+    nodes: {
+      menu: { choices: [] },
+      start: { say: ['Go.'], do: [{ quest: 'q', step: 1 }] },
+      shop: { do: [{ open: 'station' }] },
+      see: { say: ['Heresy.'], go: 'menu' },
+    },
+  };
+  const k = (c: Parameters<typeof kindOf>[1]) => kindOf(script, c);
+  it('a quest lever moves a quest, hands something over, opens a story panel or asks after an active quest', () => {
+    expect(k({ text: 'Ready', go: 'start' })).toBe('quest');
+    expect(k({ text: 'Take', do: [{ give: { scrap: 5 } }] })).toBe('quest');
+    expect(k({ text: 'Lots', do: [{ open: 'house' }] })).toBe('quest');
+    expect(k({ text: 'About it', if: { quest: 'q', step: 1 }, go: 'see' })).toBe('quest');
+    expect(k({ text: 'Any work?', if: { quest: 'q', step: 'none' }, go: 'see' })).toBe('talk');
+  });
+  it('an action lever opens a panel, by itself or through its node', () => {
+    expect(k({ text: 'Shop', do: [{ open: 'station' }] })).toBe('action');
+    expect(k({ text: 'Shop', go: 'shop' })).toBe('action');
+    expect(k({ text: 'Hear', do: [{ banner: 'Hi' }] })).toBe('action');
+  });
+  it('a talk lever leads on; an exit leaves, even when it only sets a flag', () => {
+    expect(k({ text: 'What?', go: 'see' })).toBe('talk');
+    expect(k({ text: 'Bye' })).toBe('exit');
+    expect(k({ text: 'Bye', do: [{ set: 'f' }], go: 'end' })).toBe('exit');
+  });
+  it('a conversation lists the exits last', () => {
+    const c = new Conversation('highPriest', SCRIPTS.highPriest, freshTalk());
+    for (let i = 0; i < 6 && c.phase === 'line'; i++) c.next();
+    expect(c.kinds).toEqual(['quest', 'talk', 'exit']);
   });
 });

@@ -115,6 +115,16 @@ const BASE_ICONS: Record<BaseItemId, (c: C) => void> = {
     c.restore();
     circ(c, 46, 18, 3.5, BRASS_HI);
   },
+  // Hob's Old Earful (P52): two bell mouths on a stave stock, an ear trumpet at the breech.
+  oldEarful: (c) => {
+    rect(c, 8, 34, 30, 10, WOOD, 3);
+    for (const y of [22, 32]) {
+      rod(c, 22, y + 6, 46, y + 2, 5, BRASS);
+      path(c, [[44, y - 3], [58, y - 9], [58, y + 15], [44, y + 9]], BRASS_HI);
+    }
+    path(c, [[10, 36], [2, 28], [6, 22], [14, 30]], COPPER);
+    puff(c, 60, 24, 6);
+  },
   // The Ether's ghostly things (P44): cold violet and wisp-blue over brass.
   ectoRepeater: (c) => {
     rect(c, 12, 34, 10, 16, BRASS, 3);
@@ -582,6 +592,16 @@ const BASE_ICONS: Record<BaseItemId, (c: C) => void> = {
       }
       c.restore();
     }
+  },
+  spiderLegs: (c) => {
+    for (const s of [-1, 1])
+      for (const k of [0, 1]) {
+        const x0 = 32 + s * (4 + k * 6);
+        rod(c, x0, 26, x0 + s * (10 + k * 4), 14, 2.5, BRASS);
+        rod(c, x0 + s * (10 + k * 4), 14, x0 + s * (18 + k * 6), 54, 2.5, BRASS);
+      }
+    rect(c, 22, 22, 20, 12, COPPER, 5);
+    circ(c, 32, 28, 3, CYAN, false);
   },
   wingRig: (c) => {
     wing(c, 30, 30, -1);

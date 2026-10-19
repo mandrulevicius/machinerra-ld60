@@ -58,6 +58,15 @@ describe('antenna', () => {
     expect(max).toBeGreaterThan(0.2);
   });
 
+  it('follows a base that shifts on a still body whole (a view or a step changing the painted tip)', () => {
+    const a = newAntenna();
+    run(a, 0, 0, 0.1);
+    stepAntenna(a, 5, -3, 1 / 60, 0, 0);
+    expect(a.rope.x[0]).toBeGreaterThan(4);
+    expect(a.rope.y[0]).toBeLessThan(-3 - ANTENNA.gap + 1);
+    expect(Math.hypot(a.rope.x[0] - 5, a.rope.y[0] + 3 + ANTENNA.gap)).toBeLessThan(1);
+  });
+
   it('lays itself upright when the base jumps', () => {
     const a = newAntenna();
     run(a, 0, 0, 0.1);

@@ -305,7 +305,8 @@ export class WorldView extends ViewBase {
         }
         // Scrap, copper, coal and oil are routine: small words, a soft chime. A part or a core is the find.
         const find = e.l.kind === 'part' || e.l.kind === 'core';
-        this.floater(e.l.x, e.l.y - 20, what, e.l.kind === 'part' ? '#9ff6ff' : e.l.kind === 'oil' ? '#f4e2bc' : e.l.kind === 'copper' ? '#e09a62' : '#ffd98a', find ? 1400 : 900, pickupSize(e.l.kind));
+        // Everything but oil says itself elsewhere: scrap, copper and parts fly to their HUD slot, a core and a unique part hover over him (`fanfare.ts`).
+        if (e.l.kind === 'oil') this.floater(e.l.x, e.l.y - 20, what, '#f4e2bc', 900, pickupSize(e.l.kind));
         this.sfx(e.l.kind === 'oil' ? 'heal' : 'pickup', e.l.x, e.l.y, { gain: find ? 0.8 : 0.5 });
         fx.burst(e.l.x, e.l.y - 10, { color: e.l.kind === 'part' ? 0x3df2ff : 0xffb640, size: find ? 0.5 : 0.3 });
         const v = this.bots.get(e.by.id);
@@ -335,7 +336,6 @@ export class WorldView extends ViewBase {
             onComplete: () => {
               lump.destroy();
               if (i < e.n - 1) return;
-              this.floater(x1, y1 - 30, `+${e.n} coal`, '#cfc7bc', 900, 15);
               this.sfx('pickup', x1, y1, { gain: 0.5 * q });
               fx.burst(x1, y1 - 6, { color: 0x6a625a, size: 0.3 * q });
             },

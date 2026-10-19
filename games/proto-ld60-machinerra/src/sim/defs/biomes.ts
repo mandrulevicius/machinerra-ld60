@@ -41,13 +41,15 @@ export interface BiomeDef {
   /** The old tech lying about (`RUIN_FINDS`), one per ruin spot, shuffled; the desert's when unset. */
   ruins?: RuinKind[];
   foes: [Enemy, number][];
-  /** Machines mixed into a hive's spawns beyond `foes` (each: its share of them), and the kind that arrives from off the map instead of a pick from `foes` (`EDGE`, defs/day.ts: every land gets arrivals at every stage; the desert's are spiders). */
+  /** Machines mixed into a hive's spawns beyond `foes` (each: its share of them), and the kind that arrives from off the map instead of a pick from `foes` (`EDGE`, defs/day.ts: every land gets arrivals at every stage; the desert's are hornets, its hives send spiders). */
   mix?: Partial<Record<Enemy, number>>;
   edge?: Enemy;
   /** The evening boss that arrives (the desert's queen); null: the boss waits in a place instead. */
   dusk: Enemy | null;
   places: PlaceId[];
   hives: number;
+  /** A hive's oil (`NEST.hp` when unset). */
+  hiveHp?: number;
   wake: { day: number; evening: number };
   interval: number;
   alive: number;
@@ -81,30 +83,31 @@ export const BIOMES: Record<BiomeId, BiomeDef> = {
   desert: {
     shrine: 'steamGun',
     talk: {
-      land: 'the sands', tap: 'a dark stain in the sand that does not drain away', hive: 'hive', hives: 'hives', foes: 'Mechahornets',
+      land: 'the sands', tap: 'a dark stain in the sand that does not drain away', hive: 'hive', hives: 'hives', foes: 'Crawlcams and mechahornets',
       morning: 'The sands are quiet while the sun is low. Make the most of it. The day brings visitors.',
-      day: 'The sun is up, and so are the hornets. Ordinary ones, for now. Mind the clock on your dial: at dusk the machines turn nasty, and at midnight I stop being patient.',
-      evening: 'Dusk. The dark is getting into the hornets: they twist, glow violet and burn whatever stands near them. More each hour. Keep your robots out of the halos. And something bigger stirs.',
+      day: 'The sun is up, and so are the hives: they send crawlcams, and the hornets come in from the sands. Ordinary ones, for now. Mind the clock on your dial: at dusk the machines turn nasty, and at midnight I stop being patient.',
+      evening: 'Dusk. The dark is getting into the machines: they twist, glow violet and burn whatever stands near them. More each hour. Keep your robots out of the halos. And something bigger stirs.',
       flowing: 'The scrap is coming in. Good. The sands are never as empty as they look; keep a guard with the gatherers. They pray louder when they’re scared.',
     },
     name: 'the desert',
     rank: 1,
-    blurb: 'Scrap heaps and one dark tap, mechahornets, crawlcam spiders, the queen at dusk.',
-    foes: [['hornet', 1]],
-    mix: { spider: 0.28 },
-    edge: 'spider',
+    blurb: 'Scrap heaps and one dark tap, crawlcam spiders from the hives, mechahornets from the sands, the queen at dusk.',
+    foes: [['spider', 1]],
+    edge: 'hornet',
     dusk: 'hornet',
     // P36's after the rest (each land's earlier places stay where they were); the rare Scripture last.
     places: ['core-vault', 'pilgrim', 'shrine', 'trail', 'mast', 'graveyard', 'dungeon', 'lanes', 'battery', 'lighthouse', 'expedition', 'hornet-rest', 'bell', 'scripture', 'kennel', 'stray', 'mounds', 'compactor', 'cairn'],
     hives: 3,
+    // The first land's hives are a nuisance, not a wall (guesses): half the oil, a spawn every 1.6x as long, 0.5x as many alive.
+    hiveHp: 160,
     wake: { day: 1, evening: 2 },
-    interval: 1,
-    alive: 1,
+    interval: 1.6,
+    alive: 0.5,
     day: { morning: 1, day: 1, evening: 1 },
     twist: 0,
     rich: 0,
     paint: 'desert',
-    swarm: 'mechahornets',
+    swarm: 'crawlcams and mechahornets',
   },
   // Laimonas's three biomes (games/ludum-dare-60/docs/biomes.md): their own ground, day, pressure (by hidden rank,
   // Laimonas 2026-10-18: desert 1, jungle 2, city 3, mountains 4, the Demon Wastes 5, the Ether 6; this table's order), machines and dusk bosses (the Ironback, Sir Lancelot-9, Ursa

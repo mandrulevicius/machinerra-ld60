@@ -1,21 +1,22 @@
 /**
- * The land's shadows (where they fall is `sun.ts`: the sun by day, turning through the hours; the lamps by night). Three kinds:
- * - Props and ruins cast their silhouette (`sunCast`): the prop's picture flipped, laid down from its foot, turned and
- *   stretched to the lean, so it follows the sun and the lamps.
- * - Everything that moves gets the kit's blob shadow (`w.shadows`, `quality.shadows`) in two grades (Minos: shadows need not
- *   be high quality, the Communicator and NPCs a bit better): a flat soft ellipse leaning to the lean (`groundShadow`), the
- *   cheapest there is, for robots and enemies; and for the Communicator and NPCs (`fine`) the same patch plus a tail thrown
- *   along the lean (`SHADOW_TAIL`). A flier's is a small faint ellipse thrown by its height (`airShadow`).
- * - Things the sim lists but no view owns (pickups, the tap, coal seams) get a patch here, from the sim's positions.
- * - The hub's props cast the same silhouette (`DeckShadows.stand`), but short, soft and always from their contact line (`footline.ts`:
- *   the lowest opaque row unless a row says otherwise), away from the lights that burn near them; a piece set against a wall
- *   (`wall`) keeps a small patch under its feet instead. Its people keep the fine blob, tail short.
+ * The land's shadows (Minos: shadows only under the Communicator, NPCs, robots and enemies, soft; props and scenery have none).
+ * - Characters get the kit's blob shadow (`w.shadows`, `quality.shadows`): a soft ellipse straight under the feet, sized from the
+ *   sprite (`groundShadow`; `{ fine: true }` for the Communicator and NPCs, a little smaller and darker). A flier's is a small
+ *   faint ellipse below it (`airShadow`). While `CHAR_CASTS` is false they do not lean or throw a tail.
+ * - While `PROP_CASTS` is false props, ruins, places, pickups, the tap, coal seams, the lift's platform and the mesas have none
+ *   (`PropView`, `Play.place`, `DeckShadows.stand`, `ShadowView`, `LiftView` check it). True brings back, kept for P48/P49:
+ *   - Props and ruins cast their silhouette (`sunCast`): the prop's picture flipped, laid down from its foot, turned and
+ *     stretched to the lean, so it follows the sun and the lamps.
+ *   - Things the sim lists but no view owns (pickups, the tap, coal seams) get a patch here, from the sim's positions.
+ *   - The hub's props cast the same silhouette (`DeckShadows.stand`), but short, soft and always from their contact line
+ *     (`footline.ts`: the lowest opaque row unless a row says otherwise), away from the lights that burn near them; a piece set
+ *     against a wall (`wall`) keeps a small patch under its feet instead. Its people keep the fine blob, with a short tail.
  * - The casts' pictures share pages (`castatlas.ts`), so all of a view's casts draw in one batch.
  * - A cast is turned to the light only as often as it can change: by day (every cast leans the same) when the sun has moved a
  *   little, by night (the lamps) every third frame, each cast on its own turn, and a cast that is off screen not at all.
- * Add a shadow to a thing that stands on the ground, where its view creates the sprite: `groundShadow(this.w, spr)`
+ * Add a shadow to a character that stands on the ground, where its view creates the sprite: `groundShadow(this.w, spr)`
  * (Communicator or NPC: `{ fine: true }`; a boss: `{ big: true }`); a flier: `airShadow(this.w, spr)`. Keep the handle to
- * lift (`raise`) or hide it. A static prop: `this.place(...)` already casts one.
+ * lift (`raise`) or hide it. A static prop gets none.
  * The tint is the land's own shade, so a robot's shadow and a rock's match. `prepareShadows` (`Play`, right after
  * `createWorld`) bakes the shapes and hooks the kit's `lean`; the view each frame turns the sun, gathers the lights and
  * keeps the casts and fine tails in line.
@@ -39,7 +40,7 @@ const TAIL = { w: 128, h: 32, wide: 14 };
 /** Px of lean per unit of `Shadow.height` (a shadow's `height` is the thing's altitude over this: a hornet 2.5 up is ~37 px). */
 const UNIT = 15;
 /** Alphas (guesses, tuned against the props' cast shadows at 0.42). */
-const ALPHA = { ground: 0.55, air: 0.3, cast: 0.42 };
+const ALPHA = { ground: 0.4, air: 0.25, cast: 0.42 };
 /** How much of a thing's height its tail's length is, at lean 1. */
 const TAIL_LEN = 0.9;
 
@@ -133,21 +134,35 @@ export function groundShadow(w: Holder, spr: Img, o: { fine?: boolean; big?: boo
     const patch = w.shadows.add(spr, { key: SHADOW_BLOB, scale: 0.8 * big, squash: 1, foot });
     patch.height = 0;
     patch.alpha = (rig?.alpha ?? ALPHA.ground) + 0.1;
+    if (!CHAR_CASTS) return patch; // straight under, no tail
     const tail = spr.scene.add.image(spr.x, spr.y, SHADOW_TAIL).setTint(w.shadows.tint).setDepth(rig?.depth ?? -3.5).setVisible(false);
     rig?.tails.push({ obj: spr, patch, tail, h: dh });
     return patch;
   }
   const s = w.shadows.add(spr, { key: SHADOW_BLOB, scale: 1.15 * big * (o.wide ?? 1), squash: o.flat ?? 1, foot });
-  s.height = (0.3 * dh) / UNIT;
+  s.height = CHAR_CASTS ? (0.3 * dh) / UNIT : 0;
   return s;
 }
 
 /** A flier's shadow: a small, faint soft ellipse on the ground below, thrown by its height (`Shadow.height`: 1 = `UNIT` px up). */
 export function airShadow(w: Holder, spr: Img, o: { big?: boolean; height?: number } = {}): Shadow {
   const s = w.shadows.add(spr, { scale: o.big ? 1.6 : 0.6, foot: 0.9, squash: 0.4, alpha: ALPHA.air });
-  s.height = o.height ?? (o.big ? 5 : 2.5);
+  s.height = CHAR_CASTS ? (o.height ?? (o.big ? 5 : 2.5)) : 0;
   return s;
 }
+
+/**
+ * Props' shadows (Minos: props need no shadow at all; the cast shadows read wrong in play). False: a prop, ruin, place piece,
+ * station, pickup, the tap, a seam, the lift's platform and the mesas have none, in a mission and in the hub. True brings the
+ * casts back (P48, P49).
+ */
+export const PROP_CASTS = false;
+
+/**
+ * Characters' shadows (Minos: just under them, softened). False: the soft ellipse straight under the feet, no lean, no tail.
+ * True: it leans to the sun or the lamps and the fine ones have a tail thrown along the lean.
+ */
+export const CHAR_CASTS = false;
 
 /** A cast's data (`setData('cast')`): its picture's scale, how far (texture px) its foot sits above the picture's origin, its turn in the stagger, and the light it was last turned to. */
 export interface CastData {
@@ -380,7 +395,8 @@ export class DeckShadows {
    * A standing prop's shadow: its silhouette thrown short from its contact line (`footline.ts`) away from the lights, soft. A piece
    * against a wall (`wall`) casts only a small soft patch under its feet. It goes with the prop.
    */
-  stand(img: Img, depth: number): Img {
+  stand(img: Img, depth: number): Img | null {
+    if (!PROP_CASTS) return null;
     if (floorOf(img.texture.key).wall) {
       const patch = this.scene.add.image(img.x, img.y, SHADOW_BLOB).setTint(this.shadows.tint).setDepth(depth);
       this.contacts.push({ img, patch, fp: footprint(img) });
@@ -473,7 +489,7 @@ export class ShadowView extends ViewBase {
     rig.sun = host.down ? sunLean(12) : sunLean(sim.day.hour);
     this.gather();
     const o = this.o, v = this.scene.cameras.main.worldView;
-    this.mesas.update(v, (x, y, out) => throwAt(x, y, rig.sun, rig.night, rig.lights, out), this.w.shadows.enabled);
+    this.mesas.update(v, (x, y, out) => throwAt(x, y, rig.sun, rig.night, rig.lights, out), PROP_CASTS && this.w.shadows.enabled);
     if (!this.w.shadows.enabled) {
       for (const t of rig.tails) t.tail.setVisible(false);
       return;
@@ -489,6 +505,7 @@ export class ShadowView extends ViewBase {
       if (due(d, still, sig, frame)) turn(c, d, rig, o, sig, still, 1e9, ALPHA.cast);
     }
     moveTails(rig, o);
+    if (!PROP_CASTS) return;
     this.drawLoot(v);
     this.drawSites();
   }

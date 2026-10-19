@@ -34,6 +34,16 @@ export function payExtras(r: Reward): string[] {
     gear.set(addItem(gear.get(), r.item as ItemId, 'fine').gear);
     out.push(`Received: ${ITEMS[r.item as ItemId].name}`);
   }
+  if (r.perk === 'secondHeart' && !gear.get().heart) {
+    // Gasket's gift (P52): a second core slot on the Communicator (`Gear.heart`).
+    gear.set({ ...gear.get(), heart: true });
+    out.push('Gasket has put a second heart in you: one more core slot');
+  }
+  if (r.perk === 'fourthSlot' && !researchSave.get().fourth) {
+    // The Oracle's gift (P52): a fourth punch-card slot on the Communicator (`Research.fourth`).
+    researchSave.set({ ...researchSave.get(), fourth: true });
+    out.push('The Oracle has kept a fourth card slot for you');
+  }
   if (r.lugs && r.lugs >= 2) {
     gear.set(addLug(gear.get()));
     out.push('Hob puts a second lug on every weapon: it can carry two mods');

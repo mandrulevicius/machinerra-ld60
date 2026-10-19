@@ -10,6 +10,7 @@ import { gear } from '../carry';
 import { esc } from '../panels';
 import type { OfferPanel } from './host';
 import { teacherOffer } from './recipes';
+import { DOCK_BUTTON, wireDock } from './dockbtn';
 
 const recipes = teacherOffer('gasket');
 
@@ -30,7 +31,7 @@ export function tuneHtml() {
   const rows = tunable(g)
     .map((o) => `<div class="hb-offer hb-recipe"><img src="${iconUrl(o.id)}" alt=""><div class="hb-offer__what"><b>${esc(ITEMS[o.id].name)}</b><span>${esc(bonuses(o, false))} &rarr; ${esc(bonuses(o, true))}</span></div><button class="ui-btn ui-btn--primary" data-tune="${o.uid}">Tune</button></div>`)
     .join('');
-  const none = '<p class="hb-note hb-note--dim">Nothing you wear has a bonus left to tune. Wear a body part (I) and come back: the Tune-up keeps.</p>';
+  const none = '<p class="hb-note hb-note--dim">Nothing you wear has a bonus left to tune. Wear a body part (the Dry dock, I) and come back: the Tune-up keeps.</p>';
   return `<p class="hb-note">"Splendid, a tune-up. One piece, ${Math.round((TUNE_UP.mult - 1) * 100)}% more of what it gives, once only. The drawbacks I leave in: they are character."</p><div class="hb-offers hb-recipes">${rows || none}</div>`;
 }
 
@@ -39,7 +40,9 @@ export const clinicOffer: OfferPanel = {
     const base = recipes.tabs!(host);
     return gear.get().tunes ? [{ id: 'tune', label: 'Tune-up', html: tuneHtml() }, ...base] : base;
   },
+  actions: DOCK_BUTTON,
   wire(host, el, again) {
+    wireDock(host, el, 'clinic');
     el.querySelectorAll<HTMLElement>('[data-tune]').forEach((b) =>
       b.addEventListener('click', () => {
         const uid = Number(b.dataset.tune);

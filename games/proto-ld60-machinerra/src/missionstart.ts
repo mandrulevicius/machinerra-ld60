@@ -5,7 +5,7 @@
  * Add a slice the Sim starts from: one line in `landOpts` (a land) and, if a dungeon needs it too, in `downOpts`.
  * The Sim's constructor and `SimOptions` (`sim/types.ts`) are the types; nothing here is a rule.
  */
-import { gear, loadout } from './hub/carry';
+import { gear, loadout, onboardSave } from './hub/carry';
 import { cityFx } from './hub/buildings';
 import { districtFx } from './hub/district';
 import { aboard, pilgrimIn } from './hub/state';
@@ -85,6 +85,8 @@ export interface Landing {
   anomaly: AnomalyId;
   allRescued: boolean;
   down: DungeonCarry | null;
+  /** Missions flown, if not the save's (dev: `?flown=`): what is taught by now (`sim/lessons.ts`). */
+  flown?: number;
 }
 
 type Args = ConstructorParameters<typeof Sim>;
@@ -103,13 +105,16 @@ const landOpts = (l: Landing): SimOptions => ({
   tier: l.tier,
   anomaly: l.anomaly,
   pilgrim: l.allRescued ? undefined : pilgrimIn(hub.get(), l.biome),
-  crew: crewOf(roster.get()), // a new game owns none: level 1 is played alone until Bellows
+  crew: l.land === 'intro' ? [] : crewOf(roster.get()), // a new game owns none; the intro's old works are always played alone (sim/intro.ts)
+  owned: roster.get().bots.map((b) => b.name), // level 1 lays no Bellows at his wreck once the intro has mended him
   types: knownTypes(roster.get()), // a type wreck of a known type holds nothing
   chassis: chassisStats(roster.get().chassis),
   titles: titleSave.get().earned,
   cards: liveCards(),
   city: districtFx(cityFx(hub.get().buildings?.built, { cat: hub.get().perks.includes('companionCat') }), hub.get()),
   quest: questOpts(),
+  onboard: { shown: onboardSave.get().shown },
+  flown: l.flown ?? hub.get().missions,
   dogName: dogNameOf(talkSave.get().flags),
   wife: hub.get().story?.wife, // P58: her voice on the antenna
 });
@@ -120,6 +125,8 @@ const downOpts = (d: DungeonCarry): SimOptions => ({
   dayT: d.dayT,
   party: d.party,
   followers: d.followers,
+  onboard: { shown: onboardSave.get().shown },
+  flown: hub.get().missions,
   chassis: chassisStats(roster.get().chassis),
   titles: titleSave.get().earned,
   cards: liveCards(),

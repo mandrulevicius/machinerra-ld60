@@ -10,6 +10,7 @@
  */
 import Phaser from 'phaser';
 import type { SceneKit, Shadow, World } from '../../../harness/kit';
+import type { BotLegSprites } from './botlegview';
 import type { CommDir } from './comm';
 import type { CommandMode } from './commandmode';
 import type { Motion } from './foemotion';
@@ -68,6 +69,8 @@ export interface BotView {
   arm?: Img;
   sawT?: number;
   sawA?: number;
+  /** A robot in spider legs (P53, `botlegview.ts`): its legs' pieces, made when it puts them on. */
+  legs?: BotLegSprites;
 }
 /** A hornet's night dress: the aura's glow on the ground and the glowing eyes (more of them as the menace grows). */
 export interface HornetView {

@@ -30,39 +30,50 @@ export interface Antenna {
   phase: number;
   /** 0..1, set by a strike and fading. */
   shock: number;
-  /** The base last frame. */
+  /** The base and the body's anchor last frame. */
   px: number;
   py: number;
+  qx: number;
+  qy: number;
   /** Speed of the body (px/s), for the wave. */
   speed: number;
   ready: boolean;
 }
 
-export const newAntenna = (): Antenna => ({ rope: makeRope(ANTENNA.n, 0, 0, 0, 1, ANTENNA.gap), vx: Array(ANTENNA.n + 1).fill(0), vy: Array(ANTENNA.n + 1).fill(0), phase: 0, shock: 0, px: 0, py: 0, speed: 0, ready: false });
+export const newAntenna = (): Antenna => ({ rope: makeRope(ANTENNA.n, 0, 0, 0, 1, ANTENNA.gap), vx: Array(ANTENNA.n + 1).fill(0), vy: Array(ANTENNA.n + 1).fill(0), phase: 0, shock: 0, px: 0, py: 0, qx: 0, qy: 0, speed: 0, ready: false });
 
 /** Lay it upright on the base and still. */
-function relay(a: Antenna, bx: number, by: number) {
+function relay(a: Antenna, bx: number, by: number, ax: number, ay: number) {
   a.rope = makeRope(ANTENNA.n, bx, by, 0, 1, ANTENNA.gap);
   a.vx.fill(0);
   a.vy.fill(0);
   a.px = bx;
   a.py = by;
+  a.qx = ax;
+  a.qy = ay;
   a.ready = true;
 }
 
-/** Advance it by dt seconds with its base at (bx, by) (a jump of the base, a teleport or a first frame, lays it upright again). */
-export function stepAntenna(a: Antenna, bx: number, by: number, dt: number) {
+/**
+ * Advance it by dt seconds with its base at (bx, by) and the body it stands on at (ax, ay), which defaults to the base (a jump of
+ * the base, a teleport or a first frame, lays it upright again). The body's own move is followed in part (the lag); the base
+ * moving on the body (the painted tip shifting between his views and steps) is followed whole, so the chain never comes off it.
+ */
+export function stepAntenna(a: Antenna, bx: number, by: number, dt: number, ax = bx, ay = by) {
   const A = ANTENNA, r = a.rope;
-  if (!a.ready || Math.hypot(bx - a.px, by - a.py) > 60) relay(a, bx, by);
+  if (!a.ready || Math.hypot(ax - a.qx, ay - a.qy) > 60) relay(a, bx, by, ax, ay);
   dt = Math.min(dt, 0.05);
-  const dx = bx - a.px, dy = by - a.py;
-  a.speed = dt > 0 ? Math.hypot(dx, dy) / dt : 0;
+  const mx = ax - a.qx, my = ay - a.qy;
+  const dx = mx * (1 - A.inertia) + (bx - a.px) - mx, dy = my * (1 - A.inertia) + (by - a.py) - my;
+  a.speed = dt > 0 ? Math.hypot(mx, my) / dt : 0;
   a.px = bx;
   a.py = by;
+  a.qx = ax;
+  a.qy = ay;
   for (let i = 0; i <= A.n; i++) {
     // The body moved: the rope follows only part of it, then springs back toward standing up.
-    r.x[i] += dx * (1 - A.inertia);
-    r.y[i] += dy * (1 - A.inertia);
+    r.x[i] += dx;
+    r.y[i] += dy;
     a.vx[i] += ((bx - r.x[i]) * A.spring - A.damp * a.vx[i]) * dt;
     a.vy[i] += ((by - A.gap * (i + 1) - r.y[i]) * A.spring - A.damp * a.vy[i]) * dt;
     r.x[i] += a.vx[i] * dt;

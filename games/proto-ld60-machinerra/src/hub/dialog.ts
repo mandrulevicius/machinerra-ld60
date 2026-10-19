@@ -150,6 +150,21 @@ export function weigh(script: Script, npc: string, c: Choice, t: Talk): Weight {
   return 'side';
 }
 
+/**
+ * What a lever is, so the frame can say it at a glance (`talkview.ts`): `quest` gives, advances or turns in a quest (it moves the story, or
+ * is only shown while a quest of the giver's is active), `action` does something (opens a panel or shows a banner), `talk` leads to more
+ * dialog, `exit` just leaves. All derived from what the lever and the node it leads to do; no field to set.
+ */
+export type Kind = 'quest' | 'action' | 'talk' | 'exit';
+const activeQuest = (c: If | undefined) => list(c).some((k) => k.quest !== undefined && k.step !== 'none' && k.step !== 'done');
+export function kindOf(script: Script, c: Choice): Kind {
+  const to = c.go && c.go !== END ? c.go : null;
+  const fx = [...(c.do ?? []), ...(to ? script.nodes[to]?.do ?? [] : [])];
+  if (movesStory(c.do) || (to && movesStory(script.nodes[to]?.do)) || activeQuest(c.if)) return 'quest';
+  if (fx.some((e) => 'open' in e || 'banner' in e)) return 'action';
+  return to ? 'talk' : 'exit';
+}
+
 /** What is wrong with a script (empty when sound): dangling targets, a missing fallback entry, unknown quests or steps. */
 export function validate(name: string, s: Script, quests: Quests = {}): string[] {
   const errs: string[] = [];
@@ -204,7 +219,15 @@ export class Conversation {
 
   /** The levers showing now (those whose `if` holds), in order. */
   get choices(): Choice[] {
-    return this.phase === 'choose' ? (this.script.nodes[this.node].choices ?? []).filter((c) => holds(this.talk, this.facts, c.if)) : [];
+    if (this.phase !== 'choose') return [];
+    const shown = (this.script.nodes[this.node].choices ?? []).filter((c) => holds(this.talk, this.facts, c.if));
+    // A way out always comes last (the sort is stable).
+    return [...shown.filter((c) => kindOf(this.script, c) !== 'exit'), ...shown.filter((c) => kindOf(this.script, c) === 'exit')];
+  }
+
+  /** What each lever showing is (`kindOf`), in the order of `choices`. */
+  get kinds(): Kind[] {
+    return this.choices.map((c) => kindOf(this.script, c));
   }
 
   /** How much each lever showing matters (`weigh`), in the order of `choices`. */

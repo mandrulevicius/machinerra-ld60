@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { freshGear } from '../sim/gear';
-import { buy, buyBack, freshTrade, left, sell, sellAll, shelf, type Stall } from './trade';
+import { ITEMS, addItem, freshGear } from '../sim/gear';
+import { buy, buyBack, freshTrade, left, sell, sellAll, shelf, slotLabel, wareName, type Stall } from './trade';
 
 const stall = (o: Partial<Stall> = {}): Stall => ({ missions: 3, tier: 1, trade: freshTrade(), scrap: 1000, parts: {}, gear: freshGear(), valued: false, ...o });
 
@@ -40,5 +40,35 @@ describe('the Trader', () => {
     expect(all.parts['hornet-stinger']).toBe(0);
     expect(() => sellAll(stall(), 'hornet-stinger')).toThrow(/cannot sell 0/);
     expect(() => sellAll(stall({ parts: { 'queens-crown': 1 } }), 'queens-crown')).toThrow(/will not touch/);
+  });
+
+  it('never stocks a gift (the Main Brush, Old Earful: nobody sells those)', () => {
+    for (let m = 0; m < 400; m++) for (const tier of [0, 1, 2, 3]) {
+      for (const w of shelf(m, tier, true)) if (w.kind === 'item') expect(ITEMS[w.item].gift, `${w.item} at lift ${m}, tier ${tier}`).toBeUndefined();
+    }
+  });
+
+  it('a mod is one of a kind: a second copy is refused', () => {
+    const i = shelf(0, 0).findIndex((w) => w.kind === 'item' && !!ITEMS[w.item].mod);
+    expect(i).toBeGreaterThanOrEqual(0);
+    const w = shelf(0, 0)[i];
+    if (w.kind !== 'item') throw new Error('item expected');
+    const s = buy(stall({ missions: 0, tier: 0 }), i);
+    expect(s.gear.items.some((o) => o.id === w.item)).toBe(true);
+    expect(() => buy({ ...s, trade: freshTrade() }, i)).toThrow(/already have one/);
+    expect(() => buy(stall({ missions: 0, tier: 0, gear: addItem(freshGear(), w.item).gear }), i)).toThrow(/already have one/);
+  });
+
+  it('labels every ware on the shelf at lifts 0-10, a weapon mod too (it has no slot and no quality)', () => {
+    let mods = 0;
+    for (let m = 0; m <= 10; m++) for (const tier of [0, 1, 2, 3]) for (const w of shelf(m, tier, true)) {
+      if (w.kind !== 'item') continue;
+      const d = ITEMS[w.item];
+      expect(slotLabel(d)).toMatch(/^[a-z]/);
+      expect(wareName(d, w.q)).toContain(d.name);
+      if (d.mod) { mods++; expect(slotLabel(d)).toMatch(/^weapon mod \((gun|melee|any)\)$/); expect(wareName(d, w.q)).toBe(d.name); }
+    }
+    expect(mods).toBeGreaterThan(0);
+    expect(shelf(0, 0).some((w) => w.kind === 'item' && !!ITEMS[w.item].mod)).toBe(true);
   });
 });

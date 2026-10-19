@@ -7,6 +7,7 @@
 import { command } from '../../../harness/dev/commands';
 import { promptHtml } from '../../../harness/kit';
 import type { Journal, JournalEntry } from './hub/journal';
+import { bondHtml } from './hub/bondview';
 import './questlog.css';
 
 export interface QuestLogHost {
@@ -18,18 +19,21 @@ export interface QuestLogHost {
 }
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]!);
-const GROUPS: [string, (e: JournalEntry) => boolean][] = [
-  ['Ready to hand in', (e) => e.ready],
-  ['Underway', (e) => e.state === 'active' && !e.ready && !e.locked],
-  ['Waiting on the story', (e) => e.state === 'active' && !e.ready && !!e.locked],
-  ['To take up', (e) => e.state === 'available'],
-  ['Done', (e) => e.state === 'done'],
+/** Group key (the weight it is drawn at: `questlog.css`, P33), its heading and who is in it. */
+const GROUPS: [string, string, (e: JournalEntry) => boolean][] = [
+  ['ready', 'Ready to hand in', (e) => e.ready],
+  ['going', 'Underway', (e) => e.state === 'active' && !e.ready && !e.locked],
+  ['waiting', 'Waiting on the story', (e) => e.state === 'active' && !e.ready && !!e.locked],
+  ['take', 'To take up', (e) => e.state === 'available'],
+  ['done', 'Done', (e) => e.state === 'done'],
 ];
 
 export class QuestLog {
   open = false;
   /** The quest shown on the right (the first in the list when none is picked). */
   pick: string | null = null;
+  /** The Done group is folded away (P33: finished quests are on demand) unless opened or the quest shown is done. */
+  private doneOpen = false;
   private el: HTMLElement | null = null;
 
   constructor(private root: HTMLElement, private host: QuestLogHost) {}
@@ -77,7 +81,11 @@ export class QuestLog {
       return;
     }
     if (t.dataset.a === 'close') this.hide();
-    else if (t.dataset.a === 'pick') {
+    else if (t.dataset.a === 'fold') {
+      this.doneOpen = !this.doneOpen;
+      this.host.sound('click');
+      this.render();
+    } else if (t.dataset.a === 'pick') {
       this.pick = t.dataset.v ?? null;
       this.host.sound('click');
       this.render();
@@ -90,10 +98,14 @@ export class QuestLog {
     if (!this.el.isConnected) this.root.appendChild(this.el);
     const j = this.host.data();
     const cur = this.shown(j);
-    const list = GROUPS.map(([name, f]) => {
+    const list = GROUPS.map(([key, name, f]) => {
       const es = j.entries.filter(f);
       if (!es.length) return '';
-      return `<h3 class="ql__h">${name}</h3>${es.map((e) => this.row(e, e === cur)).join('')}`;
+      if (key === 'done') {
+        const open = this.doneOpen || cur?.state === 'done';
+        return `<button class="ql__h ql__h--done ql__fold ${open ? 'is-open' : ''}" data-a="fold" aria-expanded="${open}">${name} (${es.length})</button>${open ? es.map((e) => this.row(e, e === cur)).join('') : ''}`;
+      }
+      return `<h3 class="ql__h ql__h--${key}">${name}</h3>${es.map((e) => this.row(e, e === cur)).join('')}`;
     }).join('');
     this.el.innerHTML = `
       <div class="ui-panel ql" role="dialog" aria-label="Quest log">
@@ -111,7 +123,7 @@ export class QuestLog {
 
   private row(e: JournalEntry, on: boolean) {
     const sub = e.state === 'available' ? `Ask ${e.giver}` : e.state === 'done' ? 'Done' : e.ready ? `Talk to ${e.giver}` : e.locked ? 'Not open yet' : e.progress ? `${e.progress.have}/${e.progress.n}` : `Step ${e.step} of ${e.steps.length}`;
-    return `<button class="ql-row ${on ? 'is-selected' : ''} ql-row--${e.ready ? 'ready' : e.state} ${e.kind === 'main' ? 'ql-row--main' : ''}" data-a="pick" data-v="${e.id}">
+    return `<button class="ql-row ${on ? 'is-selected' : ''} ql-row--${e.ready ? 'ready' : e.state} ${e.locked && !e.ready ? 'ql-row--locked' : ''} ${e.kind === 'main' ? 'ql-row--main' : ''}" data-a="pick" data-v="${e.id}">
       <b>${esc(e.title)}</b><small>${esc(sub)}</small></button>`;
   }
 
@@ -139,7 +151,8 @@ export class QuestLog {
       ${what}
       ${bar}
       <ol class="ql__steps">${steps}</ol>
-      ${reward}`;
+      ${reward}
+      ${e.bond ? `<div class="ql__bond">${bondHtml(e.bond.npc, e.bond.n)}</div>` : ''}`;
   }
 
   private titles(j: Journal) {

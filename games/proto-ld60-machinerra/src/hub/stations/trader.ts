@@ -3,7 +3,7 @@
  * Registered as her `OFFER_PANELS` entry (`stations/index.ts`); the `hub shop|buy|sell` dev commands (`hubdev.ts`) use the functions below.
  */
 import { PARTS, type PartKind } from '../../sim/defs';
-import { ITEMS, QUALITIES, SLOT_NAMES, STATS, scaled } from '../../sim/gear';
+import { ITEMS, QUALITIES, STATS, scaled } from '../../sim/gear';
 import { RELICS, JUNK, type RelicId } from '../../sim/junk';
 import { iconUrl } from '../../gearart';
 import { relicTex } from '../../relicart';
@@ -15,7 +15,7 @@ import { junkPrice, sellJunk } from '../relics';
 import type { HubState, PerkId } from '../state';
 import { BOONS, buyBoon, offered, type Boon } from '../specials';
 import { talkSave } from '../talkslice';
-import { TIERS, buy, buyBack, discounted, left, sell, sellAll, sellable, shelf, type Stall, type Ware } from '../trade';
+import { TIERS, buy, buyBack, discounted, left, sell, sellAll, sellable, shelf, slotLabel, wareName, type Stall, type Ware } from '../trade';
 import { titleStat } from '../titles';
 import { questBook, titleSave } from '../talkslice';
 import { roster } from '../workshop';
@@ -50,8 +50,7 @@ export function shopHtml(o: {
     const stats = Object.entries(scaled({ ...d.stats, ...d.crew }, w.q))
       .slice(0, 3)
       .map(([k, v]) => `${v > 0 ? '+' : ''}${v}${stat(k).pts ? '' : '%'} ${stat(k).name.toLowerCase()}`);
-    const slot = d.weapon ? 'weapon' : SLOT_NAMES[(d.comm ?? d.bot)!].toLowerCase() + (d.comm ? '' : ', for a crew');
-    return row(iconUrl(w.item), `q-${w.q}`, `${QUALITIES[w.q].name} ${esc(d.name)}`, [slot, ...stats].join(' · '), btn);
+    return row(iconUrl(w.item), `q-${w.q}`, esc(wareName(d, w.q)), [slotLabel(d), ...stats].join(' · '), btn);
   }).join('');
   const mine = (Object.entries(o.parts) as [PartKind, number][]).filter(([k, n]) => n > 0 && sellable(k));
   const buys = mine
@@ -95,6 +94,7 @@ export function stall(host: HubHost): Stall {
   return {
     missions: host.s.missions,
     tier: traderTier(host),
+    back: host.s.perks.includes('backRoom'),
     trade: tradeSave.get(),
     scrap: economy.get().scrap,
     parts: host.s.parts,
@@ -105,13 +105,13 @@ export function stall(host: HubHost): Stall {
 
 export function shelfLeft(host: HubHost) {
   const t = stall(host);
-  return shelf(t.missions, t.tier).map((_, i) => left(t.trade, t.missions, i, t.tier));
+  return shelf(t.missions, t.tier, t.back).map((_, i) => left(t.trade, t.missions, i, t.tier, t.back));
 }
 
 /** The wares on her shelf this lift, as the dev `hub shop` shows them. */
 export function shelfNow(host: HubHost) {
   const t = stall(host), l = shelfLeft(host);
-  return { tier: t.tier, scrap: t.scrap, valued: t.valued, shelf: shelf(t.missions, t.tier).map((w, i) => ({ i, ...w, left: l[i] })) };
+  return { tier: t.tier, scrap: t.scrap, valued: t.valued, shelf: shelf(t.missions, t.tier, t.back).map((w, i) => ({ i, ...w, left: l[i] })) };
 }
 
 /** Keep what a trade changed: the trade log, the scrap, the gear and the parts. */
@@ -127,7 +127,7 @@ export function buyWare(host: HubHost, i: number) {
   keepStall(host, t);
   questBook.set({ ...questBook.get(), bought: questBook.get().bought + 1 }); // trader.story 2
   const w = t.ware;
-  return w.kind === 'part' ? PARTS[w.part].name : `${QUALITIES[w.q].name} ${ITEMS[w.item].name}`;
+  return w.kind === 'part' ? PARTS[w.part].name : wareName(ITEMS[w.item], w.q);
 }
 
 export function sellPart(host: HubHost, k: PartKind) {
@@ -177,7 +177,7 @@ export const traderOffer: OfferPanel = {
   tabs: (host) => [
     ...shopHtml({
       ...stall(host),
-      wares: shelf(host.s.missions, traderTier(host)),
+      wares: shelf(host.s.missions, traderTier(host), host.s.perks.includes('backRoom')),
       left: shelfLeft(host),
       partIcon: (k) => host.textures.getBase64(`part-${k}`),
       junk: economy.get().junk,

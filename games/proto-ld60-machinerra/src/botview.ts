@@ -28,6 +28,8 @@ import { DARK } from './sim/dungeon';
 import { streaks } from './stokeview';
 import { SAW_ARM, STROKE, canvasPoint, swingAt } from './sawarm';
 import { SAW } from './sim/defs';
+import { BotLegSprites } from './botlegview';
+import { LEN } from './botlegs';
 import { accelOf, newDangle, nudge, stepDangle, type Dangle } from './dangle';
 import { CREW_ROLES, owned, type ItemId } from './sim/gear';
 import type { Bot, SimEvent } from './sim/sim';
@@ -127,6 +129,9 @@ export class BotsView extends ViewBase {
       }
       const carried = b.downed?.by != null;
       const downed = (b.role === 'controller' && sim.downT > 0) || !!b.downed;
+      // Spider legs (P53): the feet step and the body rides on the hips (a mesa lifts it); the wheels it was painted on are cut off at the hip line.
+      const legged = !!b.climbs && !downed && !carried;
+      const raise = legged ? this.legStep(b, v, dt) : this.legOff(v);
       v.bob += dt * (b.moving ? 13 : 2.5);
       // Footfalls: each half stride lands with a small squash; the robot settles with a stretch.
       const step = Math.floor(v.bob / Math.PI);
@@ -137,11 +142,11 @@ export class BotsView extends ViewBase {
       v.step = step;
       spring(v.sq, dt);
       // The Communicator's walk frames carry their own bob and lean; the crew, one still each, hop and rock on their wheels.
-      const rocks = b.moving && b.role !== 'controller';
+      const rocks = b.moving && b.role !== 'controller' && !legged;
       const lift = rocks ? -Math.abs(Math.sin(v.bob)) * 2 : 0;
       const sy = 1 + v.sq.s, sx = 1 - v.sq.s * 0.7;
-      v.spr.setPosition(bx, by + lift - up).setDepth(by + (carried ? 2 : 0)).setScale(sx * v.base, sy * v.base);
-      v.shadow.raise = up; // its shadow stays on the ground
+      v.spr.setPosition(bx, by + lift - up - raise).setDepth(by + (carried ? 2 : 0)).setScale(sx * v.base, sy * v.base);
+      v.shadow.raise = up + raise; // its shadow stays on the ground
       v.spr.angle = downed ? 80 : rocks ? Math.sin(v.bob) * 2.5 : 0;
       if (carried) this.dangle(b, v, dt, up);
       else this.swings.delete(b.id);
@@ -157,6 +162,7 @@ export class BotsView extends ViewBase {
         v.pump = 0;
         v.spr.setFrame(v.arm ? 'crew/guard-body' : `crew/${b.role}`).setFlipX(b.face < 0);
       }
+      this.cutWheels(v, legged);
       if (b.role !== 'controller') this.drawBotKit(b, v);
       if (b.stoked && !downed) this.swoosh(b, v, bx, by, g);
       v.spr.setAlpha(b.hidden ? 0.35 : 1); // a hiding Stalker (`sim/botskills.ts`) is half seen
@@ -172,6 +178,7 @@ export class BotsView extends ViewBase {
       }
       if (tint === null) v.spr.clearTint();
       else v.spr.setTint(tint);
+      v.legs?.draw(bx - b.x, by - b.y - up, v.spr.depth, tint, v.spr.alpha, v.spr.visible);
       if (v.arm) this.drawSaw(b, v, dt, g, tint);
       // A Dark dungeon: no light but his own (the crew's lamps dim).
       const dim = b.role !== 'controller' && sim.run?.twist === 'dark' ? DARK.lamps : 1;
@@ -319,6 +326,36 @@ export class BotsView extends ViewBase {
     }
   }
 
+  /** Step a legged robot's feet (made when it first wears them): how far its hips lift the body, px. Off screen the feet are left where they stand and replanted on return. */
+  private legStep(b: Bot, v: BotView, dt: number) {
+    v.legs ??= new BotLegSprites(this.scene, this.sim, b.x, b.y);
+    const view = this.scene.cameras.main.worldView;
+    return v.legs.step(b.x, b.y, dt, b.x > view.x - 80 && b.x < view.right + 80 && b.y > view.y - 80 && b.y < view.bottom + 80);
+  }
+
+  /** A robot not in legs (or lying down): none of its pieces are left. Returns 0, the body's lift. */
+  private legOff(v: BotView) {
+    if (v.legs) {
+      v.legs.destroy();
+      v.legs = undefined;
+    }
+    return 0;
+  }
+
+  /**
+   * Its wheels are painted into the crew's pictures, so a robot in legs is cropped at the hip line: the bottom of the picture (the hip's height, `LEN.stand`)
+   * is cut, and the legs stand where the wheels were. Re-set each frame (a new frame, the gatherer's siphoning, keeps no crop).
+   */
+  private cutWheels(v: BotView, on: boolean) {
+    if (!on) {
+      if (v.spr.isCropped) v.spr.setCrop();
+      return;
+    }
+    // A crop is in the untrimmed picture's px (`realWidth`, the atlas trims the empty margin); the origin sits 3% above its bottom.
+    const f = v.spr.frame, cut = 0.03 + LEN.stand / (f.realHeight * v.base);
+    v.spr.setCrop(0, 0, f.realWidth, f.realHeight * (1 - Math.min(0.4, cut)));
+  }
+
   private drawBotKit(b: Bot, v: BotView) {
     const k = this.crewKit[b.role] ?? {};
     if (!k.head && !k.back && !v.kit) return;
@@ -385,6 +422,13 @@ export class BotsView extends ViewBase {
         this.floater(e.bot.x, e.bot.y - 40, 'back up', '#a0f0b0', 1200, 13);
         this.sfx('pop', e.bot.x, e.bot.y, { gain: 0.4, vary: 0.1 });
         break;
+      case 'rollCall':
+        // Sprocket's Roll-call: a puff where it lay, a ring and "counted in" where it lands.
+        this.k.fx.burst(e.x, e.y - 12, { color: 0xf0e8d8, size: 0.9 });
+        this.aiRing(e.bot.x, e.bot.y + 4, 26, FRIEND, 700);
+        this.floater(e.bot.x, e.bot.y - 40, 'counted in', '#a0f0b0', 1400, 13);
+        this.sfx('pop', e.bot.x, e.bot.y, { gain: 0.4, vary: 0.1 });
+        break;
       case 'carry':
         this.floater(e.by.x, e.by.y - 56, `carrying ${e.bot.name}`, '#c8d4e0', 900, 12);
         break;
@@ -414,6 +458,7 @@ export class BotsView extends ViewBase {
           v.bark?.destroy();
           v.kit?.head.destroy();
           v.kit?.back.destroy();
+          v.legs?.destroy();
           this.scene.tweens.add({ targets: v.arm ? [v.spr, v.arm] : v.spr, y: '-=300', alpha: 0, duration: 700, ease: 'Quad.easeIn', onComplete: () => (v.spr.destroy(), v.arm?.destroy()) });
         }
         break;

@@ -24,7 +24,7 @@ import {
 
 export type OracleEvent =
   /** The Oracle speaks (each `id` once). */
-  | { e: 'oracle'; id: string; text: string; tone: 'calm' | 'warn' | 'urgent'; /** Not the Oracle: the Princess on the antenna (P58, `princessvoice.ts`). */ who?: 'princess' }
+  | { e: 'oracle'; id: string; text: string; tone: 'calm' | 'warn' | 'urgent'; /** Not the Oracle: the Princess on the antenna (P58, `princessvoice.ts`). */ who?: 'princess'; /** The line stays on the panel, and the next waits, until he moves; `within`: it is dropped if it has waited longer than this many seconds for its turn (`oraclequeue.ts`). */ hold?: true; within?: number; /** A picture beside the text (`SayOpts.icon`). */ icon?: string }
   /** The Oracle suggests the lift. */
   | { e: 'advise'; id: string };
 
@@ -46,11 +46,19 @@ export function advise(sim: Sim, id: string, text: string, tone: 'calm' | 'warn'
   sim.events.push({ e: 'advise', id });
 }
 
-export function say(sim: Sim, id: string, text: string, tone: 'calm' | 'warn' | 'urgent' = 'calm') {
+/** What a line asks of the queue: `hold` stays up until he moves; `within` seconds it may wait for its turn before it is dropped as stale (a line about a moment: default for calm lines is `QUEUE.stale`, a warning is never dropped unless it asks). */
+export interface SayOpts {
+  hold?: boolean;
+  within?: number;
+  /** A picture beside the text: a texture or atlas frame, or `key:<action>` for a key (`hudfx.ts` `iconOf`). */
+  icon?: string;
+}
+
+export function say(sim: Sim, id: string, text: string, tone: 'calm' | 'warn' | 'urgent' = 'calm', o: SayOpts = {}) {
   if (sim.said.has(id)) return;
   sim.said.add(id);
   sim.speakUntil = sim.time + SPEAK.base + SPEAK.perChar * text.length;
-  sim.events.push({ e: 'oracle', id, text, tone });
+  sim.events.push({ e: 'oracle', id, text, tone, ...(o.hold && { hold: true as const }), ...(o.within !== undefined && { within: o.within }), ...(o.icon && { icon: o.icon }) });
   sim.engine.emit({ kind: 'oracle', self: sim.controller });
   sim.drainFx();
 }
@@ -63,17 +71,14 @@ function anomalyLines(sim: Sim, t: number) {
 }
 
 /**
- * Level 1's script (`docs/level-1.md`): one sentence each, said at the moment of use. It stands in for the generic landing lines
- * ('crews', 'goal') and the day's three; the land's own `talk` lines are the desert's and keep their place on every other land.
+ * Level 1's script (`docs/level-1.md`): one sentence each, said at the moment of use; the landing's are `lessons.ts`'s pause
+ * (the objective names the mast). It stands in for the generic landing lines ('crews', 'goal') and the day's three; the land's own `talk` lines are the desert's and keep their place on every other land.
  */
 function level1Lines(sim: Sim, t: number) {
-  if (t > 4) say(sim, 'l1-mast', 'The old mast to the east still hums. Wake it, and I will see this desert.');
-  const wreck = sim.places.find((p) => p.id === 'wreck');
-  if (wreck?.state === 'up') say(sim, 'l1-command', 'He works better than he fights. Command him ({command}): pick a spot, and he goes.');
   if (sim.ruins.some((r) => r.kind === 'car' && r.searched)) say(sim, 'l1-toaster', 'Two barrels, a lever and a bell. Clearly a weapon.');
   const d = sim.day;
-  if (d.phase === 'day') say(sim, 'day', 'The sun is up, and so are the hornets.', 'warn');
-  if (d.phase === 'evening') say(sim, 'evening', 'The dark gets into the hornets: keep out of the halos.', 'urgent');
+  if (d.phase === 'day') say(sim, 'day', `The sun is up, and the ${sim.biome.talk.hive} is waking.`, 'warn');
+  if (d.phase === 'evening') say(sim, 'evening', 'The dark gets into the machines: keep out of the halos.', 'urgent');
 }
 
 export function oracle(sim: Sim) {
@@ -96,7 +101,7 @@ export function oracle(sim: Sim) {
     if (d.phase === 'day') say(sim, 'day', sim.biome.talk.day, 'warn');
     if (d.phase === 'evening') say(sim, 'evening', sim.biome.talk.evening, 'urgent');
   }
-  if (d.phase === 'evening' && sim.dayT > d.at.evening + 12 && sim.support.barrage) say(sim, 'support', 'The Zeppelin Wanderer hangs above the cloud with a belly full of shells, and one call to spend this sortie. Press {support} and it shells whatever is under your cursor. Keep it for when the dark closes in.', 'warn');
+  if (d.phase === 'evening' && sim.dayT > d.at.evening + 12 && sim.support.barrage && sim.lessons.open('barrage')) say(sim, 'support', 'The Zeppelin Wanderer hangs above the cloud with a belly full of shells, and one call to spend this sortie. Press {support} and it shells whatever is under your cursor. Keep it for when the dark closes in.', 'warn');
   if (d.phase !== 'midnight' && sim.dayT >= d.at.midnight - DAY.warn) say(sim, 'soon', `Midnight in a minute. After that, every ten seconds, the machines come stronger, and it does not stop. Think about the lift.`, 'urgent');
   if (d.phase === 'midnight' && d.buff >= 2) say(sim, 'worse', 'It is getting worse out there. Whatever you are carrying, it is not worth this.', 'urgent');
   if (sim.bossDown) advise(sim, 'queen', `${sim.bossDownName} is down. Now would be a good time to head for the lift: the night will not get kinder. Stay if you must, for one more ruin or one more kill. I will keep the light on.`);
@@ -104,7 +109,7 @@ export function oracle(sim: Sim) {
   if (sim.bossDown) { /* the boss advice above stands */ }
   else if (sim.awake) {
     const hurt = sim.bots.find((b) => !b.dead && !b.downed && b.hp < b.maxHp / 2);
-    if (hurt) advise(sim, 'hurt', `${hurt.role === 'controller' ? "You're" : `${hurt.name} is`} losing oil fast. The lift is there if you want it: bring the crews home ({map}) and ride it ({use}).`);
+    if (hurt) advise(sim, 'hurt', `${hurt.role === 'controller' ? "You're" : `${hurt.name} is`} losing oil fast. The lift is there if you want it: ${sim.lessons.open('map') ? 'bring the crews home ({map}) and ' : ''}ride it ({use}).`);
   }
   // Sent off: a crew (1..) or a robot on its own order to a point (P3).
   const away = (b: Bot) => (b.own ? b.own !== 'follow' : b.crew !== 0);

@@ -58,7 +58,8 @@ export const foeGait = (kind: Enemy): Gait => FOE_GAIT[kind] ?? (FOES[kind].grou
 
 /** The crew: the Communicator, the tripod marksman, the Lamplighter and the Stalker walk; the rest roll on wheels or tracks. */
 const BOT_GAIT: Record<Role, Gait> = { controller: 'foot', marksman: 'foot', lamplighter: 'foot', stalker: 'foot', gatherer: 'tread', guard: 'tread', repairer: 'tread', mule: 'tread', boilermancer: 'tread' };
-export const botGait = (role: Role): Gait => BOT_GAIT[role];
+/** A robot in spider legs leaves the spider's prints (P53). */
+export const botGait = (role: Role, climbs = false): Gait => (climbs ? 'paw' : BOT_GAIT[role]);
 
 /**
  * How big and how loud one walker is. `scale` sizes the print (the Communicator's is 1); a foe's follows its radius.

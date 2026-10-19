@@ -38,6 +38,8 @@ import { say } from './oracle';
 import { arenaOf } from './placeplay';
 import type { Sim } from './sim';
 import { formBreak } from './tiers';
+import { newSpider } from './spider';
+import { newGrub } from './caterpillar';
 import {
   type Bot,
   CLOCK,
@@ -66,6 +68,8 @@ export function spawnBoss(sim: Sim, kind: Enemy = 'hornet', home?: Spot, o: { le
     kind, twisted: !B.mini, boss: true, r: B.r, reach: B.r + 14, brain: brain(sim, [B.every, B.every]), gunT: 0, ...(home && { home: { ...home } }),
   };
   if (home && o.leash) tie(h, home, o.leash);
+  if (kind === 'spider') h.spider = newSpider(sim); // a Crawlcam boss walks and pounces as a Crawlcam
+  if (kind === 'caterpillar') h.grub = newGrub(h); // the intro's mini-boss: its spiral, rear and lunge (`caterpillar.ts`)
   if (!B.mini) sim.bossSpawned = true;
   if (B.phase2?.every) h.formAt = sim.time + B.phase2.every;
   sim.engine.add(h, foeUnit(kind, { boss: true, twisted: !B.mini }));

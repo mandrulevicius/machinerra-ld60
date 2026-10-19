@@ -5,7 +5,7 @@
  */
 import { DECK, ROOMS, SLOTS, WALKWAYS, lotOf, openLots, type Slot } from '../layout';
 import { esc } from '../panels';
-import { BUILDINGS, PRICE_STOCK, isBuildingId, offer, priceOf, slotsOf, slotsOrder, slotsUsed, tearDown, whyNot, type BuildingId } from '../buildings';
+import { BUILDINGS, PRICE_STOCK, drawnThisVisit, isBuildingId, offer, priceOf, slotsOf, slotsOrder, slotsUsed, tearDown, whyNot, type BuildingId } from '../buildings';
 import { openDistrict } from './district';
 import { economy, buildBlueprint, buildStation } from '../economy';
 import { LOT_BUILDINGS, PERKS, npc, relocate, stationCost, type HubState, type NpcDef } from '../state';
@@ -27,7 +27,7 @@ export function plannerBody(s: HubState, o: { pick: string | null; have: number;
   const standing = slotsOrder(s).map((b) => `${esc(BUILDINGS[b.id].name)} (${b.done ? 'stands' : 'going up'})`);
   const tear = slotsOrder(s).filter((b) => b.done).map((b) => `<button class="ui-btn ui-btn--secondary hb-tear" data-a="tear" data-id="${b.id}" title="Rebuild: tear it down, nothing back, and draw up another in its slot">Tear down ${esc(BUILDINGS[b.id].name)}</button>`).join('');
   const slots = slotsOf(s, o.all);
-  const note = s.buildings?.pickedAt === s.missions
+  const note = drawnThisVisit(s) > 0 && !offers.length
     ? 'Drawn up this visit. The next lift brings the next three.'
     : !offers.length ? 'Everything I can draw is already in the city.' : slotsUsed(s) >= slots ? 'The city has no free slot. Come back when it has grown.' : '"Every city needs one thing it is famous for. Choose, and I will draw it up."';
   const block = chosen ? why(chosen) : null;
@@ -39,7 +39,7 @@ export function plannerBody(s: HubState, o: { pick: string | null; have: number;
       <p class="hb-note">City slots: <b>${slotsUsed(s)} of ${slots}</b> used. ${standing.length ? `In the city: ${standing.join(', ')}.` : 'Nothing built yet.'}</p>
       ${tear ? `<div class="hb-tears">${tear}</div>` : ''}
       <p class="hb-note hb-note--dim">A blueprint goes up as scaffolding in the D-city window and stands when the next lift docks. One a visit. You have <b>${o.have}</b> ${PRICE_STOCK}.</p>
-      ${block && s.buildings?.pickedAt !== s.missions ? `<p class="hb-note hb-note--warn">${esc(block)}</p>` : short ? `<p class="hb-note hb-note--warn">${short}</p>` : ''}`,
+      ${block && !(drawnThisVisit(s) > 0 && !offers.length) ? `<p class="hb-note hb-note--warn">${esc(block)}</p>` : short ? `<p class="hb-note hb-note--warn">${short}</p>` : ''}`,
     actions: [
       `<button class="ui-btn ui-btn--primary" data-a="draw"${chosen && !block && !short ? '' : ' disabled'}>${chosen ? `Draw up ${esc(BUILDINGS[chosen].name)} (${cost} ${PRICE_STOCK})` : 'Draw up'}</button>`,
     ].join(''),

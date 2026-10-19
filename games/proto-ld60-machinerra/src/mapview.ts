@@ -8,6 +8,11 @@
  * hive, ruin or the lift; on the Communicator it is the follow order); 1-3 and Shift+number come from `commandmode.ts`.
  * A part of a crew sent goes on its own and keeps its crew. Crew 0 always walks with the Communicator. The scene slows the
  * mission (not pauses) while the map is open, and the Communicator stands still.
+ *
+ * Attention (P33, `attention.ts`; the look is `mapview.css`): the way home (the lift), the threat (an awake hive, the enemies seen)
+ * and the choice (the crews, the picked robots) read first. A hive asleep, a coal seam, a tap and a ruin are said by a short name
+ * and dim, their numbers only when the pointer is near; the rough areas are quiet rings; the legend rests until the pointer is on
+ * the frame; the way-home button comes forward at evening and midnight, like the dial. All of it is looks: no rule here.
  */
 import { upper } from './sim/sim';
 import { CREWS, T } from './sim/defs';
@@ -18,7 +23,9 @@ import { ROLES } from './sim/defs';
 import { boxBots, crewIds, orderSelection, ownPoints, pickBot, type Selection } from './sim/command';
 import type { Signal, SignalKind } from './sim/fog';
 import { sightOf } from './sim/fogplay';
+import { MAP_NEAR, dangerHour } from './attention';
 import { css, DANGER, DANGER_TWISTED, DANGER_TEXT, FRIEND, FRIEND_TEXT } from './house';
+import './mapview.css';
 
 const MW = 820, MH = 615;
 /** The title's standing line. */
@@ -103,6 +110,12 @@ export class MapView {
   }
   open = false;
   private sig = '';
+  /** The pointer over the survey (map px), or null: a mark's numbers show only near it. */
+  private hov: { x: number; y: number } | null = null;
+  /** Is the pointer near this spot (map px)? */
+  private near(x: number, y: number) {
+    return !!this.hov && Math.hypot(this.hov.x - x, this.hov.y - y) <= MAP_NEAR;
+  }
   /** A left drag on the survey (map px), until the button comes up. */
   private drag: { x0: number; y0: number; x: number; y: number } | null = null;
   /** Hives anyone has seen (sleeping ones stay hidden until a robot comes near). */
@@ -145,6 +158,8 @@ export class MapView {
     this.fog.height = MH;
     this.paintBase();
     this.cv.addEventListener('mousedown', (e) => this.down(e));
+    this.cv.addEventListener('mousemove', (e) => (this.hov = this.at(e)));
+    this.cv.addEventListener('mouseleave', () => (this.hov = null));
     window.addEventListener('mousemove', this.moveDrag);
     window.addEventListener('mouseup', this.up);
     this.cv.addEventListener('contextmenu', (e) => this.rightClick(e));
@@ -351,6 +366,11 @@ export class MapView {
     if (!this.open) return;
     this.drawMap();
     const s = this.sim;
+    // Weights: the way home comes forward when the day turns dangerous; robots picked make the crews the place to click.
+    const evac = this.el.querySelector<HTMLElement>('.mc-evac')!;
+    const w = dangerHour(s.day.phase) ? 'up' : 'rest';
+    if (evac.dataset.w !== w) evac.dataset.w = w;
+    this.el.querySelector('.mc-crews')!.classList.toggle('is-picking', this.sel.size > 0);
     const sig = JSON.stringify([s.crew.map((b) => [b.id, crewMark(b), Math.ceil(b.hp / 10)]), [...this.sel], this.crew, s.orders, s.following]);
     if (sig === this.sig) return;
     this.sig = sig;
@@ -363,6 +383,7 @@ export class MapView {
       const order = s.orders[c];
       const where = c === 0 || s.following[c] ? 'walks with you' : order ? (s.onLift(order, 0.5) ? 'to the lift' : 'on its way / holding') : 'awaiting orders';
       const ids = s.crew.filter((x) => x.crew === c).map((b) => b.id);
+      if (!ids.length) box.classList.add('mc-crew--empty');
       const all = ids.length > 0 && ids.every((id) => this.sel.has(id));
       box.innerHTML = `<div class="mc-crew__head"><b>Crew ${c}</b><span>${where}</span>${ids.length ? `<button class="mc-crew__all${all ? ' is-on' : ''}" title="${all ? 'Unpick' : 'Pick'} every robot in crew ${c}">${all ? 'None' : 'All'}</button>` : ''}</div><div class="mc-crew__bots"></div>`;
       // Pick (or unpick) the whole crew at once, to move it into another crew in one click.
@@ -420,7 +441,7 @@ export class MapView {
    * What is out there but not seen: a rough, hand-drawn ring (never centred on the real spot) with the kind's icon and name.
    * Once the real spot is seen the ring goes and the place stays as its icon where it is (a ruin cluster shows as its ruins).
    */
-  private drawSignals(c: CanvasRenderingContext2D, label: (x: number, y: number, text: string, col: string) => void) {
+  private drawSignals(c: CanvasRenderingContext2D, label: (x: number, y: number, text: string, col: string, a?: number) => void) {
     const s = this.sim;
     const tw = MW / s.map.w, th = MH / s.map.h;
     for (const g of s.signals) {
@@ -445,11 +466,11 @@ export class MapView {
         const r = g.r * tw * (1 + 0.05 * Math.sin(a * 3 + ph) + 0.03 * Math.sin(a * 5 + ph * 2) + shimmer * Math.sin(a * 7 + now / 140));
         c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
       }
-      c.fillStyle = 'rgba(217,162,74,0.08)';
+      c.fillStyle = 'rgba(217,162,74,0.05)';
       c.fill();
       c.setLineDash([8, 6]);
-      c.strokeStyle = 'rgba(217,162,74,0.8)';
-      c.lineWidth = 2;
+      c.strokeStyle = 'rgba(217,162,74,0.5)';
+      c.lineWidth = 1.5;
       c.stroke();
       c.setLineDash([]);
       icon(c, g.kind, x, y);
@@ -472,13 +493,17 @@ export class MapView {
       c.fillStyle = 'rgba(6, 10, 38, 0.62)';
       c.fillRect(0, 0, MW, MH);
     }
-    const label =(x: number, y: number, text: string, col: string) => {
-      c.font = '600 12px "Barlow Semi Condensed", sans-serif';
+    // `a` is the weight: a label that is not the point of the map is said quieter (and a mark's numbers wait for the pointer).
+    const label = (x: number, y: number, text: string, col: string, a = 1, big = false) => {
+      c.save();
+      c.globalAlpha = a;
+      c.font = `${big ? 700 : 600} ${big ? 14 : 12}px "Barlow Semi Condensed", sans-serif`;
       c.textAlign = 'center';
       c.fillStyle = 'rgba(0,0,0,0.7)';
       c.fillText(text, x + 1, y + 1);
       c.fillStyle = col;
       c.fillText(text, x, y);
+      c.restore();
     };
     // Ruins, seeps, hives, the lift.
     // A live ruin shows its signal (a ring and "signal": insight, decoded loudly); a dead one is a plain ruin (junk, searched quietly).
@@ -510,7 +535,7 @@ export class MapView {
       const dock = r.kind === 'dock'; // an old charging dock (P58 H): green, its own word
       c.fillStyle = sr?.searched ? '#4a3a2c' : dock ? '#3f8a52' : '#8a4a26';
       c.fillRect(x - 4, y - 4, 8, 8);
-      label(x, y - 8, dock ? 'dock' : 'ruin', sr?.searched ? '#7a6a5a' : dock ? '#8fe0a0' : '#c08a60');
+      label(x, y - 8, dock ? 'dock' : 'ruin', sr?.searched ? '#7a6a5a' : dock ? '#8fe0a0' : '#c08a60', this.near(x, y) ? 1 : 0.6);
     });
     for (const p of s.seams) {
       if (!this.seenAt(p.x, p.y)) continue;
@@ -523,7 +548,8 @@ export class MapView {
       c.moveTo(x - 9, y + 5); c.lineTo(x - 4, y - 5); c.lineTo(x + 3, y - 7); c.lineTo(x + 9, y + 5); c.closePath();
       c.fill();
       c.stroke();
-      label(x, y - 10, f > 0 ? `coal ${Math.ceil(p.amount)}` : 'bare', f > 0 ? '#cfc7bc' : '#8a8078');
+      const nr = this.near(x, y);
+      label(x, y - 10, f > 0 ? (nr ? `coal ${Math.ceil(p.amount)}` : 'coal') : 'bare', f > 0 ? '#cfc7bc' : '#8a8078', nr ? 1 : 0.6);
     }
     for (const p of s.seeps) {
       if (!this.seenAt(p.x, p.y)) continue;
@@ -540,24 +566,42 @@ export class MapView {
         c.fillStyle = '#9fe0ff';
         c.fillRect(x - 10, y + 8, 20 * f, 3);
       }
-      label(x, y - 9, f > 0 ? `tap ${Math.ceil(p.amount)}` : 'dry', f > 0 ? '#bfe8ff' : '#8a8078');
+      const nr = this.near(x, y);
+      label(x, y - 9, f > 0 ? (nr ? `tap ${Math.ceil(p.amount)}` : 'tap') : 'dry', f > 0 ? '#bfe8ff' : '#8a8078', nr ? 1 : 0.6);
     }
     for (const n of s.nests) {
       if (n.dead || (!n.awake && !this.seen.has(n.id))) continue;
       const x = n.x * k, y = n.y * k;
+      // The threat leads: an awake hive is larger, ringed and named at full weight; a sleeping one is small and quiet until the pointer is near.
+      const r = n.awake ? 11 : 6.5;
+      if (n.awake) {
+        c.strokeStyle = css(DANGER);
+        c.globalAlpha = 0.45;
+        c.lineWidth = 2;
+        c.beginPath();
+        c.arc(x, y, r + 6, 0, Math.PI * 2);
+        c.stroke();
+        c.globalAlpha = 1;
+      }
       c.fillStyle = n.awake ? css(DANGER) : '#6a2a30';
       c.beginPath();
-      for (let i = 0; i < 6; i++) c.lineTo(x + Math.cos((i * Math.PI) / 3) * 9, y + Math.sin((i * Math.PI) / 3) * 9);
+      for (let i = 0; i < 6; i++) c.lineTo(x + Math.cos((i * Math.PI) / 3) * r, y + Math.sin((i * Math.PI) / 3) * r);
       c.fill();
-      label(x, y - 12, n.awake ? `${s.biome.talk.hive.toUpperCase()} (awake)` : `${s.biome.talk.hive} (asleep)`, n.awake ? DANGER_TEXT : '#c08088');
+      if (n.awake) label(x, y - r - 9, `${s.biome.talk.hive.toUpperCase()} (awake)`, DANGER_TEXT, 1, true);
+      else label(x, y - r - 5, this.near(x, y) ? `${s.biome.talk.hive} (asleep)` : s.biome.talk.hive, '#c08088', this.near(x, y) ? 1 : 0.55);
     }
     const lx = s.lift.x * k, ly = s.lift.y * k;
+    // The way home: a soft brass halo.
+    c.fillStyle = 'rgba(255,204,51,0.14)';
+    c.beginPath();
+    c.arc(lx, ly, 20, 0, Math.PI * 2);
+    c.fill();
     c.fillStyle = '#c8963c';
     c.strokeStyle = '#ffcc33';
     c.lineWidth = 2;
     c.fillRect(lx - 9, ly - 9, 18, 18);
     c.strokeRect(lx - 9, ly - 9, 18, 18);
-    label(lx, ly - 13, 'LIFT', '#ffd98a');
+    label(lx, ly - 17, 'LIFT', '#ffd98a', 1, true);
     // Orders: a flag per crew, a faint line from each member.
     for (let cr = 1; cr < CREWS; cr++) {
       const o = s.orders[cr];
@@ -612,7 +656,7 @@ export class MapView {
       if (!eyes.some((e) => Math.hypot(h.x - e.x, h.y - e.y) <= e.r)) continue;
       // Every enemy is a red dot (the twisted a magenta-red one, the boss a big disc); cyan (FRIEND) is ours.
       c.fillStyle = css(h.twisted && !h.boss ? DANGER_TWISTED : DANGER);
-      const z = h.boss ? 5 : 1.5;
+      const z = h.boss ? 6 : 2.2;
       c.fillRect(h.x * k - z, h.y * k - z, z * 2, z * 2);
     }
     for (const b of s.bots) {

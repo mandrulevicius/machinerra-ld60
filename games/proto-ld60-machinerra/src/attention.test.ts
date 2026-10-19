@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ALARM, Fader, HIT, chipWeight, hitScale, oilAlarm, oracleHold, pickupSize } from './attention';
+import { ALARM, Fader, dangerHour, HIT, chipWeight, hitScale, oilAlarm, oracleHold, pickupSize } from './attention';
 
 describe('oil alarm', () => {
   it('is silent above the threshold and rises to 1 at empty', () => {
@@ -64,5 +64,11 @@ describe('weights', () => {
   it('routine pickups are said small, parts and cores full', () => {
     expect(pickupSize('scrap')).toBeLessThan(pickupSize('part'));
     expect(pickupSize('core')).toBe(pickupSize('part'));
+  });
+  it('the day turns dangerous at evening and midnight only', () => {
+    expect(dangerHour('morning')).toBe(false);
+    expect(dangerHour('day')).toBe(false);
+    expect(dangerHour('evening')).toBe(true);
+    expect(dangerHour('midnight')).toBe(true);
   });
 });

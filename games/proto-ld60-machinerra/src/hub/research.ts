@@ -240,6 +240,10 @@ export type SlotKey = string;
 export const commSlot = (n: number): SlotKey => `comm:${n}`;
 export const typeSlot = (t: BotType): SlotKey => `type:${t}`;
 export const COMM_SLOT_KEYS: SlotKey[] = Array.from({ length: RESEARCH.commSlots }, (_, i) => commSlot(i));
+/** The Fourth Slot (P52, the Oracle's gift at the fifth step of her track): a fourth card slot on the Communicator, there once `Research.fourth` is set. */
+export const FOURTH_SLOT: SlotKey = commSlot(RESEARCH.commSlots);
+/** The Communicator's card slots now. */
+export const commKeys = (r: Pick<Research, 'fourth'>): SlotKey[] => (r.fourth ? [...COMM_SLOT_KEYS, FOURTH_SLOT] : COMM_SLOT_KEYS);
 export const TYPE_SLOT_KEYS: SlotKey[] = BOT_TYPES.map(typeSlot);
 /** A slot's name for the cards screen: "Slot 1" on the Communicator, the type's name on a type. */
 export const slotName = (k: SlotKey) => {
@@ -254,6 +258,8 @@ export interface Research {
   credit: number;
   seen: string | null;
   offer: CardId[];
+  /** The Oracle has kept a fourth slot for him (`FOURTH_SLOT`). */
+  fourth?: boolean;
 }
 export const freshResearch = (): Research => ({ owned: [], fit: {}, credit: 0, seen: null, offer: [] });
 
@@ -263,11 +269,11 @@ export const noCtx: Ctx = { types: [], dog: false };
 
 // ---- slots ----
 
-/** The slots a card can use. */
+/** The slots a card can use (the Fourth Slot among them: it is only his once the Oracle has given it, `commKeys`). */
 export function slotsFor(card: Card): SlotKey[] {
-  if (card.pool === 'keystone') return [...COMM_SLOT_KEYS, ...TYPE_SLOT_KEYS];
+  if (card.pool === 'keystone') return [...COMM_SLOT_KEYS, FOURTH_SLOT, ...TYPE_SLOT_KEYS];
   if ((BOT_TYPES as readonly string[]).includes(card.pool)) return [typeSlot(card.pool as BotType)];
-  return COMM_SLOT_KEYS;
+  return [...COMM_SLOT_KEYS, FOURTH_SLOT];
 }
 export const fittedAt = (r: Research, id: CardId): SlotKey | undefined => Object.keys(r.fit).find((k) => r.fit[k] === id);
 const without = (fit: Research['fit'], id: CardId) => Object.fromEntries(Object.entries(fit).filter(([, c]) => c !== id));
@@ -279,6 +285,7 @@ export function fit(r: Research, id: CardId, slot: SlotKey): Research {
   if (!card) throw new Error('no such card');
   if (!r.owned.includes(id)) throw new Error(`${card.name} is not in your collection`);
   if (!slotsFor(card).includes(slot)) throw new Error(`${card.name} does not fit ${slotName(slot)}`);
+  if (slot === FOURTH_SLOT && !r.fourth) throw new Error('you have no fourth slot yet');
   let next = without(r.fit, id);
   if (card.pool === 'keystone') for (const k of Object.keys(next)) if (isKeystone(next[k])) delete next[k];
   next = { ...next, [slot]: id };
@@ -291,7 +298,7 @@ export function autoFit(r: Research, id: CardId): SlotKey | null {
   const card = cardOf(id);
   if (!card) return null;
   if (card.pool === 'keystone' && Object.values(r.fit).some(isKeystone)) return null;
-  return slotsFor(card).find((k) => !r.fit[k]) ?? null;
+  return slotsFor(card).find((k) => !r.fit[k] && (k !== FOURTH_SLOT || r.fourth)) ?? null;
 }
 
 // ---- the pick ----
@@ -382,8 +389,8 @@ export function cleanResearch(r: Research): Research {
   const fitted: Research['fit'] = {};
   for (const [slot, id] of Object.entries(r.fit ?? {})) {
     const c = cardOf(id);
-    if (c && owned.includes(id) && slotsFor(c).includes(slot) && !Object.values(fitted).includes(id)) fitted[slot] = id;
+    if (c && owned.includes(id) && slotsFor(c).includes(slot) && (slot !== FOURTH_SLOT || r.fourth) && !Object.values(fitted).includes(id)) fitted[slot] = id;
   }
   for (const k of Object.keys(fitted).filter((k) => isKeystone(fitted[k])).slice(1)) delete fitted[k];
-  return { owned, fit: fitted, credit: Math.max(0, Math.floor(r.credit) || 0), seen: r.seen ?? null, offer: (r.offer ?? []).filter((id) => cardOf(id) && !owned.includes(id)) };
+  return { owned, fit: fitted, ...(r.fourth === true && { fourth: true }), credit: Math.max(0, Math.floor(r.credit) || 0), seen: r.seen ?? null, offer: (r.offer ?? []).filter((id) => cardOf(id) && !owned.includes(id)) };
 }

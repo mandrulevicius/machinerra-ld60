@@ -6,7 +6,7 @@
  */
 import { ITEMS, type BotSlot, type CommSlot, type ItemDef, type ItemId } from './sim/gear';
 
-export type ItemKind = 'weapon' | 'mod' | Exclude<CommSlot, 'primary' | 'secondary'> | 'mobility';
+export type ItemKind = 'weapon' | 'mod' | Exclude<CommSlot, 'primary' | 'secondary' | 'heart'> | 'mobility';
 
 /** Each kind's name (the badge's tooltip) and icon file (without `.svg`). */
 export const KINDS: Record<ItemKind, { name: string; icon: string }> = {

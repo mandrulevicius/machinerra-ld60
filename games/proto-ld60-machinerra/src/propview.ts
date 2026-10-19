@@ -18,7 +18,7 @@ import { GroundChunks } from './groundchunks';
 import { ViewBase, type G, type Img, type PlayHost } from './playhost';
 import { MAT, PROP_ATLAS, propKey } from './propart';
 import { PROPS, ZONES } from './sim/defs';
-import { blankCast, contactRow, recast } from './shadowview';
+import { PROP_CASTS, blankCast, contactRow, recast } from './shadowview';
 import { propState, type Prop, type PropState, type Zone } from './sim/props';
 import type { SimEvent } from './sim/sim';
 
@@ -32,7 +32,8 @@ const GROUND_DEPTH = -6;
 /** What a prop in or near the view has: its picture (none once it is rubble) and its cast shadow, and where and how they were last set. */
 interface Slot {
   img: Img | null;
-  cast: Img;
+  /** Null while `PROP_CASTS` is false: a prop has no shadow. */
+  cast: Img | null;
   st: PropState;
   x: number;
   y: number;
@@ -96,14 +97,17 @@ export class PropView extends ViewBase {
     this.freeImgs.push(img);
   }
 
-  private takeCast(): Img {
+  private takeCast(): Img | null {
+    if (!PROP_CASTS) return null; // Minos: props have no shadow
     const c = this.freeCasts.pop();
     if (c) return c.setVisible(true);
+    const paint = BIOMES[this.host.land.biome].paint;
     this.scene.events.emit('cast-added'); // so `ShadowView` finds it within the frame
-    return blankCast(this.scene, BIOMES[this.host.land.biome].paint, -7.9).setVisible(true);
+    return blankCast(this.scene, paint, -7.9).setVisible(true);
   }
 
-  private giveCast(c: Img) {
+  private giveCast(c: Img | null) {
+    if (!c) return;
     c.setVisible(false);
     this.freeCasts.push(c);
   }
@@ -135,14 +139,14 @@ export class PropView extends ViewBase {
         s.img ??= this.takeImg();
         s.img.setFrame(name);
       }
-      recast(this.scene, s.cast, this.scene.textures.getFrame(PROP_ATLAS, name), 1 / S, 1, { foot: contactRow({ frame: this.scene.textures.getFrame(PROP_ATLAS, name) }) });
+      if (s.cast) recast(this.scene, s.cast, this.scene.textures.getFrame(PROP_ATLAS, name), 1 / S, 1, { foot: contactRow({ frame: this.scene.textures.getFrame(PROP_ATLAS, name) }) });
       s.st = st;
     }
     if (s.img) {
       // The tie-break by x keeps overlapping neighbours in one order, whichever sprite the pool gave each.
       s.img.setPosition(p.x, y).setDepth(foot + p.x * 1e-6);
     }
-    s.cast.setPosition(p.x, y - (s.cast.getData('cast') as { lift: number }).lift / S);
+    if (s.cast) s.cast.setPosition(p.x, y - (s.cast.getData('cast') as { lift: number }).lift / S);
     s.x = p.x;
     s.y = p.y;
   }

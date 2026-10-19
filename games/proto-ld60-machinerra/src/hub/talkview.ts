@@ -4,9 +4,16 @@
  * reports (`TalkEvents`); `Hub.ts` owns the conversation, the camera, the NPC's acting and the sounds. Look: `talk.css`.
  */
 import { promptHtml, promptText } from '../../../../harness/kit';
-import type { Weight } from './dialog';
+import type { Kind, Weight } from './dialog';
 import './talk.css';
 
+/** What each kind of lever wears on its plate: a drawn glyph (stroked in the kind's colour, `talk.css`) and a short word. Talk is the plain default: no word. */
+const KIND: Record<Kind, { glyph: string; tag: string }> = {
+  quest: { glyph: '<path d="M12 3.5v10M12 17.8v1.4" />', tag: 'Quest' },
+  action: { glyph: '<circle cx="12" cy="12" r="3.2" /><path d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3M6 6l2.1 2.1M15.9 15.9L18 18M18 6l-2.1 2.1M8.1 15.9L6 18" />', tag: 'Opens' },
+  talk: { glyph: '<path d="M4.5 6.5h15v9h-7l-4 3.5v-3.5h-4z" />', tag: '' },
+  exit: { glyph: '<path d="M14 5.5H6.5v13H14M11 12h9M16.8 8.6 20 12l-3.2 3.4" />', tag: 'Leave' },
+};
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 export interface Speaker { name: string; role: string; portrait: string | null }
@@ -163,20 +170,22 @@ export class TalkView {
 
   /**
    * The levers: one per reply, in the Communicator's words. Each is weighed (`dialog.ts` `weigh`): the one that moves the story
-   * on stands out and is the one the pull starts on, answers already heard go quiet, a way out is the quietest.
+   * on stands out and is the one the pull starts on, answers already heard go quiet, a way out is the quietest. Its kind (`dialog.ts`
+   * `kindOf`) is the glyph and word on the plate.
    */
-  choose(items: { text: string; weight?: Weight }[]) {
+  choose(items: { text: string; weight?: Weight; kind?: Kind }[]) {
     this.hint(promptHtml('{up} {down} choose, {use} pull'));
     this.q('caret').hidden = true;
     const box = this.q('levers');
     box.innerHTML = '';
-    this.levers = items.map(({ text: t, weight }, i) => {
+    this.levers = items.map(({ text: t, weight, kind = 'talk' }, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'tk-lever';
       b.dataset.w = weight ?? 'side';
+      b.dataset.k = kind;
       b.style.setProperty('--i', String(i));
-      b.innerHTML = `<span class="tk-lever__slot"><i class="tk-lever__arm"><u></u></i></span><span class="tk-lever__plate">${esc(t)}</span>`;
+      b.innerHTML = `<span class="tk-lever__slot"><i class="tk-lever__arm"><u></u></i></span><span class="tk-lever__plate"><svg class="tk-lever__glyph" viewBox="0 0 24 24" aria-hidden="true">${KIND[kind].glyph}</svg><span class="tk-lever__text">${esc(t)}</span>${KIND[kind].tag ? `<i class="tk-lever__tag">${KIND[kind].tag}</i>` : ''}</span>`;
       b.addEventListener('pointerenter', () => this.select(i, true));
       b.addEventListener('focus', () => this.select(i, true));
       b.addEventListener('click', () => this.pull(i));
@@ -184,6 +193,7 @@ export class TalkView {
       return b;
     });
     box.dataset.n = String(items.length);
+    box.style.setProperty('--rows', String(Math.max(1, Math.ceil(items.length / 2)))); // two columns, the list running down the left one first
     this.busy = false;
     this.sel = Math.max(0, items.findIndex((x) => x.weight === 'story'));
     this.mark();
@@ -252,7 +262,7 @@ export class TalkView {
       length: this.text.length,
       typing: this.typing,
       text: this.text.slice(0, this.shown),
-      levers: this.levers.map((l) => l.querySelector('.tk-lever__plate')!.textContent),
+      levers: this.levers.map((l) => l.querySelector('.tk-lever__text')!.textContent),
       selected: this.levers.length ? this.sel : null,
     };
   }

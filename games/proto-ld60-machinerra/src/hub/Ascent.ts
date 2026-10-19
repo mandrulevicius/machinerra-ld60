@@ -12,7 +12,7 @@ import { house } from '../house';
 import { MesaShadows, fixedLean } from '../mesashadow';
 import { sunLean } from '../sun';
 import { BIOMES, T, type BiomeId } from '../sim/defs';
-import { shadeOf } from '../shadowview';
+import { PROP_CASTS, shadeOf } from '../shadowview';
 import { generate, type MapData } from '../sim/mapgen';
 import { makeZeppelinArt, zeppelinShape } from './art';
 import { installHubSounds } from './sound';
@@ -118,7 +118,7 @@ export class Ascent extends Phaser.Scene {
     const z = e / MS.zoom;
     const k = ease(z), lz = ease(z / 0.8), zk = ease(z / 0.7);
     const cam = this.cameras.main;
-    this.mesas?.update(cam.worldView, fixedLean(sunLean(AFTERNOON)));
+    this.mesas?.update(cam.worldView, fixedLean(sunLean(AFTERNOON)), PROP_CASTS);
     const f = v.from;
     // The lift keeps the speed it left the mission with and slows as it nears the belly (an ease-out); the view holds it in
     // the upper part of the frame, then lets go of it for the zeppelin as it docks.

@@ -79,6 +79,8 @@ import {
   nearestBot,
   newSpider,
 } from './spider';
+import { spawnPick } from './spawntiers';
+import { cancelGrub, grubStep, newGrub } from './caterpillar';
 import {
   bloodlust,
   boltSpeed,
@@ -123,7 +125,9 @@ export type FoeEvent =
   | { e: 'tell'; h: Hornet }
   | { e: 'dash'; h: Hornet }
   /** A hive woke (`by`: who or what woke it). */
-  | { e: 'wake'; n: Nest; by: string };
+  | { e: 'wake'; n: Nest; by: string }
+  /** A twisted halo drained a robot of oil (a Dark hit that draws no hit of its own): the view shows it. */
+  | { e: 'halo'; bot: Bot; dmg: number };
 
 export function wake(sim: Sim, n: Nest, by: string) {
   if (n.awake || n.dead) return;
@@ -224,6 +228,7 @@ export function spawnHornet(sim: Sim, x: number, y: number, nest = 0, elite = si
     kind, twisted, ...(menacing && { menacing }), boss: false, r: F.r, reach: F.reach, brain: brain(sim, tw.dash.every), gunT: F.ranged ? sim.r.range(...F.ranged.every) : 0, step, bz,
   };
   if (kind === 'spider') h.spider = newSpider(sim);
+  if (kind === 'caterpillar' && elite) h.grub = newGrub(h); // an elite caterpillar is tusked: the spiral, rear and lunge (`caterpillar.ts`)
   sim.engine.add(h, foeUnit(kind, { elite, twisted, menacing }));
   outfit(sim, h, o);
   twistFx(sim, h);
@@ -301,7 +306,9 @@ export function auras(sim: Sim, dt: number) {
     b.auraAcc += b.auraDps * sim.engine.stat(b, 'auraBurnTaken', 1) * dt;
     while (b.auraAcc >= 1) {
       b.auraAcc -= 1;
+      const before = b.hp;
       hurt(sim, b, 1, true, { type: 'dark' });
+      if (b.hp < before) sim.events.push({ e: 'halo', bot: b, dmg: before - b.hp }); // plating that stops it shows nothing
     }
   }
 }
@@ -380,9 +387,11 @@ export function hives(sim: Sim, dt: number) {
     n.spawnT = (interval / ramp) * sim.r.range(0.7, 1.3);
     const room = Math.max(1, Math.round(cap * (n.place ? SHRINE.hiveCap : 1) * Math.min(1, ramp))) - sim.hornets.filter((h) => h.nest === n.id && !h.dead).length;
     if (room <= 0) continue;
-    const first = spawnHornet(sim, n.x + sim.r.range(-10, 10), n.y - 10, n.id, undefined, undefined, mixKind(sim));
+    // The first expeditions pick their hives' kind and elites (`spawntiers.ts`).
+    const pick = spawnPick(sim, 'hive');
+    const first = spawnHornet(sim, n.x + sim.r.range(-10, 10), n.y - 10, n.id, pick?.elite, undefined, pick?.kind ?? mixKind(sim));
     // Some come in packs (`FOES[kind].pack`): the rest of it out of the same hive at once, as long as there is room.
-    for (let i = 1; i < Math.min(room, FOES[first.kind].pack ?? 1); i++) spawnHornet(sim, n.x + sim.r.range(-24, 24), n.y - 10 + sim.r.range(-12, 12), n.id, undefined, undefined, first.kind);
+    for (let i = 1; i < Math.min(room, FOES[first.kind].pack ?? 1); i++) spawnHornet(sim, n.x + sim.r.range(-24, 24), n.y - 10 + sim.r.range(-12, 12), n.id, spawnPick(sim, 'hive')?.elite, undefined, first.kind);
   }
 }
 
@@ -390,7 +399,7 @@ export function fly(sim: Sim, h: Hornet, dt: number) {
   h.cd -= dt;
   h.wob += dt;
   // A place's sleeper stands still; a calm one drifts to its spot and hunts no one (`placeparts.ts`).
-  if (h.sleep) return glide(sim, h, 0, 0, 0, 6, dt);
+  if (h.sleep || h.dazed) return glide(sim, h, 0, 0, 0, 6, dt);
   if (h.calm) {
     const dx = h.calm.x - h.x, dy = h.calm.y - h.y, d = Math.hypot(dx, dy) || 1, go = d > 6;
     h.target = 0;
@@ -451,6 +460,7 @@ export function fly(sim: Sim, h: Hornet, dt: number) {
     return glide(sim, h, 0, 0, 0, 8, dt); // it only drifts to a stop (a shove still moves it)
   }
   if (h.spider) return crawl(sim, h, dt, t);
+  if (h.grub) return grubStep(sim, h, dt, t);
   // P31: a spanner monkey with stolen scrap runs for the map's edge, hunting no one.
   const run = fleeing(sim, h, FOES[h.kind].speed * (sim.cfg.hornetSpeed / HORNET.speed) * sim.mobility(h));
   if (run) {
@@ -579,7 +589,7 @@ export function glide(sim: Sim, h: Hornet, dx: number, dy: number, sp: number, s
   // when the way to their target is not clear.
   // (The vein-crawlers swim through the rock: `walls`.)
   const walker = FOES[h.kind].ground && !FOES[h.kind].walls;
-  const tg = sim.dungeon && walker && sim.flow ? sim.bot(h.target) : undefined;
+  const tg = (sim.dungeon || sim.intro) && walker && sim.flow ? sim.bot(h.target) : undefined; // the intro's old works too
   if (tg && !tg.dead && !clearLine(sim.blocked, h.x, h.y, tg.x, tg.y, h.r * 0.8)) {
     const step = flowDir(sim, h.x, h.y);
     if (step) [dx, dy] = step;
@@ -593,7 +603,7 @@ export function glide(sim: Sim, h: Hornet, dx: number, dy: number, sp: number, s
         dy += ((h.y - o.y) / d) * 0.8;
       }
     }
-  const k = Math.min(1, dt * snap);
+  const k = h.fling?.door !== undefined && sim.time < h.fling.door ? 0 : Math.min(1, dt * snap); // the Open Door's burst: nothing steers it (`crash.ts`)
   h.vx += (dx * sp - h.vx) * k;
   h.vy += (dy * sp - h.vy) * k;
   if (sim.dungeon && walker) {
@@ -644,6 +654,7 @@ export function cancelWindup(sim: Sim, h: Hornet) {
     h.brain.t = 1;
   }
   if (h.spider && (h.spider.mode === 'tellPounce' || h.spider.mode === 'tellWeb')) h.spider.mode = 'stalk';
+  cancelGrub(h);
   cancelTier(h);
 }
 

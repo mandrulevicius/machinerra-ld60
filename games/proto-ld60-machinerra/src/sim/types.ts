@@ -67,6 +67,7 @@ import type {
   RuinKind,
   Spot,
 } from './mapgen';
+import type { HudId, OnboardEvent } from './onboard';
 import {
   type OracleEvent,
   oracle,
@@ -80,6 +81,7 @@ import type { Sim } from './sim';
 import type { SiteKind } from './sites';
 import type { SpecId } from './specs';
 import type { SpiderState } from './spider';
+import type { GrubEvent, GrubState } from './caterpillar';
 import type { SupportEvent } from './support';
 import type {
   Blade,
@@ -185,6 +187,8 @@ export interface Bot {
   fling?: BotFling;
   /** A Stalker that is hiding (`botskills.ts` `stealthStep`): foes do not see it until it strikes. */
   hidden?: boolean;
+  /** Wears spider legs (P53, `path.ts` `climbable`): it walks onto rock, shoots 20% farther from it, and a cable does not hold it. Set by `Sim.dress`. */
+  climbs?: boolean;
 }
 
 /** What a hornet is doing besides flying at its target: a twisted one's dash (tell, go), a boss's attacks. */
@@ -260,6 +264,8 @@ export interface Hornet {
   rimIn?: boolean;
   /** A spider's own state (`spider.ts`): its mode, heading, lift and leap. */
   spider?: SpiderState;
+  /** The tusked caterpillar's own state (`caterpillar.ts`): its attack's mode, head, jaw, coil and lunge. */
+  grub?: GrubState;
   /** A boss in its second form (`BossDef.phase2`), and when it may next try to change (after a kick stopped it). */
   phase?: 1 | 2;
   shiftAt?: number;
@@ -296,6 +302,8 @@ export interface Hornet {
   backBy?: number;
   /** Asleep, owned by this place (`placeparts.ts`, shared mechanic A): it stands still until a hit or a noise near it. */
   sleep?: PlaceId;
+  /** Dazed for good (the intro's first Crawlcams, `intro.ts`): it cannot move or attack, but a kick still sends it flying. */
+  dazed?: true;
   /** Calm (Where Hornets Go's old hornets): it hunts no one, crews leave it be, it drifts to `to` at `speed` px/s. */
   calm?: { x: number; y: number; speed: number };
   /** P31's biome kinds (`beasts.ts`): its beast mods (D32), the Mud tank's timer, a Grounded officer's charge, a monkey's stolen scrap and the edge it runs for, a bleater's rearing to scream and its herd's next scream. */
@@ -441,6 +449,8 @@ export interface Shot {
   web?: boolean;
   /** Flies over rock and standing props (Over the Rocks: a marksman's shot at a Marked foe). */
   over?: boolean;
+  /** Fired from rock by a legged robot (P53): it flies over the rock a robot may climb, as it must to leave the mesa it stands on. */
+  high?: boolean;
   /** An enemy's shot that leaves a patch where it ends (`sim/tiers.ts`), applies this status to the robot it hits, or is a returning blade. */
   lay?: Lay;
   /** A twisted drone's bolt: it comes apart into smaller ones when its flight ends (`tiers.ts` `landed`). */
@@ -507,8 +517,12 @@ export type SimEvent =
   | { e: 'ai'; bot: Bot; what: AiWhat; x?: number; y?: number; to?: number; why?: string }
   /** A spider: climbs in over the rim, winds up (`tellWeb`, `tellPounce`), spits a cable, leaps, lands (`hits` robots struck at x, y), snares `bot`. */
   | { e: 'spider'; what: 'drop' | 'tellWeb' | 'web' | 'tellPounce' | 'leap' | 'land' | 'snare'; h: Hornet; x?: number; y?: number; bot?: Bot; hits?: number }
+  /** The tusked caterpillar (`caterpillar.ts`): the spiral starts, the head lifts, it rears (the lunge's end at x, y), lunges, bites `bot`, rests. */
+  | { e: 'grub'; what: GrubEvent; h: Hornet; x?: number; y?: number; bot?: Bot }
   /** A weapon found (`Sim.give`); `hand`: it went into the free secondary slot, else it is only owned. */
   | { e: 'found'; weapon: WeaponId; hand: boolean }
+  /** Mission 1's old works (`intro.ts`): the shovel taken, a room done, the den or the lift opened, a free respawn. */
+  | { e: 'intro'; what: 'shovel' | 'scrap' | 'tap' | 'bellows' | 'open' | 'lift' | 'respawn'; x?: number; y?: number }
   /** A repairer mended a robot (`from` mends `to`). */
   | { e: 'heal'; from: Bot; to: Bot }
   /** The mission changed phase (rising, done, lost). */
@@ -537,6 +551,7 @@ export type SimEvent =
   | FollowerEvent
   | LootEvent
   | ModEvent
+  | OnboardEvent
   | OracleEvent
   | PropEvent
   | SupportEvent
@@ -583,6 +598,10 @@ export interface SimOptions {
   dogName?: string;
   /** Where the Princess is (P58): home, she talks on the antenna; gone, her lines come through static (`princessvoice.ts`). */
   wife?: 'none' | 'home' | 'stolen';
+  /** The HUD starts empty (`empty`) with only what the save revealed (`shown`); default everything is up (`sim/onboard.ts`). */
+  onboard?: { empty?: boolean; shown?: HudId[] };
+  /** Missions flown before this one (the hub's `missions`): what is taught by now (`lessons.ts`); unset, everything is. */
+  flown?: number;
   /** The Communicator's chassis from the workshop (`sim/bots.ts`). */
   chassis?: Stats;
   /** The titles earned (`hub/titles.ts`): their passives are sources. */
@@ -597,4 +616,6 @@ export interface SimOptions {
   quest?: QuestOpts;
   /** The robot types already found or built (`hub/workshop.ts` `knownTypes`): a land's type wreck holds nothing for one of them. Unset: none known. */
   types?: string[];
+  /** The names of every robot owned, wrecks included (`hub/workshop.ts`): level 1 lays Bellows at his wreck only when he is not among them (the intro mends him). */
+  owned?: string[];
 }

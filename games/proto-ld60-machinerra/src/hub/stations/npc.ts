@@ -8,7 +8,9 @@ import { buildStation, economy } from '../economy';
 import { DONE, stepOf, type Flags, type Talk } from '../dialog';
 import { LINES, isOpen } from '../lines';
 import { factsFor } from '../talk';
-import { lineSave, talkSave, titleSave } from '../talkslice';
+import { bondSave, lineSave, talkSave, titleSave } from '../talkslice';
+import { BONDS, bondOf, giftWaiting } from '../bonds';
+import { bondHtml } from '../bondview';
 import { openLots, type Slot } from '../layout';
 import { esc, tabbed } from '../panels';
 import { PERKS, npc, claim, stationCost, type HubState, type NpcDef, type PerkId } from '../state';
@@ -91,19 +93,20 @@ const offerRow = (name: string, text: string, state: string, cls = '') =>
   `<div class="hb-offer ${cls}"><div class="hb-offer__what"><b>${esc(name)}</b><span>${promptHtml(text)}</span></div><em>${state}</em></div>`;
 
 /**
- * The relationship gauge (quests.md): one tooth per step of the NPC's story line, lit when the step is done; under it what is next, or what
- * it waits for (the lock). Empty for an NPC with no story line.
+ * The relationship gauge (P52, `bonds.ts`): five teeth round a cog, one lit per quest handed in to them, the step's name under it; beside
+ * it what is next in their story line, or what it waits for (the lock), or that a gift waits. A tooth lit since it was last drawn pops once.
  */
 export function gaugeHtml(id: string, talk: Talk, facts: Flags): string {
+  if (!BONDS[id]) return '';
+  const b = bondSave.get(), n = bondOf(b, id);
   const l = LINES[`${id}.story`];
-  if (!l) return '';
-  const step = stepOf(talk, `${id}.story`);
-  const done = step === DONE ? l.steps.length : Math.max(0, step - 1);
-  const cur = step > 0 && step !== DONE ? l.steps[step - 1] : null;
+  const step = l ? stepOf(talk, `${id}.story`) : DONE;
+  const cur = l && step > 0 && step !== DONE ? l.steps[step - 1] : null;
   const lock = cur && !isOpen(cur, talk, facts) ? lineText(cur.lock?.[0]) : '';
-  const note = step === DONE ? 'Their story is told.' : !cur ? 'Ask them for work, and they will tell you more.' : lock ? `Waiting: ${lock}` : `Next: ${cur.task}`;
-  const teeth = l.steps.map((_, i) => `<i class="hb-tooth${i < done ? ' is-lit' : ''}"></i>`).join('');
-  return `<div class="hb-story" title="Their story with you"><span class="hb-story__teeth">${teeth}</span><span class="hb-story__note">${esc(note)}</span></div>`;
+  const note = giftWaiting(n, id, talk.flags) ? 'They have something for you: talk to them.' : !l ? '' : step === DONE ? 'Their story is told.' : !cur ? 'Ask them for work, and they will tell you more.' : lock ? `Waiting: ${lock}` : `Next: ${cur.task}`;
+  const fresh = Math.max(0, n - (b.shown[id] ?? 0));
+  if (fresh) bondSave.set({ ...b, shown: { ...b.shown, [id]: n } });
+  return bondHtml(id, n, note, fresh);
 }
 const lineText = (l: string | { t: string } | undefined) => (l === undefined ? '' : typeof l === 'string' ? l : l.t);
 

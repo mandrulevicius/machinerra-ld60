@@ -2,14 +2,12 @@
  * The inventory (I), in a mission and aboard: Laimonas's design (games/ludum-dare-60/docs/inventory.md). DOM over the
  * canvas, built from the kit's components (`.ui-panel`, `.ui-tabs`, `.ui-slot`, `.ui-btn`) and restyled by the theme.
  *
- * Tabs: **Communicator** (his eight slots, his stats and skills, his items), **Underlings** (each crew's four sockets:
- * every bot of that role wears them), **Cards** (the punch cards, `hub/research.ts`: his three slots and each type's one show on the
- * Communicator and Underlings tabs too; fitted aboard only), **Materials** (what crafting spends: on you and in the stores) and **Workbench**
- * (every recipe; crafting only aboard). Filters (a search box, tags, quality, the slot picked) narrow every list: the
+ * Tabs: **Dry dock** (`dock/dockview.ts`, its own screen: the Communicator's and each robot type's slots, their cards, the robots;
+ * the scene attaches it, `attachDock`), **Cards** (the punch cards, `hub/research.ts`: his three slots and each type's one; fitted aboard
+ * only), **Stats**, **Materials** (what crafting spends: on you and in the stores) and **Workbench** (every recipe; crafting only aboard). Filters (a search box, tags, quality, the slot picked) narrow every list: the
  * search finds an item by its name or by what it is made of (`searchHit`), and suggests names as you type (`suggest`, drawn in the theme, not the browser's list); an item's border and
  * name take its quality's colour (`--q-<quality>`, theme.css). The scene owns the key (I) and Esc; this owns the rest.
- * Drag and drop (Laimonas): an item onto a slot wears it, a worn one onto the list takes it off; a card onto a card slot
- * fits it, a fitted one onto the collection takes it out. `data-drag` marks what can be dragged, `data-drop` where it lands.
+ * Drag and drop (Laimonas): a card onto a card slot fits it, a fitted one onto the collection takes it out. `data-drag` marks what can be dragged, `data-drop` where it lands.
  * Rules are `sim/gear.ts`; the gear and loadout are written through `gear` (`hub/carry.ts`).
  */
 import { command } from '../../../harness/dev/commands';
@@ -18,15 +16,15 @@ import { PARTS, WEAPONS, type BiomeId, type PartKind } from './sim/defs';
 import { FITS_NAMES, MODS, MOD_IDS, isMod } from './sim/defs/mods';
 import {
   BOT_SLOTS, COMM_SLOTS, CREW_ROLES, ITEMS, LANDS, QUALITIES, QUALITY_ORDER, SKILLS, SLOT_NAMES, STATS, TAGS, TAG_NAMES,
-  TUNE_UP, addItem, addLug, craft, craftable, equip, fitMod, fitsBot, fitsBotSlot, fitsComm, fitsCommSlot, fittedOn, gearMods, hasAntenna, itemIds, landsOf, lugCount, matches, modFitsWeapon, modsOn, owned, ownedMods, salvage, scaled, scrapCost, shortfall, suggest, tunable, unequip, unfitMod, wornAt,
-  type BotSlot, type CommSlot, type CrewRole, type Filter, type Gear, type ItemId, type Owned, type Quality, type SearchTerm, type Stats, type Tag, type Wallet,
+  TUNE_UP, addItem, addLug, craft, craftable, equip, fitMod, fitsBot, fittedOn, hasAntenna, itemIds, landsOf, lugCount, matches, modFitsWeapon, owned, ownedMods, salvage, scaled, scrapCost, shortfall, suggest, tunable, unequip, unfitMod, wornAt,
+  type BotSlot, type CommSlot, type CrewRole, type Gear, type ItemId, type Owned, type Quality, type SearchTerm, type Stats, type Tag, type Wallet,
 } from './sim/gear';
 import { iconUrl } from './gearart';
 import { KINDS, itemKind } from './itemkinds';
 import { icon } from '../../../harness/ui';
 import { gear as gearSlice } from './hub/carry';
 import { fittedPick } from './hub/questpay';
-import { COMM_SLOT_KEYS, POOL_NAMES, cardOf, fit as fitCard, fittedAt, slotName, slotsFor, typeSlot, unfit as unfitCard, type Card, type Research, type SlotKey } from './hub/research';
+import { FOURTH_SLOT, POOL_NAMES, cardOf, commKeys, fit as fitCard, fittedAt, slotName, slotsFor, typeSlot, unfit as unfitCard, type Card, type Research, type SlotKey } from './hub/research';
 import { researchSave } from './hub/researchslice';
 import { STOCK, holesSvg, pcClass, pcStyle } from './hub/punchcard';
 import { isBotType } from './sim/specs';
@@ -35,12 +33,11 @@ import type { Subject } from './statsrows';
 import './inventory.css';
 import './punchcard.css';
 
-export type InvTab = 'comm' | 'crew' | 'cards' | 'stats' | 'mats' | 'bench';
-/** Two clicks on one item within this many ms wear it (a guess). */
-const DOUBLE_MS = 300;
-const TABS: [InvTab, string][] = [['comm', 'Communicator'], ['crew', 'Underlings'], ['cards', 'Cards'], ['stats', 'Stats'], ['mats', 'Materials'], ['bench', 'Workbench']];
+export type InvTab = 'dock' | 'cards' | 'stats' | 'mats' | 'bench';
+const TABS: [InvTab, string][] = [['dock', 'Dry dock'], ['cards', 'Cards'], ['stats', 'Stats'], ['mats', 'Materials'], ['bench', 'Workbench']];
+/** The Dry dock as the inventory's first tab: the scene makes it (`dock/dockview.ts`) and attaches it. */
+export interface DockTab { open: boolean; show(at?: { from?: 'forge' | 'clinic' | 'workshop' | 'key' | 'dev' }): void; hide(): void; refresh(): void; state(): unknown }
 const ROLE_NAMES: Record<CrewRole, string> = { gatherer: 'Gatherers', guard: 'Guards', repairer: 'Repairers', mule: 'Mules', marksman: 'Marksmen', boilermancer: 'Boilermancers', lamplighter: 'Lamplighters', stalker: 'Stalkers' };
-const ROLE_ONE: Record<CrewRole, string> = { gatherer: 'gatherer', guard: 'guard', repairer: 'repairer', mule: 'mule', marksman: 'marksman', boilermancer: 'boilermancer', lamplighter: 'lamplighter', stalker: 'stalker' };
 /** The land filter's chips: the land an item's weapon or parts come from (`landsOf`). */
 const LAND_NAMES: Record<BiomeId, string> = { desert: 'Desert', jungle: 'Rustwood', city: 'Hollow City', mountains: 'Frostspine', demon: 'Wastes', ether: 'Ether' };
 
@@ -79,14 +76,14 @@ const kindBadge = (id: ItemId) => {
   const k = itemKind(id);
   return k ? `<span class="inv-kind" title="${KINDS[k].name}">${icon(KINDS[k].icon)}</span>` : '';
 };
-/** A small spanner in a tile's corner: Gasket has tuned this piece (`Owned.tuned`). */
-const tunedBadge = `<span class="inv-tuned" title="Tuned +${Math.round((TUNE_UP.mult - 1) * 100)}%">${icon('wrench')}</span>`;
 const statLines = (s: Stats, cls = '') =>
   (Object.entries(s) as [keyof typeof STATS, number][]).map(([k, v]) => `<li class="${v < 0 ? 'is-bad' : ''} ${cls}">${fmt(k, v)}</li>`).join('');
 
 export class Inventory {
   open = false;
-  tab: InvTab = 'comm';
+  tab: InvTab = 'dock';
+  /** The Dry dock (the first tab), once the scene has attached it. */
+  dock: DockTab | null = null;
   role: CrewRole = 'guard';
   /** The picked item (an owned uid) or recipe (an item id on the workbench). */
   pick: number | null = null;
@@ -105,10 +102,8 @@ export class Inventory {
   private note = '';
   /** The item whose Salvage was pressed once and waits for the second press (salvage cannot be undone, as taking a robot apart cannot). */
   private armed: number | null = null;
-  /** The last item clicked, for the double-click. */
-  private lastItem: { uid: number; at: number } | null = null;
-  /** What is being dragged (an item's uid or a card's id), while a drag lasts. */
-  private dragging: { kind: 'item'; uid: number } | { kind: 'card'; id: string } | null = null;
+  /** The card being dragged (its id), while a drag lasts. */
+  private dragging: { kind: 'card'; id: string } | null = null;
   /** Why the last action failed (the dev commands report it). */
   get lastNote() {
     return this.note;
@@ -116,15 +111,33 @@ export class Inventory {
 
   constructor(private root: HTMLElement, private host: InvHost) {}
 
+  attachDock(d: DockTab) {
+    this.dock = d;
+  }
+
   toggle(tab?: InvTab) {
     if (this.open && (!tab || tab === this.tab)) this.hide();
     else this.show(tab);
   }
 
-  show(tab?: InvTab) {
+  /** Open the Dry dock on a way in (a station, the I key, dev): `dock.ts` `openAt` says where. */
+  showDock(from: 'forge' | 'clinic' | 'workshop' | 'key' | 'dev' = 'key') {
+    this.show('dock', from);
+  }
+
+  show(tab?: InvTab, from?: 'forge' | 'clinic' | 'workshop' | 'key' | 'dev') {
     if (tab) this.tab = tab;
+    if (this.tab === 'dock' && !this.dock) this.tab = 'cards';
     if (!this.open) this.host.sound('open');
     this.open = true;
+    if (this.tab === 'dock') {
+      // The dock is its own screen: the inventory's panel goes while it shows.
+      this.el?.remove();
+      this.el = null;
+      this.dock!.show(from ? { from } : undefined);
+      return;
+    }
+    this.dock?.hide();
     if (!this.el) {
       this.el = document.createElement('div');
       this.el.className = 'ui-backdrop inv-backdrop';
@@ -155,6 +168,7 @@ export class Inventory {
     if (!this.open) return;
     this.open = false;
     this.host.sound('close');
+    this.dock?.hide();
     this.el?.remove();
     this.el = null;
     this.reveal = null;
@@ -162,13 +176,15 @@ export class Inventory {
 
   /** Something changed behind the open panel (a weapon found): draw it again. */
   refresh() {
-    if (this.open) this.render();
+    if (!this.open) return;
+    if (this.tab === 'dock') this.dock?.refresh();
+    else this.render();
   }
 
   /** For `debugState()` and the dev commands. */
   state() {
     const g = gearSlice.get();
-    return { open: this.open, tab: this.tab, role: this.role, pick: this.pick, recipe: this.recipe, filter: this.filter, lugFor: this.lugFor, lugs: lugCount(g), items: g.items.length, stats: this.statsView.state() };
+    return { open: this.open, tab: this.tab, role: this.role, pick: this.pick, recipe: this.recipe, filter: this.filter, lugFor: this.lugFor, lugs: lugCount(g), items: g.items.length, stats: this.statsView.state(), dock: this.dock?.state() ?? null };
   }
 
   /** The Stats tab as text (dev `stats`): open on a subject (`who`) and read its rows. */
@@ -293,52 +309,20 @@ export class Inventory {
     this.armed = null;
     switch (a) {
       case 'close': return this.hide();
-      case 'tab': this.tab = v as InvTab; this.pick = null; this.recipe = null; this.cardSlot = null; this.lugFor = null; f.slot = undefined; this.reveal = null; break;
+      case 'tab':
+        if (v === 'dock') return this.show('dock');
+        this.tab = v as InvTab; this.pick = null; this.recipe = null; this.cardSlot = null; this.lugFor = null; f.slot = undefined; this.reveal = null; break;
       case 'cslot': this.cardSlot = this.tab === 'cards' && this.cardSlot === v ? null : v; this.cardId = researchSave.get().fit[v] ?? (this.cardSlot ? null : this.cardId); this.tab = 'cards'; break;
       case 'cpick': this.cardId = v; break;
       case 'cfit': { const [id, slot] = v.split('|'); this.putCard(id, slot); return; }
       case 'cout': this.putCard(v, null); return;
       case 'cclear': this.cardSlot = null; break;
-      case 'role': this.role = v as CrewRole; f.slot = undefined; break;
       case 'who': this.statsView.pick = v; break;
       case 'tag': f.tags = f.tags.includes(v as Tag) ? f.tags.filter((x) => x !== v) : [...f.tags, v as Tag]; break;
       case 'land': f.lands = f.lands.includes(v as BiomeId) ? f.lands.filter((x) => x !== v) : [...f.lands, v as BiomeId]; break;
       case 'q': f.qualities = f.qualities.includes(v as Quality) ? f.qualities.filter((x) => x !== v) : [...f.qualities, v as Quality]; break;
       case 'craftable': f.craftable = !f.craftable; break;
       case 'clear': this.filter = { text: '', tags: [], qualities: [], lands: [], craftable: false }; this.lugFor = null; break;
-      case 'slot': {
-        // A slot: show what fits it (again: show all); a filled slot also picks its item.
-        const s = v as CommSlot | BotSlot;
-        f.slot = f.slot === s ? undefined : s;
-        this.lugFor = null;
-        const g = gearSlice.get();
-        const uid = this.tab === 'comm' ? g.comm[s as CommSlot] : g.bots[this.role][s as BotSlot];
-        if (uid !== undefined && f.slot) this.pick = uid;
-        break;
-      }
-      case 'item': {
-        // The click redraws the panel, so the browser never sees a double-click on one element: catch it here, by item.
-        const uid = Number(v), twice = this.lastItem?.uid === uid && e.timeStamp - this.lastItem.at < DOUBLE_MS;
-        this.lastItem = twice ? null : { uid, at: e.timeStamp };
-        this.pick = uid;
-        this.reveal = null;
-        if (twice) {
-          this.wearFirst(uid);
-          return this.render();
-        }
-        break;
-      }
-      case 'lug': {
-        // A lug on a weapon: show the mods that fit it (again: show all); a filled one also picks its mod.
-        const [w, i] = v.split(':').map(Number);
-        const g = gearSlice.get();
-        const mod = owned(g, g.items.find((o) => o.uid === w)?.mods?.[i]);
-        this.lugFor = this.lugFor === w && (this.pick === mod?.uid || !mod) ? null : w;
-        f.slot = undefined;
-        this.pick = this.lugFor !== null ? mod?.uid ?? w : null;
-        break;
-      }
-      case 'lugclear': this.lugFor = null; break;
       case 'fit': { const [m, w] = v.split(':').map(Number); this.fit(m, w); return; }
       case 'unfit': this.unfit(Number(v)); return;
       case 'recipe': this.recipe = v as ItemId; this.reveal = null; break;
@@ -347,7 +331,6 @@ export class Inventory {
         this.wear(this.pick!, who as 'comm' | CrewRole, slot as CommSlot | BotSlot);
         return;
       }
-      case 'off': this.takeOff(this.pick!); return;
       case 'craft': this.make(v as ItemId); return;
       case 'salvage': {
         // The first press asks, the second (on the same item) does it.
@@ -462,7 +445,7 @@ export class Inventory {
     }
   }
   private body(g: Gear, st: Stores) {
-    return this.tab === 'comm' ? this.commTab(g) : this.tab === 'crew' ? this.crewTab(g) : this.tab === 'cards' ? this.cardsTab() : this.tab === 'stats' ? this.statsView.body(this.host.stats?.() ?? []) : this.tab === 'mats' ? this.matsTab(st) : this.benchTab(g, st);
+    return this.tab === 'cards' ? this.cardsTab() : this.tab === 'stats' ? this.statsView.body(this.host.stats?.() ?? []) : this.tab === 'mats' ? this.matsTab(st) : this.benchTab(g, st);
   }
 
   // ---- drag and drop ----
@@ -471,7 +454,7 @@ export class Inventory {
     const t = (e.target as HTMLElement).closest?.('[data-drag]') as HTMLElement | null;
     if (!t) return;
     const v = t.dataset.drag!;
-    this.dragging = v.startsWith('item|') ? { kind: 'item', uid: Number(v.slice(5)) } : { kind: 'card', id: v.slice(5) };
+    this.dragging = { kind: 'card', id: v.slice(5) };
     e.dataTransfer?.setData('text/plain', v);
     if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
     this.hideSuggest();
@@ -491,66 +474,38 @@ export class Inventory {
     this.dragEnd();
     if (!t || !d || !this.accepts(t.dataset.drop!, d)) return;
     e.preventDefault();
-    const [kind, a, b] = t.dataset.drop!.split('|');
-    if (d.kind === 'item') {
-      this.pick = d.uid;
-      this.reveal = null;
-      if (kind === 'wear') this.wear(d.uid, a as 'comm' | CrewRole, b as CommSlot | BotSlot);
-      else this.takeOff(d.uid);
-    } else this.putCard(d.id, kind === 'card' ? a : null);
+    const [kind, a] = t.dataset.drop!.split('|');
+    this.putCard(d.id, kind === 'card' ? a : null);
   }
   private dragEnd() {
     this.dragging = null;
     this.el?.querySelectorAll('.is-target, .is-over').forEach((d) => d.classList.remove('is-target', 'is-over'));
   }
-  /** Can what is dragged land here: `wear|<who>|<slot>`, `off` (the item list), `card|<slot key>`, `cout` (the collection). */
+  /** Can what is dragged land here: `card|<slot key>`, `cout` (the collection). */
   private accepts(drop: string, d = this.dragging) {
     if (!d) return false;
-    const [kind, a, b] = drop.split('|');
-    if (d.kind === 'item') {
-      const g = gearSlice.get();
-      const o = owned(g, d.uid);
-      if (!o) return false;
-      const at = wornAt(g, d.uid);
-      if (kind === 'off') return !!at && !(at.who === 'comm' && at.slot === 'primary');
-      if (kind !== 'wear' || (at?.who === a && at.slot === b)) return false;
-      return a === 'comm' ? fitsCommSlot(ITEMS[o.id], b as CommSlot) : fitsBotSlot(ITEMS[o.id], b as BotSlot, a as CrewRole);
-    }
+    const [kind, a] = drop.split('|');
     const r = researchSave.get();
     const c = cardOf(d.id);
     if (kind === 'cout') return !!fittedAt(r, d.id);
-    return kind === 'card' && !!c && slotsFor(c).includes(a as SlotKey) && fittedAt(r, d.id) !== a;
-  }
-
-  /** Double-click an item: wear it in the first slot it fits (on the Underlings tab, on the crew shown). */
-  private wearFirst(uid: number) {
-    const g = gearSlice.get();
-    const o = owned(g, uid);
-    if (!o) return;
-    const d = ITEMS[o.id];
-    if (d.mod) {
-      // A mod: onto the lug picked, else the first weapon in hand it fits.
-      const w = this.lugFor !== null ? owned(g, this.lugFor) : [g.comm.primary, g.comm.secondary].map((u) => owned(g, u)).find((x) => x && modFitsWeapon(o, x));
-      if (w) this.fit(o.uid, w.uid);
-      return;
-    }
-    const t = this.wearTarget(g, o);
-    if (t) this.wear(o.uid, t.who, t.slot);
+    return kind === 'card' && !!c && slotsFor(c).includes(a as SlotKey) && (a !== FOURTH_SLOT || !!r.fourth) && fittedAt(r, d.id) !== a;
   }
 
   /**
-   * Where a non-mod item goes with one press: on the Communicator tab his weapon slot or body part, on the Underlings tab the crew shown.
-   * On the Workbench (a crafted piece): his slot for a weapon or body part, else the robot type shown if the piece fits it, else the first type it is made for.
+   * Where a crafted piece goes with one press (the Workbench's Wear): his slot for a weapon or body part, else the robot type last
+   * shown if the piece fits it, else the first type it is made for.
    */
   private wearTarget(g: Gear, o: Owned): { who: 'comm' | CrewRole; slot: CommSlot | BotSlot } | null {
     const d = ITEMS[o.id];
-    const onComm = this.tab === 'comm' || (this.tab === 'bench' && !!(d.weapon || d.comm));
+    const onComm = !!(d.weapon || d.comm);
     if (onComm) {
       if (d.weapon) return { who: 'comm', slot: this.filter.slot === 'secondary' || (g.comm.primary !== undefined && !wornAt(g, o.uid)) ? 'secondary' : 'primary' };
+      // Gasket's Second Heart (P52): a core goes in the second slot when the first is taken by another piece.
+      if (d.comm === 'core' && g.heart && g.comm.core !== undefined && g.comm.core !== o.uid && g.comm.heart !== o.uid) return { who: 'comm', slot: 'heart' };
       return d.comm ? { who: 'comm', slot: d.comm } : null;
     }
     if (!d.bot) return null;
-    const role = this.tab === 'crew' ? this.role : fitsBot(d, this.role) ? this.role : CREW_ROLES.find((r) => fitsBot(d, r));
+    const role = fitsBot(d, this.role) ? this.role : CREW_ROLES.find((r) => fitsBot(d, r));
     return role && fitsBot(d, role) ? { who: role, slot: d.bot } : null;
   }
 
@@ -597,94 +552,6 @@ export class Inventory {
     </div>`;
   }
 
-  /** A weapon's lugs as brass pips, each filled with the icon of the mod fitted there (P57); pressing one shows the mods that fit it. */
-  private lugRow(g: Gear, w: Owned) {
-    const mods = modsOn(g, w.uid);
-    return `<span class="inv-lugs">${Array.from({ length: lugCount(g) }, (_, i) => {
-      const m = mods[i];
-      return `<button class="inv-lug ${m ? 'is-filled' : ''} ${this.lugFor === w.uid ? 'is-selected' : ''}" data-a="lug" data-v="${w.uid}:${i}" title="${esc(m ? `${ITEMS[m.id].name} (lug ${i + 1})` : `Lug ${i + 1}: empty. Press to see the mods that fit ${ITEMS[w.id].name}`)}" aria-label="Lug ${i + 1}">${m ? `<img src="${iconUrl(m.id)}" alt="">` : ''}</button>`;
-    }).join('')}</span>`;
-  }
-
-  private slotHtml(g: Gear, uid: number | undefined, s: CommSlot | BotSlot, hint = '') {
-    const o = owned(g, uid);
-    const who = this.tab === 'comm' ? 'comm' : this.role;
-    const on = this.filter.slot === s;
-    const off = o && !ITEMS[o.id].needs ? '' : o && !hasAntenna(g) ? ' is-idle' : '';
-    const lugs = this.tab === 'comm' && o && ITEMS[o.id].weapon && (s === 'primary' || s === 'secondary') ? this.lugRow(g, o) : '';
-    return `<div class="inv-slotwrap ${lugs ? 'has-lugs' : ''}"><button class="ui-slot inv-slot ${o ? `q-${o.q}` : 'is-empty'} ${on ? 'is-selected' : ''}${off}" data-a="slot" data-v="${s}" data-drop="wear|${who}|${s}"${o ? ` draggable="true" data-drag="item|${o.uid}"` : ''} title="${esc(o ? ITEMS[o.id].name : SLOT_NAMES[s])}">
-      ${o ? `<img src="${iconUrl(o.id)}" alt="">${o.tuned ? tunedBadge : ''}` : ''}<span class="inv-slot__name">${SLOT_NAMES[s]}${hint}</span></button>${lugs}</div>`;
-  }
-
-  /** A weapon tile shows its filled lugs (the mods' icons, small); a mod tile says which weapon it is fitted on. */
-  private tileLugs(g: Gear, o: Owned) {
-    const d = ITEMS[o.id];
-    if (d.weapon) return o.mods?.length ? `<span class="inv-item__lugs">${modsOn(g, o.uid).map((m) => `<img src="${iconUrl(m.id)}" alt="" title="${esc(ITEMS[m.id].name)}">`).join('')}</span>` : '';
-    const on = d.mod ? fittedOn(g, o.uid) : undefined;
-    return on ? `<span class="inv-item__worn">${esc(ITEMS[on.id].name.split(' ')[0])}</span>` : '';
-  }
-
-  private grid(g: Gear, items: Owned[], empty: string) {
-    if (!items.length) return `<p class="inv__empty">${empty}</p>`;
-    return `<div class="inv__grid">${items
-      .map((o) => {
-        const at = wornAt(g, o.uid);
-        return `<button class="ui-slot inv-item q-${o.q} ${this.pick === o.uid ? 'is-selected' : ''}" data-a="item" data-v="${o.uid}" draggable="true" data-drag="item|${o.uid}" title="${esc(ITEMS[o.id].mod ? ITEMS[o.id].name : `${QUALITIES[o.q].name} ${ITEMS[o.id].name}`)}">
-          <img src="${iconUrl(o.id)}" alt="">${kindBadge(o.id)}${o.tuned ? tunedBadge : ''}${at ? `<span class="inv-item__worn">${at.who === 'comm' ? 'worn' : ROLE_ONE[at.who]}</span>` : ''}${this.tileLugs(g, o)}</button>`;
-      })
-      .join('')}</div>`;
-  }
-
-  private filtered(g: Gear, who: 'comm' | 'bot', role?: CrewRole) {
-    const f: Filter = { text: this.filter.text, tags: this.filter.tags, qualities: this.filter.qualities, lands: this.filter.lands, who, slot: this.filter.slot };
-    const lugW = this.lugFor !== null && who === 'comm' ? owned(g, this.lugFor) : undefined;
-    return g.items
-      .filter((o) => matches(o.id, o.q, f) && (who === 'comm' ? (lugW ? !!ITEMS[o.id].mod && modFitsWeapon(o, lugW) : fitsComm(ITEMS[o.id]) || !!ITEMS[o.id].mod) : fitsBot(ITEMS[o.id], role)))
-      .sort((a, b) => QUALITY_ORDER.indexOf(b.q) - QUALITY_ORDER.indexOf(a.q) || ITEMS[a.id].name.localeCompare(ITEMS[b.id].name));
-  }
-
-  private commTab(g: Gear) {
-    const m = gearMods(g);
-    const skills = [m.dash && `<li>${promptHtml('{dash}')} <b>${SKILLS[m.dash].name}</b> <span>${SKILLS[m.dash].steam} steam</span></li>`, m.skill && `<li>${promptHtml('{skill}')} <b>${SKILLS[m.skill].name}</b> <span>${SKILLS[m.skill].steam} steam, ${SKILLS[m.skill].cd} s</span></li>`].filter(Boolean).join('');
-    const list = this.filtered(g, 'comm');
-    return `
-      <div class="inv__col inv__doll">
-        <div class="inv__slots">${COMM_SLOTS.map((s) => this.slotHtml(g, g.comm[s], s, s === 'primary' ? ' ' + promptHtml('{fire}') : s === 'secondary' ? ' ' + promptHtml('{fire2}') : '')).join('')}</div>
-        <h3 class="inv__h">What you wear gives</h3>
-        <ul class="inv__stats">${statLines(m.comm) || '<li class="inv__dim">Nothing yet.</li>'}</ul>
-        ${Object.keys(crewShare(g)).length ? `<h3 class="inv__h">Every bot gets</h3><ul class="inv__stats">${statLines(crewShare(g))}</ul>` : ''}
-        <h3 class="inv__h">Skills</h3>
-        <ul class="inv__skills">${skills || '<li class="inv__dim">Rear pieces give a dash, pack pieces a skill.</li>'}</ul>
-        <h3 class="inv__h">Punch cards</h3>
-        ${this.cardSlots(COMM_SLOT_KEYS)}
-      </div>
-      <div class="inv__col inv__list" data-drop="off">${this.lugChip(g)}${this.filters()}<div class="inv__hits">${this.grid(g, list, this.filter.text.trim() ? 'Nothing you own matches the search.' : this.lugFor !== null ? 'You own no mod that fits. Hob teaches the recipes at the Workbench; the wild ones are found.' : 'Nothing here fits. Craft something at the Workbench.')}</div></div>
-      <div class="inv__col inv__card">${this.card(g)}</div>`;
-  }
-
-  /** The note above the list while a lug is picked (P57). */
-  private lugChip(g: Gear) {
-    const w = this.lugFor !== null ? owned(g, this.lugFor) : undefined;
-    return w ? `<div class="inv__chips"><button class="inv-chip inv-chip--clear" data-a="lugclear">Showing the mods that fit the ${esc(ITEMS[w.id].name)}: show all</button></div>` : '';
-  }
-
-  private crewTab(g: Gear) {
-    const m = gearMods(g);
-    const list = this.filtered(g, 'bot', this.role);
-    return `
-      <div class="inv__col inv__doll">
-        <div class="inv__roles">${CREW_ROLES.map((r) => `<button class="inv-chip ${this.role === r ? 'is-on' : ''}" data-a="role" data-v="${r}">${ROLE_NAMES[r]}</button>`).join('')}</div>
-        <p class="inv__dim">Every ${this.role} wears these.</p>
-        <div class="inv__slots inv__slots--bot">${BOT_SLOTS.map((s) => this.slotHtml(g, g.bots[this.role][s], s)).join('')}</div>
-        ${isBotType(this.role) ? `<h3 class="inv__h">Punch card</h3>${this.cardSlots([typeSlot(this.role)])}` : ''}
-        <h3 class="inv__h">${ROLE_NAMES[this.role]} get</h3>
-        <ul class="inv__stats">${statLines(m.roles[this.role]) || '<li class="inv__dim">Nothing yet.</li>'}</ul>
-        ${m.auras.length ? `<h3 class="inv__h">Auras</h3><ul class="inv__stats">${m.auras.map((a) => `<li>${a.who === 'controller' ? 'You' : ROLE_NAMES[a.who]}: ${statLines(a.stats, 'inline')} within ${a.r} px</li>`).join('')}</ul>` : ''}
-      </div>
-      <div class="inv__col inv__list" data-drop="off">${this.filters()}<div class="inv__hits">${this.grid(g, list, this.filter.text.trim() ? 'Nothing you own matches the search.' : `Nothing for ${this.role}s yet. <button class="inv-link" data-a="tab" data-v="bench">Craft some at the Workbench.</button>`)}</div></div>
-      <div class="inv__col inv__card">${this.card(g)}</div>`;
-  }
-
   /** Card slots as rows: the slot's name and the card in it. Pressing one opens the Cards tab on it. */
   private cardSlots(keys: SlotKey[]) {
     const r = researchSave.get();
@@ -715,7 +582,7 @@ export class Inventory {
     return `
       <div class="inv__col inv__doll">
         <h3 class="inv__h">You</h3>
-        ${this.cardSlots(COMM_SLOT_KEYS)}
+        ${this.cardSlots(commKeys(researchSave.get()))}
         <h3 class="inv__h">Underlings</h3>
         ${this.cardSlots(typeKeys)}
         <p class="inv__dim">${aboard ? 'Press a slot to see what fits it, or drag a card onto one. A card is in one slot at a time; a keystone works party-wide and only one can be fitted.' : 'The slots are locked on the sands: fit your cards aboard the Wanderer.'}</p>
@@ -733,7 +600,7 @@ export class Inventory {
       const other = r.fit[k] && r.fit[k] !== c.id ? cardOf(r.fit[k]) : undefined;
       return `<button class="ui-btn ${now === k ? 'ui-btn--primary' : ''}" data-a="cfit" data-v="${c.id}|${k}"${aboard && now !== k ? '' : ' disabled'}>${slotName(k)}${k.startsWith('comm:') ? ' (you)' : ''}${other ? ` <small>swaps out ${esc(other.name)}</small>` : ''}</button>`;
     };
-    const keys = this.cardSlot && slotsFor(c).includes(this.cardSlot) ? [this.cardSlot] : slotsFor(c);
+    const keys = this.cardSlot && slotsFor(c).includes(this.cardSlot) ? [this.cardSlot] : slotsFor(c).filter((k) => k !== FOURTH_SLOT || r.fourth);
     return `<div class="${pcClass(c, 'mid')}" ${pcStyle(c)}>${STOCK}
         <span class="pc__head"><b class="pc__name">${esc(c.name)}</b></span>
         <em class="pc__tag">${POOL_NAMES[c.pool]} card${now ? `, fitted: ${slotName(now)}` : ', in the collection'}</em>
@@ -820,27 +687,6 @@ export class Inventory {
     return this.itemCard(g, o) + worn + act;
   }
 
-  /** The picked owned item's card, with what can be done with it here. */
-  private card(g: Gear) {
-    const o = owned(g, this.pick ?? undefined);
-    if (!o) return '<p class="inv__dim">Pick an item to see it. Click a slot to see only what fits it; double-click an item, or drag it onto a slot, to wear it.</p>';
-    const d = ITEMS[o.id];
-    if (d.mod) return this.modCard(g, o);
-    const at = wornAt(g, o.uid);
-    const btn = (who: string, slot: string, label: string) => `<button class="ui-btn" data-a="wear" data-v="${who}:${slot}">${label}</button>`;
-    const acts: string[] = [];
-    if (this.tab === 'comm') {
-      if (d.weapon) {
-        if (!(at?.who === 'comm' && at.slot === 'primary')) acts.push(btn('comm', 'primary', 'Primary'));
-        if (!(at?.who === 'comm' && at.slot === 'secondary')) acts.push(btn('comm', 'secondary', 'Secondary'));
-      } else if (d.comm && !(at?.who === 'comm')) acts.push(btn('comm', d.comm, 'Wear'));
-    } else if (d.bot && fitsBotSlot(d, d.bot, this.role) && !(at?.who === this.role)) acts.push(btn(this.role, d.bot, `Fit to ${ROLE_NAMES[this.role].toLowerCase()}`));
-    if (at && !(at.who === 'comm' && at.slot === 'primary')) acts.push('<button class="ui-btn ui-btn--faint" data-a="off">Take off</button>');
-    if (!at && this.host.where === 'hub') acts.push(`<button class="ui-btn ui-btn--faint" data-a="salvage">Salvage (${Math.floor(d.recipe.scrap / 2)} scrap)</button>`);
-    const lugs = d.weapon ? `<h3 class="inv__h">Lugs</h3><div class="inv-lugrow">${this.lugRow(g, o)}<span class="inv__dim">${lugCount(g)} lug${lugCount(g) > 1 ? 's' : ''}: a mod on each changes how the weapon works.</span></div>` : '';
-    return `${this.itemCard(g, o)}${lugs}${at ? `<p class="inv__dim">Worn: ${at.who === 'comm' ? 'by you' : `by every ${at.who}`}, ${SLOT_NAMES[at.slot].toLowerCase()}.</p>` : ''}<div class="inv__acts">${acts.join('')}</div>`;
-  }
-
   /** A picked mod: its rule, where it is fitted, and the weapons it can be fitted on (aboard only; the lugs are locked on the sands). */
   private modCard(g: Gear, o: Owned) {
     const d = ITEMS[o.id];
@@ -901,16 +747,6 @@ export class Inventory {
 
 const frac = (x: number) => x - Math.floor(x);
 
-/** What the crews get from what the Communicator wears (the crew-wide part of every role's stats). */
-function crewShare(g: Gear): Stats {
-  const out: Stats = {};
-  for (const s of COMM_SLOTS) {
-    const o = owned(g, g.comm[s]);
-    if (o && ITEMS[o.id].crew && (!ITEMS[o.id].needs || hasAntenna(g))) for (const [k, v] of Object.entries(scaled(ITEMS[o.id].crew, o.q, o.tuned)) as [keyof Stats, number][]) out[k] = (out[k] ?? 0) + v;
-  }
-  return out;
-}
-
 /**
  * The `gear` dev commands (both scenes): open the inventory on a tab, search it, give any item at any quality, wear it, fill the
  * stores for crafting, craft. `materials` needs the scene's `fill` (aboard it fills the stores, in a mission the pack).
@@ -923,7 +759,7 @@ export function gearCommands(inv: Inventory, fill: (scrap: number, parts: number
       if (tab === 'close') inv.hide();
       else inv.show((TABS.find(([id, n]) => id === tab || n.toLowerCase() === tab)?.[0] ?? undefined) as InvTab | undefined);
       return JSON.stringify(inv.state());
-    }, 'inv [comm|crew|mats|bench|close]: open the inventory (on a tab) or close it', { ...g, args: () => [...TABS.map(([id]) => id), 'close'] }),
+    }, 'inv [dock|cards|stats|mats|bench|close]: open the inventory (on a tab; dock: the Dry dock) or close it', { ...g, args: () => [...TABS.map(([id]) => id), 'close'] }),
     command('stats', ([who]) => inv.statsReport(who), 'stats [comm|<type>|<robot name>]: open the Stats tab on one and print its rows (value, base, what changes it) and the damage types', g),
     command('search', (words) => {
       inv.filter.text = words.join(' ');
@@ -979,7 +815,8 @@ export function gearCommands(inv: Inventory, fill: (scrap: number, parts: number
     command('lugs', ([n]) => `${inv.setLugs(Number(n) >= 2 ? 2 : 1)} lug(s) on every weapon`, 'lugs [1|2]: how many lugs every weapon has (Hob\'s second lug is a quest reward)', { ...g, args: () => ['1', '2'] }),
     command('wear', ([id, who, slot]) => {
       const gear = gearSlice.get();
-      const o = gear.items.filter((x) => x.id === id).sort((a, b) => QUALITY_ORDER.indexOf(b.q) - QUALITY_ORDER.indexOf(a.q))[0];
+      const worn = (x: Owned) => (wornAt(gear, x.uid) ? 1 : 0); // a copy not worn yet first, so one piece can go on several roles
+      const o = gear.items.filter((x) => x.id === id).sort((a, b) => worn(a) - worn(b) || QUALITY_ORDER.indexOf(b.q) - QUALITY_ORDER.indexOf(a.q))[0];
       if (!o) return `not owned: ${id} (give it first)`;
       const d = ITEMS[o.id];
       const w = (who ?? (d.weapon || d.comm ? 'comm' : 'guard')) as 'comm' | CrewRole;

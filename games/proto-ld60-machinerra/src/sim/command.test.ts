@@ -162,7 +162,7 @@ describe('ordering the selection (P3: per-robot orders)', () => {
   });
 });
 
-describe("level 1's command lesson: one bot, one right click", () => {
+describe('one bot, one right click (level 1)', () => {
   it('Bellows, stood up, goes alone to the ruin he is sent to and stays in crew 0', () => {
     const s = new Sim('level1', [], 'desert', [], undefined, undefined, { land: loadLand('level1'), crew: [] });
     const step = (sec: number) => {

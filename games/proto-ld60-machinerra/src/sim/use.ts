@@ -22,6 +22,7 @@ import {
   fixed,
   pickUp,
   putDown,
+  rollCall,
   startFix,
 } from './downed';
 import { fire } from './combat';
@@ -167,6 +168,7 @@ export function rise(sim: Sim) {
       b.path = [];
     });
   }
+  rollCall(sim); // Sprocket's gift: the downed come to the platform before it counts who is aboard
   sim.setPhase('rising');
   // Nobody on the platform can be hurt while it rises (Minos): no damage, no debuffs, and the ones on it are cleansed. In a cleared den the whole party comes up.
   for (const b of lifted(sim)) {

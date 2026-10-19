@@ -14,7 +14,7 @@ import { DungeonView } from './dungeonview';
 import { gear } from './hub/carry';
 import { handsOf, type DungeonBack, type DungeonCarry } from './missionstart';
 import { ViewBase, type G, type PlayHost } from './playhost';
-import { groundShadow } from './shadowview';
+import { PROP_CASTS, groundShadow } from './shadowview';
 import type { PartKind } from './sim/defs';
 import { settleReward } from './sim/dungeon';
 import { wear } from './sim/graft';
@@ -28,7 +28,7 @@ export class DungeonLink extends ViewBase {
     super(host);
     const { scene, sim } = host;
     if (host.down && sim.run) {
-      const dv = (this.dview = new DungeonView({ scene, sim, ui: host.ui, sfx: (key, x, y, o) => this.sfx(key, x, y, o), burst: (x, y, o) => this.k.fx.burst(x, y, o), shake: (size) => this.k.juice.shake(size), floater: (x, y, text, color, ms, size) => this.floater(x, y, text, color, ms, size), banner: (text, ms) => host.hud.banner(text, ms), place: (key, x, y, scale) => host.place(key, x, y, scale), rise: () => host.rise(), shade: (img) => groundShadow(host.w, img, { foot: 0.5 }) }));
+      const dv = (this.dview = new DungeonView({ scene, sim, ui: host.ui, sfx: (key, x, y, o) => this.sfx(key, x, y, o), burst: (x, y, o) => this.k.fx.burst(x, y, o), shake: (size) => this.k.juice.shake(size), floater: (x, y, text, color, ms, size) => this.floater(x, y, text, color, ms, size), banner: (text, ms) => host.hud.banner(text, ms), place: (key, x, y, scale) => host.place(key, x, y, scale), rise: () => host.rise(), shade: (img) => void (PROP_CASTS && groundShadow(host.w, img, { foot: 0.5 })) }));
       scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => dv.destroy());
       host.hud.banner(sim.dungeon!.title, 3200);
     }

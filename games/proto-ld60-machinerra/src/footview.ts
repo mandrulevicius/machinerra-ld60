@@ -15,7 +15,7 @@ import { Strider } from '../../../harness/kit/world/logic';
 import { BIOMES } from './sim/defs';
 import type { Bot } from './sim/sim';
 import { PRINT, STEP, botGait, fightLevel, stepMix, foeGait, footScale, surfaceOf, type Gait, type Surface } from './footsteps';
-import { stepSound } from './stepsounds';
+import { STEP_LEVEL, stepSound } from './stepsounds';
 import { TONE } from './sound';
 import { ViewBase } from './playhost';
 
@@ -52,7 +52,7 @@ export class FootView extends ViewBase {
 
   /** A walking robot's foot comes down (the Communicator's, a marksman's): a print and a step. */
   land(b: Bot) {
-    if (this.riding || b.dead || botGait(b.role) !== 'foot' || !this.seen(b.x, b.y)) return;
+    if (this.riding || b.dead || botGait(b.role, b.climbs) !== 'foot' || !this.seen(b.x, b.y)) return;
     const me = b.role === 'controller';
     const surf = this.surface(b.x, b.y);
     this.sound(surf, b.x, b.y, me ? STEP.gain.comm * stepMix('comm', this.fightAmt) : STEP.gain.robot * stepMix('robot', this.fightAmt));
@@ -64,7 +64,10 @@ export class FootView extends ViewBase {
     if (this.riding) return;
     const sim = this.sim;
     // Rolling robots lay tracks: a dash of two bars each stride.
-    for (const b of sim.bots) if (!b.dead && botGait(b.role) === 'tread') this.roll(`b${b.id}`, b.x, b.y, 'tread', 0.7, b.moving && this.seen(b.x, b.y));
+    for (const b of sim.bots) {
+      const gait = botGait(b.role, b.climbs);
+      if (!b.dead && (gait === 'tread' || gait === 'paw')) this.roll(`b${b.id}`, b.x, b.y, gait, gait === 'tread' ? 0.7 : 0.8, b.moving && this.seen(b.x, b.y)); // a robot in spider legs leaves paws (P53)
+    }
     for (const h of sim.hornets) {
       const gait = foeGait(h.kind);
       if (h.dead || gait === 'none' || h.under) continue;
@@ -122,7 +125,7 @@ export class FootView extends ViewBase {
     if (gain < 0.01) return; // a silent step is not played at all (a voice saved)
     this.count.sounds++;
     this.count.last = `${surf}@${gain}`;
-    this.k.audio.sfx.play(stepSound(surf), { at: { x, y }, gain, rate });
+    this.k.audio.sfx.play(stepSound(surf), { at: { x, y }, gain: gain * STEP_LEVEL, rate });
   }
 
   /** Play a surface's step once (dev). */

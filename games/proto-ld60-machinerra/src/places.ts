@@ -452,7 +452,7 @@ const VIEWS: Record<PlaceId, (api: PlayHost, p: PlaceRT) => PlaceView> = {
     return {
       update(dt) {
         const now = scene.time.now;
-        const up = sim.rescued.length ? api.rise() : 0;
+        const up = sim.rescued.includes(pil.npc.id) ? api.rise() : 0;
         bob += dt * (b.moving ? 13 : 2.5);
         if (pil.state === 'stuck') {
           // Wedged and listing, leaking steam and sparks now and then, calling for help when someone is near.
@@ -480,7 +480,7 @@ const VIEWS: Record<PlaceId, (api: PlayHost, p: PlaceRT) => PlaceView> = {
           if (b.moving !== wasMoving) wasMoving = b.moving;
         }
         // At the lift it is rescued: the pilgrim rises with it.
-        if (sim.rescued.length && !announced) {
+        if (sim.rescued.includes(pil.npc.id) && !announced) {
           announced = true;
           api.banner(`${pil.npc.name}: rescued`, 3200);
           api.sfx('bell', undefined, undefined, { gain: 0.4, vary: 0 });

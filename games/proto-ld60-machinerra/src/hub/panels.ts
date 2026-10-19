@@ -71,7 +71,7 @@ export class HubHud {
       stat('coal', 'Coal: fuel for expeditions, mined from seams by gatherers', `${eco.coal} coal`),
       stat('cans', 'Spare oil cans: lives. Every lift goes down with a full pack, refilled at home', `${spareCap(capExtraOf(s.perks, s.buildings?.built))} oil cans`),
       `<span data-g="parts">${parts} parts</span>`,
-      stat('robots', 'Your robots (the workshop): on the lift / all. Every robot that is not a wreck rides', `${riders(roster.get()).length} / ${roster.get().bots.length} robots`),
+      stat('robots', 'Your robots (the Dry dock, I): on the lift / all. Every robot that is not a wreck rides', `${riders(roster.get()).length} / ${roster.get().bots.length} robots`),
       stat('cores', 'AI cores: one per robot; a new body needs a free one. They come from Core Vaults and from bosses', `${economy.get().cores} AI cores`),
     ].join('');
   }

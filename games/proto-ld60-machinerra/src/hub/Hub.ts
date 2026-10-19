@@ -51,6 +51,7 @@ import {
   lotOf,
   boothBlocks,
   lotProps,
+  keepsake,
   move,
   NPC_REACH,
   PROP_SCALE,
@@ -77,7 +78,7 @@ import { HubHud } from './panels';
 import type { Thing } from './stations/host';
 import { STATION_PANELS } from './stations';
 import { picksWaiting } from './researchslice';
-import { guideTarget } from './firstvisit';
+import { WORKSHOP_SEEN, guideTarget } from './firstvisit';
 import { openChurch } from './stations/church';
 import { openBuild, openFor } from './stations/npc';
 import { botLine } from './stations/workshop';
@@ -92,6 +93,8 @@ import { isTaught, waitingNote } from './taught';
 import { riders, roster, salvage } from './workshop';
 import { type SpecId, TYPES } from '../sim/specs';
 import { gearCommands, Inventory } from '../inventory';
+import { hubDock } from '../dock/hubdock';
+import { dockCommands } from '../dock/dockdev';
 import { hubSubjects } from '../stats';
 import { QuestLog, questLogCommand } from '../questlog';
 import { Guide } from '../guideview';
@@ -111,12 +114,14 @@ import { fastFloor } from './deckprints';
 import { broughtOf, homecomingLine } from './princess';
 import { princessSave } from './princessslice';
 import { registerPrincessCommands } from './princessdev';
+import { registerBondCommand } from './bonddev';
 import { actFacts } from './acts';
 import { dogNameOf } from './speciallines';
 import { jobFor, jobText } from './repeats';
 import { STATIC_BEAT } from './acts';
-import { lineSave, questBook, talkSave, titleSave } from './talkslice';
+import { bondSave, lineSave, questBook, talkSave, titleSave } from './talkslice';
 import { activeLines, autoStart } from './lines';
+import { STEPS, bondOf, handedTo, lightBond } from './bonds';
 import { earn, nextWorn, styled, TITLES } from './titles';
 import { TalkView } from './talkview';
 import {
@@ -212,6 +217,8 @@ export class Hub extends Phaser.Scene implements HubDevHost {
   private npcBase = new Map<string, number>();
   /** Built stations: the lot's deck and the booth, by NPC id. */
   private booths = new Map<string, Img[]>();
+  /** The NPCs whose keepsake (P52) stands on their lot. */
+  private keepsakes = new Set<string>();
   private props = new Map<StationId, Img>();
   /** The outline under the mouse (`hover.ts`). */
   private hover!: HoverGlow;
@@ -269,6 +276,7 @@ export class Hub extends Phaser.Scene implements HubDevHost {
     this.shade = new DeckShadows(this, { tint: (HUB_SHADOW[0] << 16) | (HUB_SHADOW[1] << 8) | HUB_SHADOW[2], lean: { x: 0.32, y: 0.4 }, depth: -7.45, alpha: 0.85, night: 1, reach: 0.45 });
     this.npcBase = new Map();
     this.booths = new Map();
+    this.keepsakes = new Set();
     this.props = new Map();
     this.near = null;
     this.convo = null;
@@ -392,6 +400,9 @@ export class Hub extends Phaser.Scene implements HubDevHost {
       waiting: () => waitingNote(this.s, this.t.allRecipes),
       stats: hubSubjects,
     });
+    // The Dry dock: the inventory's first tab, opened by I and by the stations (`dock/`).
+    const dock = hubDock(this, ui, () => this.t.allRecipes);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, dockCommands(dock, this.inv));
     const offGear = gearCommands(this.inv, (scrap, p) => {
       economy.set({ ...economy.get(), scrap: economy.get().scrap + scrap });
       const h = this.s;
@@ -490,6 +501,7 @@ export class Hub extends Phaser.Scene implements HubDevHost {
     } else this.time.delayedCall(600, () => this.speak('highPriest', 'The Wanderer drifts, the boilers burn. Walk the deck, Communicator; the command table will send you down again.'));
     registerHubCommands(this);
     registerPrincessCommands(this);
+    registerBondCommand((id) => this.bondUp(id), () => this.refresh());
   }
 
   /** The Princess's view (P58), told what it needs of the scene. */
@@ -640,6 +652,13 @@ export class Hub extends Phaser.Scene implements HubDevHost {
       );
       this.booths.set(id, [deck, booth, ...props, ...grates]);
     }
+    // The keepsake each NPC leaves on their lot at the fifth step of their track (P52).
+    for (const [id, lotId] of Object.entries(this.s.stations)) {
+      const k = bondOf(bondSave.get(), id) >= STEPS ? keepsake(id, lotId) : null;
+      if (!k || this.keepsakes.has(id) || !this.booths.has(id)) continue;
+      this.booths.get(id)!.push(this.stand(this.add.image(k.x, k.y, hubDressed(this, propTex(this, k.kind), !housed())).setOrigin(0.5, 0.96).setScale(shownAt(PROP_SCALE)).setDepth(k.y)));
+      this.keepsakes.add(id);
+    }
     for (const n of NPCS) {
       const p = this.npcAt(n.id);
       this.npcs.get(n.id)!.setVisible(isAboard(this.s, n.id, all)).setPosition(p.x, p.y + 6).setDepth(p.y + 6);
@@ -731,9 +750,10 @@ export class Hub extends Phaser.Scene implements HubDevHost {
       if (this.hud.panel) {
         if (this.has('inventory')) {
           this.closePanel();
-          this.inv.toggle();
+          this.inv.showDock('key');
         }
-      } else if (this.has('inventory') || this.inv.open) this.inv.toggle();
+      } else if (this.inv.open) this.inv.hide();
+      else if (this.has('inventory')) this.inv.showDock('key');
       else this.hud.say('The Oracle', 'Your satchel is not blessed yet, Communicator. Come and hear me out.');
     }
     if (input.pressed('journal') && !this.convo && !this.hud.panel && !this.inv.open && !this.guide.open) this.log.toggle();
@@ -880,6 +900,7 @@ export class Hub extends Phaser.Scene implements HubDevHost {
       sprocketAboard: isAboard(this.s, 'sprocket', this.t.allRescued),
       sprocketTaught: this.s.perks.includes('workshop'),
       tableSeen: this.memo('guide', () => ({ table: false })).table,
+      workshopSeen: !!talkSave.get().flags[WORKSHOP_SEEN],
     });
     const dim = !!to && !this.t.allRescued;
     if (dim !== this.dimmed) {
@@ -999,8 +1020,8 @@ export class Hub extends Phaser.Scene implements HubDevHost {
       this.k.audio.sfx.play('tgFeed');
       this.gesture(c.line!);
     } else if (c.phase === 'choose') {
-      const ws = c.weights;
-      this.tv.choose(c.choices.map((x, i) => ({ text: x.text, weight: ws[i] })));
+      const ws = c.weights, ks = c.kinds;
+      this.tv.choose(c.choices.map((x, i) => ({ text: x.text, weight: ws[i], kind: ks[i] })));
       this.k.audio.sfx.play('latch', { gain: 0.5 });
     } else this.endTalk();
   }
@@ -1050,12 +1071,26 @@ export class Hub extends Phaser.Scene implements HubDevHost {
         } else this.hud.banner(!q ? o.id : o.step === 99 ? `${q.title}: done` : o.step === 1 ? `${q.title}: begun` : `${q.title}: ${q.steps[o.step - 1]}`);
         this.k.audio.sfx.play('bell', { gain: 0.35 });
         this.hud.notice('Quest log updated: press {journal}');
+        const to = handedTo(o.id, o.step);
+        if (to) this.bondUp(to, cv.id);
       } else if (o.panel === 'house') this.after = () => openBuild(this, 'home');
       else if (o.panel === 'stolen') this.after = () => this.stolen();
       else if (o.panel === 'outro') this.after = () => this.outro();
       else if (o.panel === 'research') this.after = () => openChurch(this);
       else this.after = () => openFor(this, cv.id);
     }
+  }
+
+  /** A quest was handed in to `npc`: their track lights a step (`bonds.ts`), with a click and a puff of steam from them when they are the one in the room. */
+  private bondUp(npcId: string, talking?: string) {
+    const r = lightBond(bondSave.get(), npcId);
+    if (!r.lit) return;
+    bondSave.set(r.bond);
+    this.k.audio.sfx.play('ratchet', { gain: 0.6 });
+    this.time.delayedCall(1800, () => this.hud.banner(`${npc(npcId)?.name ?? npcId}: ${r.step}`, 3200)); // after the quest's own banner
+    const img = talking === npcId ? this.npcs.get(npcId) : undefined;
+    if (img) this.puff(img, 'nod');
+    if (bondOf(r.bond, npcId) >= STEPS) this.refresh(); // the fifth: the keepsake appears on their lot
   }
 
   /** Click or Use on a line: finish typing it, then the next. */
@@ -1246,6 +1281,7 @@ export class Hub extends Phaser.Scene implements HubDevHost {
    */
   launch(): number {
     const c = this.landing();
+    if (isAboard(this.s, 'sprocket') && !talkSave.get().flags[WORKSHOP_SEEN]) talkSave.set({ ...talkSave.get(), flags: { ...talkSave.get().flags, [WORKSHOP_SEEN]: 1 } }); // her arrival visit is over: her workshop stops glowing
     // The mission's quest lines count it in this land (carry.ts); the next lowering rolls its anomalies and seeds anew.
     // The colony's expedition goes out with it (coal fed at the Expedition office) and comes home with the next lift.
     this.save({ ...dispatch(this.s), biome: c.biome, course: this.s.course + 1 });
@@ -1253,7 +1289,9 @@ export class Hub extends Phaser.Scene implements HubDevHost {
     this.hud.close();
     this.k.audio.sfx.play('lift', { gain: 0.6 });
     this.k.juice.shake('medium');
-    transition(this, 'Play', { seed: c.seed, biome: c.biome, tier: c.tier, anomaly: c.anomaly });
+    // After the intro's old works (a new game's first mission), the next lowering is level 1, where Sprocket waits.
+    const level1 = !aboard(this.s, this.allRescued).some((n) => n.id === 'sprocket');
+    transition(this, 'Play', { seed: c.seed, biome: c.biome, tier: c.tier, anomaly: c.anomaly, ...(level1 && { land: 'level1' }) });
     return c.seed;
   }
 

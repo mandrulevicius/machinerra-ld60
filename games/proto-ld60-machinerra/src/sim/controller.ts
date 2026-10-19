@@ -11,9 +11,11 @@ import {
   touch,
 } from './combat';
 import {
+  KICK,
   ROLES,
   STEAM,
   WEAPONS,
+  bossOf,
 } from './defs';
 import {
   carriedBy,
@@ -26,6 +28,7 @@ import {
 } from './gear';
 import { dist } from './geom';
 import { brushReach, brushSweep } from './brush';
+import { loudShot } from './earful';
 import type { Slot } from './loadout';
 import { afterShot, chord, loosePigeon, modBolt, shotPlan, stab, swingPlan, throwWeapon } from './mods';
 import {
@@ -35,6 +38,7 @@ import {
 import type { Sim } from './sim';
 import type {
   Bot,
+  Hornet,
   Input,
   Shot,
 } from './types';
@@ -129,6 +133,12 @@ const kickWith = (sim: Sim, c: Bot) => {
   return { ...k, knock: k.knock * sim.engine.stat(c, 'kickSlide', 1) };
 };
 
+/** The extra wait after a kick by the heaviest foe it struck (`KICK.after`): an elite, a mini-boss, a boss; nothing for the rest. */
+export function kickWait(struck: readonly Pick<Hornet, 'boss' | 'elite' | 'kind'>[]) {
+  const A = KICK.after;
+  return struck.reduce((w, h) => Math.max(w, h.boss ? (bossOf(h.kind).mini ? A.mini : A.boss) : h.elite ? A.elite : 0), 0);
+}
+
 /** The kick: its own cooldown, toward the aim, whatever is in hand; the Leaping Kick lands when its leap does. */
 function kickStep(sim: Sim, c: Bot, dt: number, input: Input) {
   sim.kickCd -= dt;
@@ -139,7 +149,7 @@ function kickStep(sim: Sim, c: Bot, dt: number, input: Input) {
     l.t -= dt;
     if (l.t <= 0) {
       sim.lunge = null;
-      swing(sim, c, l.a, kickWith(sim, c), true);
+      sim.kickCd += kickWait(swing(sim, c, l.a, kickWith(sim, c), true));
     }
   } else if (input.kick && sim.kickCd <= 0) {
     const kick = kickWith(sim, c);
@@ -148,7 +158,7 @@ function kickStep(sim: Sim, c: Bot, dt: number, input: Input) {
     const a = Math.atan2(input.ay - c.y, input.ax - c.x);
     const leap = sim.perks.has('dashKick') ? Math.min(PERK_FX.dashKick.dist, Math.max(0, dist(c.x, c.y, input.ax, input.ay) - kick.reach * 0.6)) : 0;
     if (leap > 8) sim.lunge = { a, t: PERK_FX.dashKick.time, vx: (Math.cos(a) * leap) / PERK_FX.dashKick.time, vy: (Math.sin(a) * leap) / PERK_FX.dashKick.time };
-    else swing(sim, c, a, kick, true);
+    else sim.kickCd += kickWait(swing(sim, c, a, kick, true));
   }
 }
 
@@ -156,7 +166,7 @@ function kickStep(sim: Sim, c: Bot, dt: number, input: Input) {
 function weaponStep(sim: Sim, c: Bot, input: Input) {
   const slot: Slot | null = input.fire ? 'primary' : input.fire2 ? 'secondary' : null;
   sim.engine.tag(c, 'firing', !!slot); // Pilgrim of the Sign's aura holds while he is not firing (titles.ts)
-  const id = slot === 'primary' ? sim.weapon : slot === 'secondary' ? sim.secondary : null;
+  const id = sim.unarmed ? null : slot === 'primary' ? sim.weapon : slot === 'secondary' ? sim.secondary : null;
   if (id && c.cd <= 0 && !(WEAPONS[id].kind === 'gun' && (carriedBy(sim, c).length || carriedProps(sim, c).length))) {
     const w = WEAPONS[id];
     c.cd = w.rate / Math.max(0.3, sim.engine.stat(c, 'attackRate', 1));
@@ -212,6 +222,7 @@ function weaponStep(sim: Sim, c: Bot, input: Input) {
         if (plan.kind === 'chord') chord(sim, c, a);
         else if (plan.kind === 'pigeon') loosePigeon(sim, c, id, a, g);
         afterShot(sim, id, plan, cost, bolts);
+        if (w.loud) loudShot(sim); // Old Earful: the nearest hive hears it (P52)
       } else sim.events.push({ e: w.ammo === 'scrap' ? 'noAmmo' : 'noSteam' });
     }
   }
@@ -243,7 +254,7 @@ export function controlled(sim: Sim, dt: number, input: Input) {
   }
   const len = Math.hypot(input.mx, input.my);
   // Staggered, Frozen or Shocked: he can only stand there.
-  if (sim.stunned(c)) input = { ...input, mx: 0, my: 0, fire: false, fire2: false, kick: false, dash: false, skill: false };
+  if (sim.stunned(c) || sim.standT > 0) input = { ...input, mx: 0, my: 0, fire: false, fire2: false, kick: false, dash: false, skill: false };
   moveStep(sim, c, dt, input, len);
   kickStep(sim, c, dt, input);
   weaponStep(sim, c, input);

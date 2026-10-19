@@ -7,7 +7,8 @@ import Phaser from 'phaser';
 import { S } from './art';
 import { DANGER_TEXT, LINE } from './house';
 import type { PlayHost } from './playhost';
-import { BATTERY, EXPEDITION, LIGHTHOUSE, T } from './sim/defs';
+import { BATTERY, BELL, EXPEDITION, LIGHTHOUSE, T } from './sim/defs';
+import { tollWords } from './sim/placebehave';
 import type { PlaceRT } from './sim/placeplay';
 import { PLACES, type PartKind, type PlaceId } from './sim/places';
 import type { SimEvent } from './sim/sim';
@@ -188,9 +189,22 @@ function bell(api: PlayHost, p: PlaceRT, hold: HoldRing): PlaceView36 {
   const frame = stand(api, 'bell-frame', b.x, b.y, 10);
   partsOf(p, 'pew').forEach((q) => stand(api, 'pew', q.x, q.y, 6));
   partsOf(p, 'donation').forEach((q) => stand(api, 'donation-box', q.x, q.y, 6));
+  // A toll lasts: the bell stays lit (a warm glow and a lamp that grow with each toll), and the next choice says what a toll does (the first time the prompt does).
+  const lamp = k.lights.add(b.x, b.y - 40, { color: 0xffc860, radius: 110, intensity: 0 });
+  const glow = api.w.cull.add(scene.add.image(b.x, b.y - 38, 'glow').setBlendMode(Phaser.BlendModes.ADD).setTint(0xffb640).setDepth(b.y + 14).setScale(0.9).setAlpha(0));
+  const label = k.text(b.x, b.y - 92, '', { size: 14, font: 'body' }).setOrigin(0.5, 1).setDepth(b.y + 20).setStroke('#1d1a17', 4).setColor('#ffd98a').setVisible(false);
   return {
     update(_dt, g) {
       ring(api, p, g, hold, b);
+      const t = p.v.tolls ?? 0, now = scene.time.now;
+      const pulse = 0.85 + 0.15 * Math.sin(now / 380);
+      glow.setAlpha(t ? Math.min(1, 0.3 + 0.2 * t) * pulse : 0).setScale(0.8 + 0.15 * t);
+      lamp.setIntensity(t ? (0.5 + 0.35 * t) * (0.7 + 0.3 * api.night()) * pulse : 0);
+      frame.setTint(t ? 0xffe0b0 : 0xffffff);
+      const c = api.sim.controller, ask = t > 0 && t < BELL.tolls && Math.hypot(c.x - b.x, c.y - b.y) < BELL.sight * T * 0.6;
+      label.setVisible(ask);
+      if (ask) label.setText(`Toll ${t + 1}/${BELL.tolls}?
+${tollWords()}`);
     },
     event(e) {
       if (visit(api, p, e, '#f0cf7a', 'bell')) return;

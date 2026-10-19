@@ -15,6 +15,7 @@ import { DEV_SOURCES } from '../sim/missionfx';
 import type { PlaceId } from '../sim/places';
 import type { Bot, SimEvent } from '../sim/sim';
 import { spawnAtRim } from '../sim/spider';
+import { grubAttack } from '../sim/caterpillar';
 import { devBlow, graftOn, graftSummary, layGraft } from '../sim/graft';
 import type { LimbKind } from '../sim/limbs';
 import { goPlace, placeIds } from './places';
@@ -86,6 +87,20 @@ export function unitsCommands(play: Play) {
     }
     return `${sim.hornets.filter((h) => h.spider).length} spiders (${sim.twistedAlive} twisted in all)`;
   }, 'spiders [n] [plain|twisted|elite|rim]: spawn n crawlcam spiders south of the Communicator (rim: leaping in over the nearest edge of the map)', { group: 'units', args: () => ['3', 'twisted', 'elite', 'rim'] });
+  command('caterpillars', ([n, how]) => {
+    const c = sim.controller;
+    const mode = how ?? (Number.isNaN(Number(n)) ? n : undefined) ?? 'baby';
+    const count = Number.isNaN(Number(n)) ? 1 : Number(n ?? 3);
+    if (mode === 'attack') {
+      const h = sim.hornets.filter((x) => x.grub && !x.dead).sort((p, q) => dist(p.x, p.y, c.x, c.y) - dist(q.x, q.y, c.x, c.y))[0];
+      return h && grubAttack(sim, h) ? `${h.boss ? BOSSES.caterpillar!.name : 'tusked caterpillar'} winds up` : 'error: no tusked caterpillar out (caterpillars 1 elite)';
+    }
+    if (!['baby', 'elite', 'twisted', 'boss'].includes(mode)) return 'error: caterpillars [n] [baby|elite|twisted|boss|attack]';
+    if (mode === 'boss') sim.spawnBoss('caterpillar', { x: c.x + 220, y: c.y - 30 });
+    else for (let i = 0; i < count; i++) sim.spawnHornet(c.x + sim.r.range(-240, 240), c.y + sim.r.range(150, 300), 0, mode === 'elite', mode === 'twisted', 'caterpillar');
+    const all = sim.hornets.filter((h) => h.kind === 'caterpillar' && !h.dead);
+    return `${all.length} caterpillars (${all.filter((h) => h.grub).length} tusked)`;
+  }, 'caterpillars [n] [baby|elite|twisted|boss|attack]: spawn n baby caterpillars south of the Communicator; `elite` is the tusked one, `boss` the intro\'s Tusked Caterpillar beside him; `attack` makes the nearest tusked one start its spiral now', { group: 'units', args: () => ['3', 'elite', 'boss', 'attack'] });
   command('rim', ([n, kind]) => {
     const k = (kind ?? sim.biome.edge ?? sim.biome.foes[0][0]) as Enemy;
     if (!FOES[k]) return `error: rim [n] [kind]: no enemy ${kind}`;

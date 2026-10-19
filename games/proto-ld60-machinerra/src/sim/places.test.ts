@@ -167,6 +167,7 @@ describe('the Stranded Pilgrim', () => {
     rideLift(s);
     expect(s.phase).toBe('done');
     expect(s.rescued).toEqual(['trader']);
+    expect(s.said.has('pilgrim-left')).toBe(false); // the Oracle and the rescue agree
     const haul = haulFrom(s, 'm1');
     expect(haul.rescued).toEqual(['trader']);
     const hub = arrive(freshHub(), haul);
@@ -189,6 +190,7 @@ describe('the Stranded Pilgrim', () => {
     rideLift(left);
     expect(left.phase).toBe('done');
     expect(left.rescued).toEqual([]);
+    expect(left.said.has('pilgrim-left')).toBe(true); // the Oracle and the rescue agree
     expect(haulFrom(left, 'x').rescued).toBeUndefined();
     // Left behind or never found, it stays on the sands: only the lift brings an NPC aboard.
     for (const missed of [left, alone(3)]) {

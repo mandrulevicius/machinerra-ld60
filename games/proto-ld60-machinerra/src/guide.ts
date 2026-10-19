@@ -133,12 +133,12 @@ export function hubEntries(s: Pick<HubState, 'stations'>): GuideEntry[] {
 
 /** Pieces of a covered element (a bar's fill, the dial's hands): the HUD's `data-k`s that are part of another entry. */
 export const PARTS: Record<string, string> = {
-  bossName: 'boss', bossHp: 'boss', hpText: 'hp', hpBar: 'hp', where: 'room', steam: 'steam', steamText: 'steam', otext: 'oracle', htext: 'her',
+  bossName: 'boss', bossHp: 'boss', hpText: 'hp', hpBar: 'hp', where: 'room', steam: 'steam', steamText: 'steam', otext: 'oracle', oicon: 'oracle', htext: 'her',
   supportName: 'support', supportKey: 'support', supportState: 'support', bells: 'clock', ctime: 'clock', cphase: 'clock', cnext: 'clock', weather: 'clock', wname: 'clock', wfill: 'clock', orb: 'clock', sun: 'clock', moon: 'clock',
-  who: 'say', text: 'say',
+  who: 'say', text: 'say', fee: 'reserve',
 };
-/** Not something to explain: the vignette and the colour wash, the portrait, the banner and the hub's notice, the hub's panel slot, the name plate's rows. */
-export const PLAIN = ['dusk', 'wash', 'alarm', 'face', 'banner', 'notice', 'modal', 'stores'];
+/** Not something to explain: the vignette and the colour wash, the portrait, the banner and the hub's notice, the lift's ask card, the hub's panel slot, the name plate's rows. */
+export const PLAIN = ['dusk', 'wash', 'alarm', 'face', 'banner', 'notice', 'modal', 'stores', 'ask'];
 
 /** The entries a scene may list (before the screen is asked): its own, and for the hub the built stations. */
 export const entriesFor = (where: Where, s?: Pick<HubState, 'stations'>) => [...ENTRIES.filter((e) => e.where === where), ...(where === 'hub' && s ? hubEntries(s) : [])];

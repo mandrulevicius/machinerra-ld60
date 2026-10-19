@@ -1,0 +1,228 @@
+/* Over mock.css: the game's own art in one frame; glyphs sit in the text, beside a value or a word; the long details in a tooltip. */
+
+/* The frame: every picture, whatever drew it, sits in the same brass rim on card stock, one size per context. */
+.fr { position: relative; flex: none; display: inline-grid; place-items: center; width: var(--fr, 46px); height: var(--fr, 46px); box-sizing: border-box; padding: 4px; border-radius: 6px;
+  background: radial-gradient(ellipse at 50% 40%, var(--mk-stock-hi), var(--mk-stock) 60%, var(--mk-stock-lo));
+  box-shadow: inset 0 0 0 2px var(--mk-brass), inset 0 0 0 3px var(--mk-brass-lo), inset 0 0 10px rgb(120 80 30 / 0.35), 0 2px 3px rgb(0 0 0 / 0.45); }
+.fr img { width: 100%; height: 100%; min-width: 0; min-height: 0; object-fit: contain; filter: drop-shadow(0 1px 1px rgb(40 25 5 / 0.45)); }
+.fr--xs { --fr: 24px; padding: 2px; border-radius: 4px; }
+.fr--s { --fr: 32px; padding: 3px; border-radius: 5px; }
+.fr--m { --fr: 46px; }
+.fr--l { --fr: 62px; padding: 5px; }
+.fr--xl { --fr: 76px; padding: 4px; }
+.fr--empty { background: rgb(29 26 23 / 0.25); box-shadow: inset 0 0 0 1.5px var(--mk-edge); }
+.fr--empty::before { content: ""; position: absolute; inset: 22%; border: 1.5px dashed var(--mk-edge); border-radius: 3px; }
+.fr--dim img { filter: grayscale(1) brightness(0.7); opacity: 0.6; }
+.fr[data-q]::after { content: ""; position: absolute; right: 3px; bottom: 3px; width: 7px; height: 7px; border-radius: 50%; box-shadow: 0 0 0 1px var(--mk-iron); }
+.fr[data-q="standard"]::after { display: none; }
+.fr[data-q="fine"]::after { background: var(--q-fine); }
+.fr[data-q="rare"]::after { background: var(--q-rare); }
+.fr__n { position: absolute; right: -6px; bottom: -6px; min-width: 14px; padding: 0 4px; font: 12px/16px var(--mk-mono); color: var(--mk-stock-hi); background: var(--mk-iron); border: 1px solid var(--mk-brass); border-radius: 8px; text-align: center; }
+/* The one look-tint: sepia ink over every picture, so painted, code-drawn and silhouette art read as one set. Off: the art as drawn. */
+.tint .fr img { filter: sepia(0.55) saturate(0.8) contrast(1.06) drop-shadow(0 1px 1px rgb(40 25 5 / 0.45)); }
+.tint .fr--dim img { filter: sepia(0.55) grayscale(1) brightness(0.7); }
+
+/* Glyphs: one-colour silhouettes, inline, in the text's colour. */
+.g { display: inline-block; width: 16px; height: 16px; vertical-align: -3px; flex: none; }
+.g svg { width: 100%; height: 100%; display: block; }
+.g svg path { fill: currentColor; }
+.g--s { width: 13px; height: 13px; vertical-align: -2px; }
+/* A damage type: its glyph in a small ink disc. */
+.dt { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; color: var(--mk-stock-hi); background: var(--mk-typed); box-shadow: 0 0 0 1.5px var(--mk-brass); flex: none; }
+.dt .g { width: 14px; height: 14px; vertical-align: 0; }
+.dt--up { background: var(--mk-green); }
+.dt--dn { background: var(--mk-red); }
+.dt--s { width: 18px; height: 18px; }
+.dt--s .g { width: 11px; height: 11px; }
+
+/* A stat: its glyph and one arrow. */
+.st { display: inline-flex; align-items: center; gap: 2px; color: var(--mk-typed); font: 700 14px/1 var(--mk-mono); }
+.st .g { width: 17px; height: 17px; }
+.sts { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 10px; }
+
+/* The tooltip: card stock, the full numbers. */
+.tip { position: absolute; z-index: 50; max-width: 330px; padding: 8px 10px; pointer-events: none; color: var(--mk-ink); font: 12.5px/1.4 var(--mk-mono);
+  background: linear-gradient(172deg, var(--mk-stock-hi), var(--mk-stock)); box-shadow: inset 0 0 0 1.5px var(--mk-edge), 0 0 0 2px var(--mk-iron), 0 6px 14px rgb(0 0 0 / 0.6); border-radius: 2px; }
+.tip b { font: 15px/1.2 var(--mk-display); font-weight: 400; display: block; margin-bottom: 3px; }
+.tip table { border-collapse: collapse; margin-top: 4px; }
+.tip td, .tip th { padding: 1px 10px 1px 0; text-align: left; font-weight: 400; }
+.tip th { color: var(--mk-print); }
+.tip .note { color: var(--mk-print); margin-top: 4px; }
+.tip[hidden] { display: none; }
+
+/* Drawer tags, icon-first. */
+.itag { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 4px 10px; padding: 6px 8px; background: var(--mk-stock-hi); box-shadow: inset 0 0 0 1px var(--mk-edge); border-radius: 3px; }
+.itag.is-short { background: #d3c08f; }
+.itag.is-short .fr img { opacity: 0.6; }
+.itag__body { display: grid; gap: 5px; min-width: 0; }
+.itag__name { font: 13px/1.1 var(--mk-display); color: var(--mk-typed); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.itag__cost { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; font: 12px var(--mk-mono); color: var(--mk-typed); }
+.itag__cost .fr { --fr: 22px; padding: 2px; border-radius: 4px; }
+.itag__cost span { display: inline-flex; align-items: center; gap: 3px; }
+.itag .mk-btn { font-size: 13px; padding: 6px 8px; }
+.itag__foes { display: flex; align-items: center; gap: 3px; font: 700 12px var(--mk-mono); }
+.itag__foes .fr { --fr: 26px; padding: 2px; border-radius: 4px; }
+
+.dk-paint { position: absolute; pointer-events: none; }
+.dk-paint img { image-rendering: auto; width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 3px 4px rgb(40 25 5 / 0.5)); }
+.tint .dk-paint img { filter: sepia(0.5) saturate(0.85) drop-shadow(0 3px 4px rgb(40 25 5 / 0.5)); }
+
+/* Roster rows with portraits and state chips. */
+.dk-who2 { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 2px 8px; padding: 6px 8px; text-align: left; border: 0; border-radius: 2px; cursor: pointer; position: relative; transition: transform 120ms; }
+.dk-who2 .dk-who__name { font-size: 16px; }
+.dk-who2 .fr { grid-row: 1 / span 2; }
+.dk-who2.is-sel { transform: translateX(8px); box-shadow: inset 0 0 0 2px var(--mk-brass-hi), inset 0 0 0 3px var(--mk-brass-lo), 0 3px 8px rgb(0 0 0 / 0.6); }
+.dk-who2.is-sel::before { content: ""; position: absolute; left: -10px; top: 50%; width: 6px; height: 22px; margin-top: -11px; background: var(--ui-c-accent); border-radius: 2px; }
+.dk-chips { display: flex; gap: 8px; font: 12px var(--mk-mono); color: var(--mk-typed); grid-column: 2 / -1; min-height: 16px; }
+.dk-chips span { display: inline-flex; align-items: center; gap: 2px; }
+.dk-chips .down { color: var(--mk-red); }
+
+/* A robot under the drawing, icon-first. */
+.dk-bot2 { position: relative; display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 8px; padding: 8px 10px; background: var(--mk-stock-hi); box-shadow: inset 0 0 0 1px var(--mk-edge), 0 2px 3px rgb(60 40 10 / 0.35); border-radius: 3px; align-self: start; min-width: 0; flex: 1; max-width: 170px; }
+.dk-bot2__name { font: 16px/1.1 var(--mk-display); color: var(--mk-ink); }
+.dk-bot2__stars { display: block; color: var(--mk-brass-lo); font-size: 13px; letter-spacing: 1px; }
+.dk-bot2__row { grid-column: 1 / -1; display: flex; align-items: center; gap: 5px; }
+.dk-bot2__row .mk-btn { font-size: 12px; padding: 5px 6px; display: inline-flex; align-items: center; gap: 3px; }
+.dk-bot2__row .mk-btn.is-on { background: var(--mk-red); color: var(--mk-stock-hi); }
+.dk-socket { border: 0; padding: 0; background: none; cursor: pointer; border-radius: 6px; }
+.dk-socket.is-sel .fr { box-shadow: inset 0 0 0 2px var(--ui-c-accent), 0 0 0 2px var(--ui-c-accent); }
+.dk-bot2 .mk-stamp { position: absolute; right: 6px; top: 6px; font-size: 12px; }
+
+.dk-chassis2 { flex: 1; display: grid; gap: 6px; align-content: start; font: 13px var(--mk-mono); color: var(--mk-typed); }
+.dk-chassis2 h4 { margin: 0; font: 15px var(--mk-display); color: var(--mk-ink); font-weight: 400; }
+.dk-chassis2 .row { display: flex; align-items: center; gap: 8px; }
+.pips { letter-spacing: 2px; color: var(--mk-brass-lo); }
+
+/* Arrival tiles. */
+.ar-tiles { display: flex; flex-wrap: wrap; gap: 10px; }
+.ar-tile { position: relative; width: 112px; display: grid; justify-items: center; align-content: start; gap: 6px; padding: 9px 6px 8px; background: rgb(233 217 169 / 0.55); box-shadow: inset 0 0 0 1px var(--mk-edge); border-radius: 3px; }
+.ar-tile__name { font: 13px/1.1 var(--mk-display); color: var(--mk-ink); text-align: center; }
+.ar-tile__acts { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.ar-tile__acts .mk-btn { font-size: 12px; padding: 5px 7px; display: inline-flex; align-items: center; gap: 3px; }
+.ar-tile.is-done { opacity: 0.85; }
+.ar-tile .mk-stamp { font-size: 12px; }
+.ar-crew { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ar-sec2 { margin: 10px 0 6px; font: 15px var(--mk-display); color: var(--mk-ink); display: flex; gap: 10px; align-items: center; }
+.ar-sec2::after { content: ""; flex: 1; border-bottom: 1.5px solid var(--mk-edge); }
+
+/* Gauges with glyphs or the game's pickups. */
+.mk-gauge2 { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 5px; background: var(--mk-iron-2); border: 1px solid var(--mk-brass-lo); border-radius: 4px; box-shadow: inset 0 2px 4px rgb(0 0 0 / 0.6); color: var(--ui-c-accent-hover); font: 16px var(--mk-mono); }
+.mk-gauge2 .fr { --fr: 26px; padding: 2px; border-radius: 4px; }
+.mk-gauge2 .g { color: var(--ui-c-accent); width: 20px; height: 20px; }
+
+/* Pre-flight, icon-first. */
+.pf-land2 { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; align-items: center; text-align: left; padding: 8px 10px; border: 0; border-radius: 2px; cursor: pointer; }
+.pf-land2 .fr { grid-row: 1 / span 2; }
+.pf-land2 b { font: 16px/1.1 var(--mk-display); color: var(--mk-ink); font-weight: 400; }
+.pf-land2.is-sel { transform: translateX(8px); box-shadow: inset 0 0 0 2px var(--mk-brass-hi), inset 0 0 0 3px var(--mk-brass-lo), 0 3px 8px rgb(0 0 0 / 0.6); }
+.pf-land2.is-locked { opacity: 0.5; cursor: default; }
+.pf-land2 .mk-stamp { justify-self: start; font-size: 12px; }
+.pf-grid2 { width: 100%; border-collapse: collapse; align-self: start; }
+.pf-grid2 th { padding: 0 6px 6px; border-bottom: 1.5px solid var(--mk-edge); font: 12px var(--mk-mono); font-weight: 400; color: var(--mk-print); text-align: center; vertical-align: bottom; }
+.pf-grid2 th:first-child { text-align: left; }
+.pf-grid2 td { padding: 4px 6px; border-bottom: 1px dotted var(--mk-edge); text-align: center; }
+.pf-grid2 td:first-child { text-align: left; }
+.pf-foe { display: flex; align-items: center; gap: 8px; font: 14px var(--mk-display); color: var(--mk-ink); }
+.pf-foe small { display: block; font: 11px var(--mk-mono); color: var(--mk-print); }
+.pf-wcol { display: inline-flex; align-items: center; gap: 4px; }
+.pf-arrow { font: 700 18px var(--mk-mono); }
+.pf-dts { display: inline-flex; gap: 3px; }
+.pf-ride { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; padding: 6px 0; border-bottom: 1px dotted var(--mk-edge); }
+.pf-ride__gear { display: flex; gap: 3px; margin-left: auto; }
+.hb-counter__icon { vertical-align: -2px; }
+
+.dk-group__tab, .mk-head .mk-plate { white-space: nowrap; }
+.ar-rows:has(.ar-group) { display: flex; flex-wrap: wrap; gap: 4px 22px; align-content: start; }
+.ar-group .ar-sec2 { margin-top: 6px; }
+.ar-box .mk-gauges { flex-wrap: wrap; margin: 0; }
+
+/* ---- Pass 3: icons inline with text ---- */
+
+/* A stat: its glyph beside its value (red when it costs). */
+.chip { display: inline-flex; align-items: center; gap: 3px; font: 12.5px/1 var(--mk-mono); color: var(--mk-typed); white-space: nowrap; }
+.chip b { font-weight: 400; }
+.chip .g { width: 14px; height: 14px; vertical-align: 0; }
+.chip.is-bad { color: var(--mk-red); }
+.chip--type .dt { width: 16px; height: 16px; }
+.chip--type .dt .g { width: 10px; height: 10px; }
+.st b { font: 12px var(--mk-mono); margin-left: 2px; }
+.st .dt { margin-right: 2px; }
+.itag__line { font: 12px/1.25 var(--mk-mono); color: var(--mk-print); }
+
+/* The wider sheet: the drawer and roster give it room for plates that say what they hold. */
+.dk { grid-template-columns: 224px 1fr 392px; }
+.dk-sheet { grid-template-rows: 34px 370px 1fr; }
+.dk-under { padding-bottom: 8px; }
+.dk-doll { height: 364px; }
+
+/* A slot plate: the slot's icon in the top-right corner, the worn item's picture and name, its stats down a column (then a
+   second), and one line of what it does that is not a number. */
+.dk-plate { position: absolute; width: 182px; height: 88px; box-sizing: border-box; display: grid; grid-template-columns: 32px minmax(0, 1fr); grid-template-rows: auto auto 1fr; column-gap: 8px; row-gap: 3px; align-content: start; padding: 6px 8px 5px 9px; text-align: left; border: 0; cursor: pointer; }
+.dk-plate > .fr { grid-row: 2; align-self: center; }
+.pl-slot { position: absolute; right: 7px; top: 6px; color: var(--mk-iron); opacity: 0.85; }
+.dk-plate::after { display: none; }
+.pl-slot .g { width: 17px; height: 17px; }
+.pl-name { grid-column: 1 / -1; padding-right: 18px; letter-spacing: -0.01em; font: 13px/1.1 var(--mk-display); color: var(--mk-iron); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pl-stats { grid-row: 2; grid-column: 2; align-self: center; display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto); justify-content: start; gap: 2px 9px; }
+.pl-stats .chip { color: var(--mk-iron); font-size: 12px; }
+.pl-stats .chip.is-bad { color: var(--mk-red); }
+.pl-line { grid-column: 1 / -1; align-self: end; font: 11px/1.1 var(--mk-mono); color: var(--mk-typed); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.dk-plate.is-empty { filter: saturate(0.5) brightness(0.92); }
+.dk-plate.is-empty .pl-name { color: var(--mk-brass-lo); }
+.dk-plate.is-sel { box-shadow: 0 0 0 3px var(--mk-iron), 0 0 0 5px var(--ui-c-accent), 0 4px 10px rgb(0 0 0 / 0.5); }
+.dk-plate.is-new .fr { box-shadow: inset 0 0 0 2px var(--mk-green), 0 0 0 2px var(--mk-green); }
+
+.dk-cards { gap: 8px; }
+.dk-chassis2 .row span:not(.g):not(.pips) { min-width: 58px; }
+
+/* The haul: tiles read top to bottom (name, picture, what it does, then value left and Fit right). */
+.ar { grid-template-columns: 1fr 200px; }
+.ar-rows:has(.ar-group) { gap: 4px 20px; padding-right: 4px; }
+.ar-box .mk-gauges { gap: 6px; }
+.ar-tile { width: 144px; box-sizing: border-box; gap: 5px; padding: 8px 8px 8px; grid-template-rows: auto auto auto 1fr auto; align-content: stretch; }
+.ar-tile__name { min-height: 15px; }
+.ar-tile__stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px 8px; }
+.ar-tile__fx { font: 11.5px/1.25 var(--mk-mono); color: var(--mk-typed); text-align: center; }
+.ar-tile__flaw { font: 11.5px/1.25 var(--mk-mono); color: var(--mk-red); text-align: center; }
+.ar-tile__flaw::before { content: "Flaw: "; color: var(--mk-print); }
+.ar-tile__makes { display: flex; align-items: center; gap: 4px; font: 12px var(--mk-mono); color: var(--mk-print); }
+.ar-tile__type { font: 12px var(--mk-mono); color: var(--mk-typed); }
+.ar-tile__foot { align-self: end; width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 4px; padding-top: 5px; border-top: 1px dotted var(--mk-edge); }
+.ar-tile__foot.is-one { justify-content: center; }
+.ar-tile__foot .mk-btn { font-size: 12px; padding: 5px 7px; display: inline-flex; align-items: center; gap: 3px; }
+.ar-tile__foot .mk-btn .g { width: 13px; height: 13px; }
+.ar-tile--bot .ar-tile__foot .mk-btn > .g:first-child { width: 16px; height: 16px; }
+.ar-tile .ar-crew { width: 118px; justify-content: center; }
+
+/* The course table: lands with their tier, a Dry dock link in the manifest, and version B in words. */
+.pf-land2__tier { font-size: 12px; }
+.pf-manifest h3 { gap: 8px; }
+.pf-dock { margin-left: auto; font-size: 12px; padding: 4px 7px; display: inline-flex; align-items: center; gap: 4px; }
+.pf-ride__who { flex-basis: 100%; font: 12px var(--mk-mono); color: var(--mk-print); }
+.pf-stays { display: inline-flex; align-items: center; gap: 3px; font: 12px var(--mk-mono); color: var(--mk-print); }
+.pf-chart--A { grid-template-rows: auto 1fr; }
+.pf-chart--B { grid-template-rows: auto auto 1fr; gap: 10px; }
+.pf-blurb { margin: 4px 0 0; font: 12.5px/1.35 var(--mk-mono); color: var(--mk-print); }
+.pf-facts { display: grid; gap: 4px; padding: 6px 0; border-top: 1.5px solid var(--mk-edge); border-bottom: 1.5px solid var(--mk-edge); }
+.pf-fact { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font: 12.5px/1.3 var(--mk-mono); color: var(--mk-typed); }
+.pf-fact b { font: 14px var(--mk-display); font-weight: 400; color: var(--mk-ink); }
+.pf-part { display: inline-flex; align-items: center; gap: 4px; margin-right: 6px; }
+.pf-machs { display: grid; align-content: start; min-height: 0; overflow: hidden auto; }
+.pf-machs__head, .pf-mach { display: grid; grid-template-columns: 46px 138px 1fr 1fr 118px; column-gap: 10px; }
+.pf-machs__head { font: 12px var(--mk-mono); color: var(--mk-print); padding: 0 0 4px; border-bottom: 1.5px solid var(--mk-edge); }
+.pf-mach { align-items: center; row-gap: 4px; padding: 9px 0; border-bottom: 1px dotted var(--mk-edge); }
+.pf-mach > .fr { grid-row: 1 / span 2; }
+.pf-mach__who b { font: 14px/1.1 var(--mk-display); font-weight: 400; color: var(--mk-ink); }
+.pf-mach__who small { display: block; font: 11px var(--mk-mono); color: var(--mk-print); }
+.pf-mach__wr { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 8px; font: 12.5px var(--mk-mono); color: var(--mk-typed); }
+.pf-k { color: var(--mk-print); font-size: 11.5px; min-width: 48px; }
+.pf-dtw { display: inline-flex; align-items: center; gap: 4px; }
+.pf-dtw i { font-style: normal; color: var(--mk-print); }
+.pf-none { color: var(--mk-print); }
+.pf-mach__you { display: flex; gap: 8px; justify-content: flex-end; }
+.pf-you { display: inline-flex; align-items: center; gap: 3px; font: 700 12.5px var(--mk-mono); color: var(--mk-print); }
+.pf-ctr { grid-column: 2 / -1; display: flex; align-items: center; gap: 5px; font: 11.5px/1.25 var(--mk-mono); color: var(--mk-typed); }
+.pf-ctr b { font-weight: 400; color: var(--mk-ink); }
+.pf-you.up { color: var(--mk-green); }
+.pf-you.down { color: var(--mk-red); }
+.dk-drawer__head .mk-head__from { white-space: nowrap; }

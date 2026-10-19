@@ -5,6 +5,7 @@
  * (`spider.ts`); a boss's wind-up shapes and beats are `bossview.ts`.
  * Add a beat for a foe event: a `case` in `event`. Add a look: in `update`'s per-foe loop (`drawHornets`).
  */
+import { isCaterpillar } from './caterpillar';
 import Phaser from 'phaser';
 import { atlas } from '../../../harness/kit/assets';
 import { S } from './art';
@@ -47,7 +48,6 @@ export class FoeView extends ViewBase {
   /** The dark foes in view this frame, for the edge light's cap (`rims`). */
   private rimCand: { v: HornetView; d: number }[] = [];
   /** The name of the elite under the pointer (P12), a world label. */
-  private markName?: Phaser.GameObjects.Text;
 
   constructor(host: PlayHost) {
     super(host);
@@ -239,7 +239,7 @@ export class FoeView extends ViewBase {
     this.rimCand.length = 0;
     const stage = this.host.t.stageTint;
     for (const h of sim.hornets) {
-      if (h.spider) continue; // spiders have their own view (spider.ts)
+      if (h.spider || isCaterpillar(h)) continue; // spiders and caterpillars have their own views (spider.ts, caterpillar.ts)
       this.alive.add(h.id);
       let v = this.hornets.get(h.id);
       if (!v) {
@@ -448,14 +448,11 @@ export class FoeView extends ViewBase {
   /**
    * What an enemy's tier and traits look like (P12): 1-3 cyan stripes over its head for its tier, an elite's crown in its
    * trait's colour (a dot beside it for a second trait), the Thorns and Mirror shell icons over those that carry them, and
-   * an elite's name under the pointer. A tier I stripe is faint; a kind with no tier abilities shows none.
+   * an elite's name in its tooltip (hold Alt over it: `tips.ts`). A tier I stripe is faint; a kind with no tier abilities shows none.
    */
   private drawMarks(g: Phaser.GameObjects.Graphics) {
     const sim = this.sim;
     const view = this.scene.cameras.main.worldView;
-    const p = this.scene.input.activePointer;
-    const m = this.scene.cameras.main.getWorldPoint(p.x, p.y);
-    let hover: Hornet | null = null;
     for (const h of sim.hornets) {
       if (h.dead || h.boss || h.x < view.x - 60 || h.x > view.right + 60 || h.y < view.y - 80 || h.y > view.bottom + 60) continue;
       const k = (h.small ? TIER.small : 1) * (h.elite ? HORNET.elite.scale : 1);
@@ -473,18 +470,9 @@ export class FoeView extends ViewBase {
       }
       // The soft counters' icons (P22): left of an elite's crown, else centred over the head.
       cs.forEach((id, i) => drawCounter(g, id, ts.length ? h.x - 14 - i * 10 : h.x + (cs.length - 1) * 5 - i * 10, cy - 3));
-      // Its beast mods (P31, D32): a small coloured plate each on its body, named on hover.
+      // Its beast mods (P31, D32): a small coloured plate each on its body, named in its tooltip (`tips.ts`).
       const ms = h.mods ?? [];
       ms.forEach((id, i) => g.fillStyle(0x1d1a17, 0.7).fillRect(h.x - 5 + i * 8 - 1, h.y - 7, 8, 6).fillStyle(BEAST_MODS[id].color, 1).fillRect(h.x - 5 + i * 8, h.y - 6, 6, 4));
-      if ((ts.length || cs.length || ms.length) && Math.hypot(m.x - h.x, m.y - (h.y - 14)) < h.r + 14) hover = h;
-    }
-    if (!this.markName) this.markName = this.scene.add.text(0, 0, '', { fontSize: '11px', color: '#fff4d8', backgroundColor: 'rgba(20,16,12,0.75)', padding: { x: 4, y: 2 }, align: 'center' }).setDepth(1e6).setOrigin(0.5, 1);
-    const name = hover as Hornet | null;
-    this.markName.setVisible(!!name);
-    if (name) {
-      const cs = countersOf(name);
-      const who = `${[...(name.traits ?? []).map((t) => ELITE_TRAITS[t].name), ...(name.mods ?? []).map((t) => BEAST_MODS[t].name)].join(' + ')} ${FOES[name.kind].name}`.trim();
-      this.markName.setText([who, ...cs.map((c) => `${COUNTERS[c].name}: punishes ${COUNTERS[c].punishes}`)].join('\n')).setPosition(name.x, name.y - 76);
     }
   }
 

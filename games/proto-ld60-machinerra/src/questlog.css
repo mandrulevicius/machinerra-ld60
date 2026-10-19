@@ -1,44 +1,61 @@
-/* The quest log (J): brass on soot iron like the inventory; a met step glows good, the main quest carries a brass edge. */
+/*
+ * The quest log (J): brass on soot iron like the inventory; a met step glows good, the main quest carries a brass edge.
+ * Attention (P33): what to do next reads first (a quest ready to hand in, the current step); the rest is quiet: group headings
+ * small, rows flat, waiting and finished quests dimmer (Done folded away), the bond gauge and reward a quiet foot, the Close button faint.
+ */
 .ql-backdrop { z-index: 40; }
 .ql { width: 980px; max-width: calc(100% - 32px); height: 600px; max-height: calc(100% - 32px); display: flex; flex-direction: column; gap: 10px; padding: 14px 18px; }
 .ql__head { display: flex; align-items: center; gap: 18px; }
 .ql__title { margin: 0; font-size: var(--ui-fs-lg); color: var(--brass-hi, var(--ui-c-accent)); }
-.ql__close { margin-left: auto; }
+.ql__close { margin-left: auto; padding: 2px 10px; font-size: var(--ui-fs-sm); }
 .ql__body { flex: 1; min-height: 0; display: grid; grid-template-columns: 320px 1fr; gap: 18px; }
 .ql__list, .ql__detail { min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 6px; padding-right: 4px; }
-.ql__h { margin: 6px 0 0; font-family: var(--ui-font-display); font-weight: 400; font-size: var(--ui-fs-md); color: var(--brass-hi, var(--ui-c-accent)); }
+.ql__h { margin: 8px 0 0; font-family: var(--ui-font-body); font-weight: 700; font-size: var(--ui-fs-sm); letter-spacing: 0.04em; color: var(--ui-c-text-dim); }
+.ql__h--ready { color: var(--ui-c-good); }
+.ql__h--going { color: var(--brass, var(--ui-c-text-dim)); }
+.ql__fold { pointer-events: auto; cursor: pointer; text-align: left; padding: 0; background: none; border: 0; font-family: var(--ui-font-body); }
+.ql__fold::before { content: "\25B8\a0"; }
+.ql__fold.is-open::before { content: "\25BE\a0"; }
+.ql__fold:hover { color: var(--ui-c-text); }
 .ql__empty, .ql__dim { color: var(--ui-c-text-dim); font-size: var(--ui-fs-sm); }
 
-.ql-row { pointer-events: auto; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 7px 12px; text-align: left; font: inherit; color: var(--ui-c-text); background: var(--ui-c-surface-2); border: 1px solid var(--ui-c-border); border-left: 4px solid var(--ui-c-border); border-radius: 6px; }
-.ql-row:hover { border-color: var(--ui-c-text-dim); }
+.ql-row { pointer-events: auto; cursor: pointer; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 6px 12px; text-align: left; font: inherit; color: var(--ui-c-text); background: rgb(0 0 0 / 0.2); border: 1px solid transparent; border-left: 4px solid var(--ui-c-border); border-radius: 6px; transition: opacity 200ms; }
+.ql-row:hover { border-color: var(--ui-c-text-dim); opacity: 1; }
 .ql-row small { color: var(--ui-c-text-dim); font-size: var(--ui-fs-sm); font-weight: 700; }
 .ql-row--main { border-left-color: var(--brass-hi, var(--ui-c-accent)); }
-.ql-row--ready { border-left-color: var(--ui-c-good); }
+.ql-row--ready { padding: 10px 12px; border-left-width: 6px; border-left-color: var(--ui-c-good); background: color-mix(in srgb, var(--ui-c-good) 14%, rgb(0 0 0 / 0.2)); }
+.ql-row--ready b { font-size: var(--ui-fs-md); }
 .ql-row--ready small { color: var(--ui-c-good); }
-.ql-row--done { opacity: 0.6; }
+.ql-row--available, .ql-row--locked { opacity: 0.65; }
+.ql-row--done { opacity: 0.5; }
 .ql-row.is-selected { outline: 2px solid var(--ui-c-focus); outline-offset: 1px; }
 
-.ql__kind { margin: 0; color: var(--ui-c-text-dim); font-size: var(--ui-fs-sm); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.ql__kind { margin: 0; color: var(--ui-c-text-dim); font-size: var(--ui-fs-sm); font-weight: 400; opacity: 0.75; }
 .ql__name { margin: 0; font-family: var(--ui-font-display); font-weight: 400; font-size: var(--ui-fs-lg); color: var(--brass-hi, var(--ui-c-accent)); }
 .ql__note { margin: 4px 0; font-weight: 700; }
-.ql__note--ready { color: var(--ui-c-good); }
+.ql__note--ready { margin: 2px 0 4px; padding: 6px 12px; color: var(--ui-c-good); background: color-mix(in srgb, var(--ui-c-good) 14%, transparent); border-left: 4px solid var(--ui-c-good); border-radius: 4px; }
 .ql-bar { position: relative; display: flex; height: 12px; border: 1px solid var(--ui-c-border); border-radius: 6px; background: rgb(0 0 0 / 0.35); overflow: hidden; }
 .ql-bar i { display: block; height: 100%; background: var(--brass-hi, var(--ui-c-accent)); }
 .ql-bar i.ql-bar__pending { background: repeating-linear-gradient(-45deg, var(--ui-c-good) 0 6px, transparent 6px 10px); opacity: 0.8; }
 .ql__count { margin: 0; font-size: var(--ui-fs-sm); }
 .ql__pending { color: var(--ui-c-good); font-weight: 700; }
 .ql__steps { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-.ql-step { display: flex; gap: 8px; }
+.ql-step { display: flex; gap: 8px; font-size: var(--ui-fs-sm); }
 .ql-step__mark { width: 14px; flex: none; text-align: center; }
-.ql-step--done { color: var(--ui-c-text-dim); text-decoration: line-through; }
+.ql-step--done { color: var(--ui-c-text-dim); text-decoration: line-through; opacity: 0.55; }
 .ql-step--done .ql-step__mark { color: var(--ui-c-good); text-decoration: none; }
-.ql-step--current { font-weight: 700; }
+.ql-step--current { margin: 2px 0; padding: 6px 10px; font-size: var(--ui-fs-md); font-weight: 700; background: rgb(255 255 255 / 0.05); border-left: 3px solid var(--brass-hi, var(--ui-c-accent)); border-radius: 4px; }
 .ql-step--current .ql-step__mark { color: var(--brass-hi, var(--ui-c-accent)); }
-.ql-step--todo { color: var(--ui-c-text-dim); opacity: 0.7; }
-.ql__reward { margin: 10px 0 0; padding: 8px 12px; border: 1px dashed var(--ui-c-border); border-radius: 6px; }
+.ql-step--todo { color: var(--ui-c-text-dim); opacity: 0.55; }
+.ql__reward { margin: 10px 0 0; padding: 8px 0 0; font-size: var(--ui-fs-sm); border-top: 1px solid var(--ui-c-border); opacity: 0.8; }
+.ql__bond { margin-top: 4px; opacity: 0.6; transition: opacity 200ms; }
+.ql__bond:hover { opacity: 1; }
+.ql__bond .hb-bond__cog { flex-direction: row; gap: 8px; min-width: 0; }
+.ql__bond .hb-cog { width: 32px; height: 32px; }
 .ql__reward span { color: var(--ui-c-text-dim); font-size: var(--ui-fs-sm); }
 
-.ql__titles { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid var(--ui-c-border); }
+.ql__titles { opacity: 0.7; transition: opacity 200ms; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid var(--ui-c-border); }
 .ql__titles .ql__h { margin: 0 4px 0 0; }
 .ql-title { padding: 2px 10px; border: 1px solid var(--ui-c-border); border-radius: 99px; font-weight: 700; font-size: var(--ui-fs-sm); }
 .ql-title.is-worn { color: var(--ui-c-on-accent); background: var(--ui-c-accent); }
+.ql__titles:hover { opacity: 1; }

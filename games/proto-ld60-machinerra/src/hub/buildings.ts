@@ -96,10 +96,15 @@ export const hasBuilding = (s: Pick<HubState, 'buildings'>, id: BuildingId) => c
 /** The slots in use: built and going up. */
 export const slotsUsed = (s: Pick<HubState, 'buildings'>) => city(s).built.length + city(s).raising.length;
 
-/** The three blueprints this visit offers: seeded from the visit (the missions flown), never one already built or going up. None once one is drawn up this visit. */
+/** Blueprints drawn up this visit. */
+export const drawnThisVisit = (s: Pick<HubState, 'missions' | 'buildings'>) => (city(s).pickedAt === s.missions ? city(s).picks ?? 1 : 0);
+/** Blueprints a visit allows: one, two with the Grand Plan (the Planner's gift at the fifth step of her track, P52). */
+export const perVisit = (s: Partial<Pick<HubState, 'perks'>>) => ((s.perks as readonly string[] | undefined)?.includes('grandPlan') ? 2 : 1);
+
+/** The three blueprints this visit offers: seeded from the visit (the missions flown), never one already built or going up. None once the visit's blueprints are drawn up. */
 export function offer(s: Pick<HubState, 'missions' | 'buildings'> & Partial<Pick<HubState, 'perks'>>): BuildingId[] {
   const c = city(s);
-  if (c.pickedAt === s.missions) return [];
+  if (drawnThisVisit(s) >= perVisit(s)) return [];
   const pool = BUILDING_IDS.filter((id) => !c.built.includes(id) && !c.raising.includes(id) && gated(id, s.perks));
   return rng(`blueprints:${s.missions}`).shuffle(pool).slice(0, OFFERED);
 }
@@ -111,7 +116,7 @@ export const priceOf = (id: BuildingId, titles?: Titles) => Math.max(0, Math.rou
 export function whyNot(s: HubState, id: string, all = false): string | null {
   if (!isBuildingId(id)) return `no blueprint "${id}"`;
   if (!isWorking(s, 'cityPlanner', all)) return 'the City Planner is not at work: build her drafting office first';
-  if (city(s).pickedAt === s.missions) return 'one blueprint a visit: the next lift brings the next three';
+  if (drawnThisVisit(s) >= perVisit(s)) return `${perVisit(s) === 1 ? 'one blueprint' : 'two blueprints'} a visit: the next lift brings the next three`;
   if (!offer(s).includes(id)) return `${BUILDINGS[id].name} is not on offer this visit`;
   if (slotsUsed(s) >= slotsOf(s, all)) return `the city has no free slot (${slotsUsed(s)} of ${slotsOf(s, all)} used)`;
   return null;
@@ -122,7 +127,7 @@ export function draw(s: HubState, id: string, all = false): HubState {
   const why = whyNot(s, id, all);
   if (why) throw new Error(why);
   const c = city(s);
-  return { ...s, buildings: { ...c, raising: [...c.raising, id], pickedAt: s.missions } };
+  return { ...s, buildings: { ...c, raising: [...c.raising, id], pickedAt: s.missions, picks: drawnThisVisit(s) + 1 } };
 }
 
 /** A lift has docked: what was going up stands, and its once-only gift is paid (`cores`: the Reliquary's AI core). */

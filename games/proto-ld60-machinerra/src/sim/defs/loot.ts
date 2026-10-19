@@ -197,6 +197,7 @@ export const ENEMY_PARTS: Record<Enemy, { part: PartKind; elite: PartKind[] }> =
   swarmer: { part: 'swarmer-wing', elite: ['swarmer-scythe'] },
   drone: { part: 'drone-optics', elite: ['drone-cannon'] },
   spider: { part: 'spider-lens', elite: ['spider-spinneret', 'spider-legs'] },
+  caterpillar: { part: 'spider-lens', elite: ['spider-lens'] }, // its head wears the Crawlcam's lens (no part of its own yet)
   snake: { part: 'snake-skin', elite: ['snake-skin'] },
   cat: { part: 'cat-haunches', elite: ['cat-haunches'] },
   boar: { part: 'boar-tusk', elite: ['boar-tusk'] },

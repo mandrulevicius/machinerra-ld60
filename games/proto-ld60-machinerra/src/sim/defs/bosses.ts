@@ -379,6 +379,58 @@ export const BOSSES: { hornet: BossDef; drone: BossDef } & Partial<Record<Enemy,
     arrive: 'The Hive Foreman, sitting on her wreck. He rears before he rams: sidestep the red lane, and let him run into the rock.',
     fall: undefined,
   },
+  // Level 1's mini-boss (Minos: "spider elite as mini-boss"; `spawntiers.ts` `FIRST_SPAWNS[1].boss`, `placeplay.ts`; the name
+  // and every number a guess): a Crawlcam sized up, guarding Sprocket's wreck. It fights as a Crawlcam does (`spider.ts` `crawl`: creeps in bursts, rears with its lens flaring red before it
+  // pounces, spits a cable), so `cycle`, `charge` and the rest are unused; beaten by swings and kicks. Drops its lens.
+  spider: {
+    name: 'The Head of Security',
+    mini: true,
+    hp: 150,
+    r: 22,
+    scale: 1.8,
+    speed: 120,
+    ring: 60,
+    sting: { dmg: 6, rate: 1.1 },
+    every: 2.4,
+    cycle: ['charge'],
+    volley: { tell: 1, bolts: 1, extra: 0, spread: 0, speed: 0, dmg: 0, life: 0 },
+    charge: { tell: 0.9, time: 0.5, speed: 480, dmg: 12, knock: 50, rest: 0.9 },
+    summon: { tell: 1, count: 0, max: 0 },
+    aura: { radius: 0, slow: 1, dps: 0, stack: 1 },
+    enrage: 0,
+    enrageRate: 1,
+    drops: { core: 0, parts: 1, rare: 0, scrap: 3, gob: 10, copper: 6, oil: 0, unique: 'spider-lens' },
+    color: 0x9fd8ff,
+    arrive: 'The Head of Security. It rears before it pounces: step aside, then hit it.',
+    fall: undefined,
+  },
+  // Mission 1's mini-boss (Minos): the baby caterpillar's tusked mother, much bigger, a jaw of four pieces (top, bottom, a tusk
+  // each side). It crawls in and bites; its attack is `CATERPILLAR`'s (sim/caterpillar.ts): a fast spiral until its head points
+  // at him, the head lifting to look, the rear with the jaw opening (`charge.tell`, the slow tell), the lunge (`charge`:
+  // `time`, `speed`, `dmg`, `knock`, then `rest`, the opening to hit it; it stops on rock). `cycle` and the rest are unused.
+  // The name and every number are guesses. Drops the lens its head wears, as the Head of Security did.
+  caterpillar: {
+    name: 'The Tusked Caterpillar',
+    mini: true,
+    hp: 150,
+    r: 22,
+    scale: 2.6,
+    speed: 75,
+    ring: 60,
+    sting: { dmg: 6, rate: 1.1 },
+    every: 2.2,
+    cycle: ['charge'],
+    volley: { tell: 1, bolts: 1, extra: 0, spread: 0, speed: 0, dmg: 0, life: 0 },
+    charge: { tell: 1.1, time: 0.42, speed: 560, dmg: 14, knock: 50, rest: 1.3, rock: true },
+    summon: { tell: 1, count: 0, max: 0 },
+    aura: { radius: 0, slow: 1, dps: 0, stack: 1 },
+    enrage: 0,
+    enrageRate: 1,
+    drops: { core: 0, parts: 1, rare: 0, scrap: 3, gob: 10, copper: 6, oil: 0, unique: 'spider-lens' },
+    color: 0x9fd8ff,
+    arrive: 'Something big is coiled in the den. When it winds up and rears, get out of the line of its jaws, then hit it.',
+    fall: undefined,
+  },
   // The Ether's lord (P44): the Evil Oracle, the Oracle's dark twin, who stole the wife. He waits in his church (place
   // `church`): dark volleys, his ghosts, rings of cold, a blink (a leap he makes as a ghost); at half oil he unveils, and
   // from then on he veils himself now and then (`veil`: no hit lands). Ethereal like his ghosts: ghost touch first.

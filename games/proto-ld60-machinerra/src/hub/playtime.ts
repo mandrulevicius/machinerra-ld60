@@ -18,7 +18,7 @@ export const playtime = persist<Playtime>('playtime', () => ({ ms: 0, finished: 
 });
 
 /** The scenes that count as playing. */
-export const PLAY_SCENES = ['Play', 'Dungeon', 'Ascent', 'Hub'];
+export const PLAY_SCENES = ['Opening', 'Play', 'Dungeon', 'Ascent', 'Hub'];
 /** A frame longer than this (a stall, a tab coming back) counts as this much. */
 const MAX_FRAME = 250;
 /** Write at most this often (ms of play). */

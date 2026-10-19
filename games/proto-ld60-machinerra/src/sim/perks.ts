@@ -24,6 +24,20 @@ export const PERK_FX = {
   wireOrder: 1.5,
   /** The Princess's docks (P58 H): Moss in the brush, the Main Brush's swing and sweep reach this much farther. */
   mossBrush: 1.25,
+  /** The relationship track's gifts (P52, every number a guess): the Roll-call brings the downed to a ring this many px round the lift's centre. */
+  rollCall: { ring: 54 },
+  /** The Old Map shows the ground this many tiles round the land's biggest ruin from the start. */
+  oldMap: { reveal: 3 },
+  /** Old Earful's flaw: the nearest sleeping hive within this many tiles of the shot wakes (the noise). */
+  oldEarful: { wake: 30 },
+  /**
+   * The Open Door (P52, the Kicker's gift; Minos: "fulfill the fantasy, not bound by math"): a kicked body that breaks a wall bursts out
+   * and flies on: at least `speed` px/s (else the speed it had times `keep`), no steering for `time` s (a foe's `glide` leaves it alone),
+   * slowing at `friction` per second, and it flies for the whole `time` (the crash minimum does not end it). All guesses.
+   */
+  openDoor: { keep: 0.8, speed: 380, time: 0.9, friction: 2 },
+  /** The Homing Signal: the Communicator stands again at this share of his oil, once a mission. */
+  homingSignal: { oil: 0.25 },
   /** Your house: a bed. You land rested, Hasted for this many seconds. */
   homeRest: { haste: 60 },
   /** The Planner's line: barrage shells' damage multiplies. */

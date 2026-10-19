@@ -126,7 +126,7 @@ export function ownPoints(sim: Sim): { at: Spot; bots: Bot[] }[] {
 export function orderBots(sim: Sim, ids: number[], x: number, y: number, follow = false): Bot[] {
   const bots = ids.map((id) => sim.bot(id)).filter((b): b is Bot => !!b && b.role !== 'controller');
   if (sim.dungeon || !bots.length) return [];
-  const at = follow ? 'follow' : sim.passableNear(x, y);
+  const at = follow ? 'follow' : sim.orderSpot(x, y, bots);
   for (const b of bots) {
     if (follow && b.crew === 0) delete b.own;
     else b.own = at;

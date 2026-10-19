@@ -25,7 +25,7 @@ describe('Frozen: a kick shatters it (P11)', () => {
     const s = alone();
     const c = s.controller;
     const ice = dummy(s, c.x + 30, c.y);
-    const near = dummy(s, c.x + 30 + 40, c.y + 20); // behind the ice, out of the kick's reach, inside the shards'
+    const near = dummy(s, c.x + 30 + 55, c.y); // behind the ice, out of the kick's reach, inside the shards'
     const far = dummy(s, c.x + 30 + SHATTER.radius + 60, c.y);
     s.engine.apply(ice, 'frozen');
     kick(s);

@@ -12,6 +12,9 @@ import { setCold, twistNow, twistOff, twistSummary } from '../sim/twists';
 import { rushNow, rushSummary } from '../sim/commute';
 import { ANOMALIES, BIOMES, TWISTS, COAL, PARTS, REVIVE, RUIN, T, TAP, WEAPONS, WEATHER, type AnomalyId, type BiomeId, type WeaponId } from '../sim/defs';
 
+/** What a timed action is on, in a word: a ruin's kind, a place's id, a downed robot's fix, a graft or a seam. */
+const actionName = (a: NonNullable<Play['sim']['action']>) => a.ruin ? a.ruin.kind : a.place ? a.place.id : a.bot ? `fix ${a.bot.name}` : a.graft ? 'graft' : 'coal seam';
+
 export function missionCommands(play: Play) {
   const sim = play.sim;
   const g = { group: 'mission' };
@@ -36,7 +39,7 @@ export function missionCommands(play: Play) {
     if (!id || !LAND_IDS().includes(id)) return `land ${play.landId ?? 'none (generated)'} (${LAND_IDS().join(', ')}); land level1 is the first mission's handcrafted land`;
     play.scene.restart({ land: id, seed: id, biome: LANDS[id].biome, tier: play.tier, anomaly: play.anomaly });
     return `restarting on the land file ${id}`;
-  }, `land [${LAND_IDS().join('|')}]: restart the mission on a handcrafted land file (levels/lands/; also ?land=level1; a new game plays level1)`, { ...g, args: () => LAND_IDS() });
+  }, `land [${LAND_IDS().join('|')}]: restart the mission on a handcrafted land file (levels/lands/; also ?land=level1; a new game plays intro, then level1)`, { ...g, args: () => LAND_IDS() });
   command('anomaly', ([id]) => {
     if (!id || !(id in ANOMALIES)) return `anomaly ${play.anomaly} (${Object.keys(ANOMALIES).join(', ')}); now ${JSON.stringify(sim.summary().anomaly)}`;
     play.scene.restart({ seed: play.seed, biome: play.biome, tier: play.tier, anomaly: id as AnomalyId });
@@ -175,7 +178,7 @@ export function missionCommands(play: Play) {
   command('use', ([what]) => {
     if (what === 'press') {
       sim.pressUse(sim.controller);
-      return sim.action ? `started: ${sim.action.ruin ? sim.action.ruin.kind : sim.action.place!.id} (${sim.action.need.toFixed(1)} s)` : sim.armed ? `asked: ${sim.armed.verb}` : 'nothing in reach to use';
+      return sim.action ? `started: ${actionName(sim.action)} (${sim.action.need.toFixed(1)} s)` : sim.armed ? `asked: ${sim.armed.verb}` : 'nothing in reach to use';
     }
     if (what === 'finish') {
       if (!sim.action) return 'no timed action running (`use press` beside a ruin or a place first)';
@@ -184,7 +187,7 @@ export function missionCommands(play: Play) {
     }
     if (what === 'cancel') sim.action = sim.armed = null;
     const a = sim.action;
-    return a ? `${a.ruin ? a.ruin.kind : a.place!.id}: ${a.t.toFixed(1)} / ${a.need.toFixed(1)} s${a.paused ? ' (paused: out of the zone)' : ''}` : sim.armed ? `asked ${sim.armed.verb} ${sim.armed.t.toFixed(1)} s` : 'idle';
+    return a ? `${actionName(a)}: ${a.t.toFixed(1)} / ${a.need.toFixed(1)} s${a.paused ? ' (paused: out of the zone)' : ''}` : sim.armed ? `asked ${sim.armed.verb} ${sim.armed.t.toFixed(1)} s` : 'idle';
   }, 'use [press|finish|cancel]: the Use key as a command. `press` is one press (starts the action in reach, or asks the lift/way down; a second `press` confirms), `finish` completes the running timed action, no argument shows it', { group: 'mission', args: () => ['press', 'finish', 'cancel'] });
   command('wake', () => {
     for (const n of sim.nests) sim.wake(n, 'a dev');

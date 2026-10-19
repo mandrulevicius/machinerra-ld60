@@ -20,7 +20,7 @@ export function leewayCommands(play: Play) {
     if (sim.downT > 0) return 'error: already down';
     c.hp = Math.min(c.hp, 1);
     sim.hurt(c, 999);
-    return `${sim.downKind === 'revive' ? 'down: reviving from the reserve' : 'down: no reserve, the winch is coming'} (reserve ${(sim.reserve / LOOT.oil).toFixed(2)} cans)`;
+    return `${sim.downKind === 'homing' ? "down: the Princess's signal is bringing him back" : sim.downKind === 'revive' ? 'down: reviving from the reserve' : 'down: no reserve, the winch is coming'} (reserve ${(sim.reserve / LOOT.oil).toFixed(2)} cans)`;
   }, 'revive: run the Communicator out of oil now, to see the revive (a can in the reserve) or the winch (none)', lw);
   command('support', ([arg]) => {
     if (arg === 'recharge') {

@@ -9,7 +9,8 @@ import { fogMul, scoutSees } from './botskills';
 import { dogSees } from './companions';
 import { sightRadius, type Seer } from './fog';
 import { sky } from './clock';
-import { T } from './defs';
+import { RUIN_PIECES, T } from './defs';
+import { PERK_FX } from './perks';
 import type { Bot, Sim } from './sim';
 
 /** How often the fog is revealed, seconds (a disc of tiles per seer: no need every step). */
@@ -45,6 +46,18 @@ export function fogStep(sim: Sim, dt: number, ax: number, ay: number) {
 /** A lit mast shows the land around it, wherever the Communicator is. */
 export function mastSees(sim: Sim, x: number, y: number) {
   sim.fog.reveal(tile(x), tile(y), sightNow(sim, 'mast'));
+}
+
+/**
+ * The Old Map (P52, the Expeditioner's gift): the land's centrepiece, its biggest ruin (the most pay; the first of equals), is drawn on the map
+ * from the start: the ground round it is seen, so its mark shows. Called as the Sim is made. Returns the ruin it marked.
+ */
+export function oldMap(sim: Sim) {
+  if (!sim.perks.has('oldMap')) return null;
+  const pay = (r: Sim['ruins'][number]) => (r.size ? RUIN_PIECES.size[r.size].pay : 0);
+  const big = sim.ruins.filter((r) => r.trail === undefined).reduce<Sim['ruins'][number] | null>((best, r) => (!best || pay(r) > pay(best) ? r : best), null);
+  if (big) sim.fog.reveal(tile(big.x), tile(big.y), PERK_FX.oldMap.reveal);
+  return big;
 }
 
 export function fogSummary(sim: Sim) {

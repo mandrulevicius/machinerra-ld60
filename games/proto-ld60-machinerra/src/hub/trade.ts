@@ -10,7 +10,8 @@
  * What was bought from this lift's shelf is the `trade` slice (`Trade`): a new lift, a new shelf.
  */
 import { ENEMY_PARTS, PARTS, type Enemy, type PartKind } from '../sim/defs';
-import { ITEMS, QUALITIES, QUALITY_ORDER, addItem, itemIds, rollQuality, type Gear, type ItemId, type Quality } from '../sim/gear';
+import { MODS, FITS_NAMES } from '../sim/defs/mods';
+import { ITEMS, QUALITIES, QUALITY_ORDER, SLOT_NAMES, addItem, itemIds, rollQuality, type Gear, type ItemDef, type ItemId, type Quality } from '../sim/gear';
 
 export type Ware = { kind: 'part'; part: PartKind; n: number; price: number } | { kind: 'item'; item: ItemId; q: Quality; n: 1; price: number };
 
@@ -27,7 +28,7 @@ export const TIERS: { parts: number; items: number; grade: number; floor: Qualit
   { parts: 4, items: 3, grade: 2, floor: 'rare' },
 ];
 /** How far afield a machine's parts come from: the desert's (0), the jungle's and the Hollow City's (1), the Demon Wastes' and the Frostspine's (2). */
-export const PART_GRADE: Record<Enemy, number> = { hornet: 0, spider: 0, snake: 0, drone: 1, swarmer: 2, cat: 1, boar: 1, monkey: 1, commuter: 1, officer: 1, charger: 1, goat: 2, bleater: 2, kite: 2, gorilla: 1, knight: 1, bear: 2, wisp: 2, shade: 2, banshee: 2, evilOracle: 2, foreman: 0,
+export const PART_GRADE: Record<Enemy, number> = { hornet: 0, spider: 0, snake: 0, drone: 1, swarmer: 2, cat: 1, boar: 1, monkey: 1, commuter: 1, officer: 1, charger: 1, goat: 2, bleater: 2, kite: 2, gorilla: 1, knight: 1, bear: 2, wisp: 2, shade: 2, banshee: 2, evilOracle: 2, foreman: 0, caterpillar: 0,
   piranha: 1, cupid: 1, croc: 1, mannequin: 1, cart: 1, copdrone: 1, mallcop: 1, leech: 2, veinworm: 2, bishop: 2, mite: 2, driller: 2, snowcat: 2 };
 export const partGrade = (k: PartKind) => PART_GRADE[PARTS[k].from] ?? 0;
 const tierOf = (t: number) => TIERS[Math.max(0, Math.min(TIERS.length - 1, Math.floor(t) || 0))];
@@ -54,8 +55,13 @@ export function itemGrade(id: ItemId) {
   return Math.max(w < 60 ? 0 : w < 100 ? 1 : 2, ...parts);
 }
 
-/** Gear the Trader can get hold of: not the shovel, nothing made from a boss's unique part. */
-const STOCKED = itemIds.filter((id) => id !== 'shovel' && !Object.keys(ITEMS[id].recipe.parts ?? {}).some((k) => PARTS[k as PartKind]?.unique));
+/** What a piece of gear is for, in a few words: a weapon, a weapon mod (P57: fitted on a lug), or the slot it is worn in. */
+export const slotLabel = (d: ItemDef) => d.weapon ? 'weapon' : d.mod ? `weapon mod (${FITS_NAMES[MODS[d.mod].fits].toLowerCase()})` : SLOT_NAMES[(d.comm ?? d.bot)!].toLowerCase() + (d.comm ? '' : ', for a crew');
+/** A piece's name on the shelf with its quality; a mod has none. */
+export const wareName = (d: ItemDef, q: Quality) => d.mod ? d.name : `${QUALITIES[q].name} ${d.name}`;
+
+/** Gear the Trader can get hold of: not the shovel, no gift (nobody sells those), nothing made from a boss's unique part. */
+const STOCKED = itemIds.filter((id) => id !== 'shovel' && !ITEMS[id].gift && !Object.keys(ITEMS[id].recipe.parts ?? {}).some((k) => PARTS[k as PartKind]?.unique));
 const PART_KINDS = (Object.keys(PARTS) as PartKind[]).filter(sellable);
 
 const seeded = (s: number) => () => ((s = (s * 16807) % 2147483647) / 2147483647);
@@ -68,8 +74,8 @@ function pick<T>(r: () => number, from: T[], grade: (x: T) => number, top: numbe
   return out;
 }
 
-/** This lift's shelf at quest tier `tier` (prices before any discount). */
-export function shelf(missions: number, tier = 0): Ware[] {
+/** This lift's shelf at quest tier `tier` (prices before any discount). With the Back Room (P52, the Trader's gift at the fifth step of her track) `back`: one more piece of gear, of the top grade she stocks (drawn on its own stream, so the rest of the shelf is the same). */
+export function shelf(missions: number, tier = 0, back = false): Ware[] {
   const T = tierOf(tier);
   const r = seeded(7919 * (missions + 1) + 13);
   const parts: Ware[] = pick(r, PART_KINDS, partGrade, T.grade, T.parts).map((part) => ({ kind: 'part', part, n: 2 + Math.floor(r() * 3), price: partPrice(part) }));
@@ -78,25 +84,39 @@ export function shelf(missions: number, tier = 0): Ware[] {
     const q = QUALITY_ORDER.indexOf(rolled) < QUALITY_ORDER.indexOf(T.floor) ? T.floor : rolled;
     return { kind: 'item', item, q, n: 1, price: itemPrice(item, q) };
   });
+  if (back) {
+    const rb = seeded(104729 * (missions + 1) + 7);
+    const taken = new Set(items.map((w) => (w.kind === 'item' ? w.item : '')));
+    const top = STOCKED.filter((id) => itemGrade(id) <= T.grade && !taken.has(id));
+    const best = top.filter((id) => itemGrade(id) === T.grade);
+    const pool = best.length ? best : top;
+    if (pool.length) {
+      const item = pool[Math.floor(rb() * pool.length)];
+      const rolled = rollQuality(rb());
+      const q = QUALITY_ORDER.indexOf(rolled) < QUALITY_ORDER.indexOf(T.floor) ? T.floor : rolled;
+      items.push({ kind: 'item', item, q, n: 1, price: itemPrice(item, q) });
+    }
+  }
   return [...parts, ...items];
 }
 
 export const discounted = (price: number, valued: boolean) => (valued ? Math.ceil(price * (1 - SHELF.valued)) : price);
 /** What was sold off this shelf (a trade from an older lift or tier counts as nothing: the shelf was restocked). */
 export const soldNow = (t: Trade, missions: number, tier = 0) => (t.at === missions && (t.tier ?? 0) === tier ? t.sold : []);
-export const left = (t: Trade, missions: number, i: number, tier = 0) => {
-  const w = shelf(missions, tier)[i];
+export const left = (t: Trade, missions: number, i: number, tier = 0, back = false) => {
+  const w = shelf(missions, tier, back)[i];
   return w ? w.n - (soldNow(t, missions, tier)[i] ?? 0) : 0;
 };
 
 /** What a trade touches: the economy's scrap, the hub's parts, the gear; `tier` is her quest line's steps done. */
-export interface Stall { missions: number; tier: number; trade: Trade; scrap: number; parts: Partial<Record<PartKind, number>>; gear: Gear; valued: boolean }
+export interface Stall { missions: number; tier: number; /** The Back Room: one more piece on the shelf. */ back?: boolean; trade: Trade; scrap: number; parts: Partial<Record<PartKind, number>>; gear: Gear; valued: boolean }
 
 /** Buy one of ware `i`. Throws with the reason (sold out, short of scrap). */
 export function buy(s: Stall, i: number): Stall & { ware: Ware } {
-  const ware = shelf(s.missions, s.tier)[i];
+  const ware = shelf(s.missions, s.tier, s.back)[i];
   if (!ware) throw new Error(`no ware ${i} on the shelf`);
-  if (left(s.trade, s.missions, i, s.tier) < 1) throw new Error('sold out');
+  if (left(s.trade, s.missions, i, s.tier, s.back) < 1) throw new Error('sold out');
+  if (ware.kind === 'item' && ITEMS[ware.item].mod && s.gear.items.some((o) => o.id === ware.item)) throw new Error('you already have one: a mod is one of a kind'); // as `craft` (gear.ts)
   const price = discounted(ware.price, s.valued);
   if (s.scrap < price) throw new Error(`costs ${price} scrap; you have ${s.scrap}`);
   const sold = [...soldNow(s.trade, s.missions, s.tier)];

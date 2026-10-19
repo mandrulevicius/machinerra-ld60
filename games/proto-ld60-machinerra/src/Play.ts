@@ -43,6 +43,8 @@ import { FoeView } from './foeview';
 import { FootView } from './footview';
 import { installStepSounds } from './stepsounds';
 import { GearView } from './gearview';
+import { FanfareView } from './fanfare';
+import { CueView } from './cueview';
 import { HudFx } from './hudfx';
 import { JunkView } from './junkview';
 import { ModView } from './modview';
@@ -54,9 +56,10 @@ import { PropView } from './propview';
 import { LightView } from './lightview';
 import { MissionEnd } from './missionend';
 import { MusicView } from './musicview';
-import { ShadowView, contactRow, prepareShadows, sunCast } from './shadowview';
+import { PROP_CASTS, ShadowView, contactRow, prepareShadows, sunCast } from './shadowview';
 import { SupportView } from './supportview';
 import { TeachView } from './teachview';
+import { IntroView } from './introview';
 import { WorldView } from './worldview';
 import type { BotView, CommState, G, HornetView, PlayHost, Used, View } from './playhost';
 import { ring } from './playhost';
@@ -70,6 +73,9 @@ import { features } from './hub/story';
 import { isTaught, waitingNote } from './hub/taught';
 import { capExtraOf, depart, economy } from './hub/economy';
 import { Inventory, gearCommands } from './inventory';
+import { DryDock } from './dock/dockview';
+import { dockCommands } from './dock/dockdev';
+import { sceneArt } from './dock/sceneart';
 import { missionSubjects } from './stats';
 import { makeGearArt } from './gearart';
 import { makeNpcArt } from './hub/art';
@@ -77,8 +83,11 @@ import { makePlaceArt } from './placeart';
 import { PlaceViews } from './places';
 import { LiveRuins } from './ruinart';
 import { SpiderViews, installSpiderSounds } from './spider';
+import { CaterpillarView } from './caterpillar';
+import { SignView } from './signview';
 import { StatusView } from './statusview';
 import { TierView } from './tierview';
+import { TipView } from './tipview';
 
 export class Play extends Phaser.Scene {
   sim!: Sim;
@@ -101,7 +110,7 @@ export class Play extends Phaser.Scene {
   /** The landing's threat tier and anomaly (P40: the course table's card; `?tier=`, `?anomaly=`, dev `tier`, `anomaly`). */
   tier = 1;
   anomaly: AnomalyId = 'plain';
-  /** A handcrafted land's id (`sim/lands.ts`: level 1 on a new game, `?land=`, dev `mission land`); null for a generated one. */
+  /** A handcrafted land's id (`sim/lands.ts`: the intro on a new game, then level 1, `?land=`, dev `mission land`); null for a generated one. */
   landId: string | null = null;
   /** What every view shares (`PlayHost`): the robots and enemies on screen, the Communicator's state, what the player has done, the crew's lamps, the frame's lines. */
   private bots = new Map<number, BotView>();
@@ -138,6 +147,10 @@ export class Play extends Phaser.Scene {
   /** The quest log (J): pauses the mission while open, like the inventory. */
   log!: QuestLog;
   private guide!: Guide;
+  /** The mission's tooltips (`tipview.ts`; dev `tip`). */
+  tipView!: TipView;
+  /** What flies to the HUD or hovers over him when something is gained (`fanfare.ts`; dev `fanfare`). */
+  fanfare!: FanfareView;
 
   /** `Dungeon` (below) is this scene run down a dungeon: the land's Play sleeps above until it comes back up. */
   constructor(key = 'Play') {
@@ -204,8 +217,8 @@ export class Play extends Phaser.Scene {
     const an = data?.anomaly ?? url.get('anomaly'), tr = Number(data?.tier ?? url.get('tier') ?? 1);
     this.anomaly = an && an in ANOMALIES ? (an as AnomalyId) : 'plain';
     this.tier = clampTier(tr || 1);
-    // A new game (no mission flown) plays level 1's handcrafted land unless the URL or the caller picked a seed or a biome.
-    const lq = this.down ? null : data?.land ?? url.get('land') ?? (hub.get().missions === 0 && data?.seed === undefined && !q && !b ? 'level1' : null);
+    // A new game (no mission flown) falls into the intro's old works unless the URL or the caller picked a seed or a biome.
+    const lq = this.down ? null : data?.land ?? url.get('land') ?? (hub.get().missions === 0 && data?.seed === undefined && !q && !b ? 'intro' : null);
     this.landId = lq && LAND_IDS().includes(lq) ? lq : null;
     if (this.landId) {
       const L = LANDS[this.landId];
@@ -240,9 +253,9 @@ export class Play extends Phaser.Scene {
     installStepSounds(this.k.audio);
     const hands = this.down?.hands;
     dockDev.force = !!this.t.docks;
-    const sim = (this.sim = new Sim(...missionArgs({ seed: this.seed, land: this.landId, biome: this.biome, tier: this.tier, anomaly: this.anomaly, allRescued: this.t.allRescued, down: this.down })));
+    const sim = (this.sim = new Sim(...missionArgs({ seed: this.seed, land: this.landId, biome: this.biome, tier: this.tier, anomaly: this.anomaly, allRescued: this.t.allRescued, down: this.down, flown: url.has('flown') ? Number(url.get('flown')) : undefined })));
     sim.capExtra = capExtraOf(hub.get().perks, hub.get().buildings?.built);
-    if (!this.down && !data?.hot) {
+    if (!this.down && !data?.hot && !sim.intro) {
       // The lift goes down with the cans `depart` takes from the stock and the air support the last mission left (paid now: a mission quit half-way keeps neither).
       const d = depart(economy.get(), { capExtra: sim.capExtra });
       economy.set(d.eco);
@@ -281,7 +294,7 @@ export class Play extends Phaser.Scene {
     this.ui = ui;
     this.hud = new Hud(ui, sim, { map: () => this.toggleMap() });
     // No sky down a dungeon: no day dial.
-    if (this.down) ui.classList.add('is-dungeon');
+    if (this.down || sim.intro) ui.classList.add('is-dungeon');
     useOracleFace(this.textures.getBase64('atlas', 'npc/oracle-face'));
     usePrincessFace(this.textures.getBase64('atlas', 'npc/princess'));
     this.hud.face(this.textures.getBase64('atlas', 'communicator/portrait'));
@@ -302,6 +315,18 @@ export class Play extends Phaser.Scene {
       waiting: () => waitingNote(hub.get(), this.t.allRecipes),
       stats: () => missionSubjects(this.sim),
     });
+    // The Dry dock on the sands (I): wearing works, the rest waits for the Wanderer.
+    const dock = new DryDock(ui, {
+      where: 'mission',
+      inv: this.inv,
+      art: sceneArt(this),
+      stores: () => ({ scrap: economy.get().scrap, copper: economy.get().copper, coal: economy.get().coal, parts: hub.get().parts }),
+      carried: () => ({ scrap: this.sim.scrap }),
+      sound: (k) => this.sfx(k === 'equip' ? 'pickup' : 'click', undefined, undefined, { gain: k === 'deny' ? 0.9 : 0.6 }),
+      taught: (id) => isTaught(hub.get(), id, this.t.allRecipes),
+    });
+    this.inv.attachDock(dock);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, dockCommands(dock, this.inv));
     // This run's stats count toward the quest lines once the lift docks (`land`): the log shows them as pending.
     this.log = new QuestLog(ui, {
       where: 'mission',
@@ -341,8 +366,10 @@ export class Play extends Phaser.Scene {
       return true;
     });
     const ctl = this.bots.get(sim.controller.id)!.spr;
-    hint(this, ctl, 'Press {map} for the map and your crews', { until: () => this.mapUsed, delay: 14000, gap: 44, id: 'map', size: 18 });
-    hint(this, ctl, 'Press {command} to command your crews from here', { until: () => this.cmd.used, delay: 60000, gap: 44, id: 'command', size: 18 });
+    // A tool's hint shows once it is taught and its own mission has passed (the Oracle's pause teaches it there: sim/lessons.ts).
+    const hinted = (t: 'map' | 'command') => !sim.intro && sim.lessons.open(t) && !sim.lessons.teaches(t);
+    if (hinted('map')) hint(this, ctl, 'Press {map} for the map and your crews', { until: () => this.mapUsed, delay: 14000, gap: 44, id: 'map', size: 18 });
+    if (hinted('command')) hint(this, ctl, 'Press {command} to command your crews from here', { until: () => this.cmd.used, delay: 60000, gap: 44, id: 'command', size: 18 });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       ui.innerHTML = '';
       if (this.uiHost) {
@@ -416,6 +443,9 @@ export class Play extends Phaser.Scene {
     this.support = new SupportView(host);
     this.places = new PlaceViews(host);
     this.gearView = new GearView(host);
+    this.fanfare = new FanfareView(host);
+    this.tipView = new TipView(host);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.tipView.destroy());
     this.link = new DungeonLink(host);
     this.finale = new MissionEnd(host);
     const spiders = new SpiderViews({
@@ -424,6 +454,7 @@ export class Play extends Phaser.Scene {
       flash: (x, y, color, i) => this.light.flash(x, y, color, i),
       burst: (x, y, o) => this.k.fx.burst(x, y, o),
       shake: (size) => this.k.juice.shake(size),
+      stop: (ms) => this.k.juice.stop(ms),
       flashSprite: (obj, ms) => this.k.juice.flashSprite(obj, ms),
       ring,
     });
@@ -432,8 +463,10 @@ export class Play extends Phaser.Scene {
       this.liftView, this.light, new HudFx(host), this.link, this.botsView,
       this.foes, new ChainView(host), new LegView(host), new ArmView(host), new LimbView(host), this.feet, new BossView(host), this.commView,
       new TierView(host), new JunkView(host), new ModView(host), new SkillView(host), new LiveRuins(host), new PropView(host), new CompanionView(host), new CombatFx(host),
-      spiders, this.support, this.places, this.world, new ShadowView(host),
+      spiders, new CaterpillarView(host), this.support, this.places, this.world, new ShadowView(host),
       this.finale, this.gearView, this.map, new TeachView(host), this.music, this.classes,
+      this.fanfare, new CueView(host), new SignView(host), this.tipView,
+      new IntroView(host),
     ];
   }
 
@@ -446,7 +479,7 @@ export class Play extends Phaser.Scene {
       const fw = (w * scale * 0.9) / FOOT.w, fh = Math.min(fw, 1.4 * scale);
       this.w.cull.add(this.add.image(x, footY - 3 * fh, `foot-${paint}`).setScale(fw / S, fh / S).setDepth(-8));
       // Its shadow on the ground, from where it meets the ground (`footline.ts`), away from the sun or the lamps.
-      this.w.cull.add(sunCast(this, img, paint, -7.9, 0, { foot: contactRow(img) }));
+      if (PROP_CASTS) this.w.cull.add(sunCast(this, img, paint, -7.9, 0, { foot: contactRow(img) }));
       if (BURIED.has(key)) this.w.cull.add(this.add.image(x, footY + 2 * fh, `lip-${paint}`).setOrigin(0.5, 1).setScale(fw / S, fh / S).setDepth(img.depth + 0.01));
     }
     return img;
@@ -488,12 +521,15 @@ export class Play extends Phaser.Scene {
     if (this.cmd.used) this.guide.note('command');
     if (input.pressed('inventory') && !this.ended && !this.log.open && !this.guide.open) {
       // The satchel is the main quest's first gift (hub/story.ts).
-      if (this.inv.open || features(talkSave.get()).has('inventory')) this.inv.toggle();
+      if (this.inv.open) this.inv.hide();
+      else if (features(talkSave.get()).has('inventory')) this.inv.showDock('key');
       else this.floater(sim.controller.x, sim.controller.y - 70, 'No satchel yet: hear the Oracle out, aboard', '#ffd0a0', 2200, 15);
     }
     if (input.pressed('journal') && !this.ended && !this.inv.open && !this.guide.open) this.log.toggle();
-    if (input.pressed('map') && !this.inv.open && !this.log.open && !this.guide.open) this.toggleMap();
+    if (input.pressed('map') && sim.lessons.open('map') && !this.inv.open && !this.log.open && !this.guide.open) this.toggleMap();
     this.cmd.update(dt);
+    if (this.map.open) sim.lessons.did('map'); // an Oracle pause waiting for it ends (sim/lessons.ts)
+    if (this.cmd.on) sim.lessons.did('command');
     // Pressing fire ends its hint, a gun as much as a shovel (only a swing raises the 'swing' event).
     if (input.down('fire') && !this.cmd.on && !this.map.open) this.used.swung = true;
     if (input.down('fire2') && sim.secondary && !this.cmd.on && !this.map.open) this.used.shotSecondary = true;
@@ -504,7 +540,7 @@ export class Play extends Phaser.Scene {
       // The map pauses the mission (Minos: a calm place to read the land and plan); command mode runs it slow (`mapPace`), the fighting tool.
       const go = this.map.open ? NO_INPUT : { mx: input.axis('moveX'), my: input.axis('moveY'), ax: aim.x, ay: aim.y, fire: input.down('fire') && !this.cmd.on, fire2: input.down('fire2') && !this.cmd.on, use: input.down('use') || input.pressed('use'), kick: input.down('kick'), dash: input.pressed('dash'), skill: input.pressed('skill') };
       // A dev timescale runs the mission in steps of at most 50 ms, so fast time stays the same game.
-      if (!this.map.open && input.pressed('support')) this.support.call(sim.call, aim.x, aim.y);
+      if (!this.map.open && input.pressed('support') && sim.lessons.open('barrage')) this.support.call(sim.call, aim.x, aim.y);
       for (let left = dt * this.timeScale * (this.map.open ? 0 : this.cmd.on ? t.mapPace : 1); left > 1e-6; left -= 0.05) sim.step(Math.min(0.05, left), go);
     }
     for (const e of sim.events) for (const v of this.views) v.event?.(e);
@@ -520,7 +556,9 @@ export class Play extends Phaser.Scene {
     if (this.trackT <= 0) {
       this.trackT = 0.7;
       const talk = talkSave.get(), lines = lineSave.get(), h = hub.get();
-      this.hud.setTrack([...trackerLines({ talk, lines, hub: h, facts: factsFor(h, '', talk, lines), biome: sim.biomeId, stats: sim.stats, job: questBook.get().job, places: () => [...sim.places.map((p) => p.id), ...(sim.ruins.some((r) => r.kind === 'dock') ? ['dock'] : [])] }), ...sim.level1Rest].slice(0, 3));
+      // The old works and level 1: one thing at a time, the objective alone (sim/intro.ts, sim/lessons.ts).
+      if (sim.intro || sim.land?.guided) this.hud.setTrack([]);
+      else this.hud.setTrack([...trackerLines({ talk, lines, hub: h, facts: factsFor(h, '', talk, lines), biome: sim.biomeId, stats: sim.stats, job: questBook.get().job, places: () => [...sim.places.map((p) => p.id), ...(sim.ruins.some((r) => r.kind === 'dock') ? ['dock'] : [])] })].slice(0, 3));
     }
     this.hud.update(dt);
     this.guide.update(dt);

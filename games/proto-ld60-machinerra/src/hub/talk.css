@@ -88,7 +88,7 @@
 .tk-hint .ui-key { font-size: 12px; }
 
 /* ---- the levers ---- */
-.tk-levers { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(2, auto); grid-auto-flow: column; gap: 8px 22px; min-height: 0; }
+.tk-levers { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: repeat(var(--rows, 2), auto); grid-auto-flow: column; gap: 8px 22px; min-height: 0; }
 .tk-levers[data-n="1"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto; }
 .tk-lever {
   all: unset; box-sizing: border-box; display: grid; grid-template-columns: 60px 1fr; align-items: center; gap: 12px; cursor: pointer; min-height: 56px; padding: 0 6px 0 2px;
@@ -130,6 +130,22 @@
 .tk-lever[data-w="leave"] .tk-lever__arm u { background: radial-gradient(circle at 33% 28%, #c9ab62, #7a5a22 52%, #3a2a12); }
 .tk-lever[data-w="heard"].is-sel > *, .tk-lever[data-w="leave"].is-sel > * { opacity: 1; }
 @media (prefers-reduced-motion: reduce) { .tk-lever[data-w="story"] .tk-lever__arm u { animation: none; } }
+
+/*
+ * Kind (derived in dialog.ts `kindOf`): a glyph chip and a word on each plate, coloured by what the reply does. Quest is amber, an
+ * action that opens something cyan (ours), talk the plain paper, and a way out iron-dim, last in the list. Weight (above) still sets the plate.
+ */
+.tk-lever__plate { display: flex; align-items: center; gap: 10px; padding-left: 14px; padding-right: 10px; }
+.tk-lever[data-k="quest"] { --k: var(--ui-c-warn); }
+.tk-lever[data-k="action"] { --k: var(--ui-c-focus); }
+.tk-lever[data-k="talk"] { --k: var(--ui-c-text); }
+.tk-lever[data-k="exit"] { --k: var(--ui-c-text-dim); }
+.tk-lever__text { flex: 1; min-width: 0; }
+.tk-lever__glyph { flex: none; width: 28px; height: 28px; padding: 4px; box-sizing: border-box; border-radius: 50%; fill: none; stroke: var(--k); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+  background: var(--tk-iron); box-shadow: 0 0 0 2px var(--soot), inset 0 0 6px #000; }
+.tk-lever[data-k="exit"] .tk-lever__glyph { box-shadow: 0 0 0 2px var(--tk-brass-lo), inset 0 0 6px #000; }
+.tk-lever__tag { flex: none; padding: 1px 8px 2px; border-radius: 9px; font-style: normal; font-size: 13px; font-weight: 700; line-height: 1.25; color: var(--k); text-shadow: none;
+  background: var(--tk-iron); box-shadow: 0 0 0 1.5px var(--soot); }
 
 @media (max-width: 900px) {
   .tk-frame { grid-template-columns: 1fr; }

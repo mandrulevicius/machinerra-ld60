@@ -60,4 +60,66 @@
   --kit-fx-1: #ffb640;
   --kit-fx-2: #3df2ff;
   --kit-fx-3: #f4efe6;
+
+  /* The management screens' look (the Dry dock; later Arrival and the course table): `src/manage/manage.css` builds from these.
+     Manila card stock with typed ink, brass in three ramps, soot iron behind; the punch cards' stock (`punchcard.css`) is the same paper. */
+  --mg-stock: #dac38c;
+  --mg-stock-hi: #e9d9a9;
+  --mg-stock-lo: #c4a96d;
+  --mg-stock-short: #d3c08f;
+  --mg-stock-wreck: #cbb98f;
+  --mg-stock-new: #f6ebc3;
+  --mg-edge: #8f6f3a;
+  --mg-ink: #2c1f13;
+  --mg-typed: #43321f;
+  --mg-print: #8a6c3c;
+  --mg-red: #a8321f;
+  --mg-green: #2f6a2a;
+  --mg-brass: var(--ui-c-border);
+  --mg-brass-hi: #f0cf7a;
+  --mg-brass-lo: #7a5a22;
+  --mg-brass-glow: #fff0b8;
+  --mg-screw: #fff2c0;
+  --mg-iron: #1d1a17;
+  --mg-iron-2: #15110d;
+  --mg-rule: rgb(120 84 36 / 0.22);
+  --mg-mono: "Share Tech Mono", ui-monospace, monospace;
+  /* Type sizes on the 1280x720 stage. */
+  --mg-fs-xs: 11px;
+  --mg-fs-sm: 12px;
+  --mg-fs-md: 13px;
+  --mg-fs-lg: 16px;
+  --mg-fs-xl: 22px;
+  /* Picture frames, one size per context. */
+  --mg-fr-xs: 24px;
+  --mg-fr-s: 32px;
+  --mg-fr-m: 46px;
+  --mg-fr-l: 62px;
+  --mg-fr-xl: 76px;
+  /* The one look-tint: sepia ink over every picture, so painted, code-drawn and silhouette art read as one set. */
+  --mg-tint: sepia(0.55) saturate(0.8) contrast(1.06);
+  --mg-lift: drop-shadow(0 1px 1px rgb(40 25 5 / 0.45));
+  --mg-well: inset 0 2px 8px rgb(0 0 0 / 0.7);
+  --mg-card-shadow: 0 2px 3px rgb(60 40 10 / 0.35);
+  --mg-stock-shade: inset 0 0 0 1.5px var(--mg-edge), inset 0 0 18px rgb(120 80 30 / 0.35);
+  --mg-plate-shade: inset 0 1px 0 rgb(255 240 200 / 0.6), inset 0 -2px 0 rgb(60 40 10 / 0.5), 0 2px 0 var(--mg-iron);
+  --mg-ring-sel: 0 0 0 3px var(--mg-iron), 0 0 0 5px var(--ui-c-accent), 0 4px 10px rgb(0 0 0 / 0.5);
+}
+
+/*
+ * Scrollbars, once for every scrolling panel (inventory, guide, quest log, hub panels, stats): a soot-iron groove with a brass bar.
+ * Chromium reads ::-webkit-scrollbar only while scrollbar-color/width are unset, so the standard pair is kept for engines without it.
+ */
+[data-theme="machinerra"] *::-webkit-scrollbar { width: 12px; height: 12px; }
+[data-theme="machinerra"] *::-webkit-scrollbar-track { background: var(--ui-c-track); border-radius: 6px; box-shadow: inset 0 0 4px #000; }
+[data-theme="machinerra"] *::-webkit-scrollbar-corner { background: var(--ui-c-track); }
+[data-theme="machinerra"] *::-webkit-scrollbar-thumb {
+  border: 2px solid var(--ui-c-track); border-radius: 6px; background: linear-gradient(90deg, var(--ui-c-accent-hover), var(--ui-c-border) 50%, #8a6a28) padding-box;
+}
+[data-theme="machinerra"] *::-webkit-scrollbar-thumb:horizontal { background: linear-gradient(var(--ui-c-accent-hover), var(--ui-c-border) 50%, #8a6a28) padding-box; }
+[data-theme="machinerra"] *::-webkit-scrollbar-thumb:hover { background: linear-gradient(90deg, #fff0b0, var(--ui-c-accent-hover) 50%, var(--ui-c-border)) padding-box; }
+[data-theme="machinerra"] *::-webkit-scrollbar-thumb:active { background: var(--ui-c-accent) padding-box; }
+[data-theme="machinerra"] *::-webkit-scrollbar-button { display: none; }
+@supports not selector(::-webkit-scrollbar) {
+  [data-theme="machinerra"] * { scrollbar-width: thin; scrollbar-color: var(--ui-c-border) var(--ui-c-track); }
 }

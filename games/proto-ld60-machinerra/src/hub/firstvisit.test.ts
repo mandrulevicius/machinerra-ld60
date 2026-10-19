@@ -12,9 +12,19 @@ describe('the first hub visit: one place glows at a time', () => {
     expect(guideTarget(facts({ mainStep: 2, sprocketTaught: true, tableSeen: true }))).toBe('lift');
   });
 
-  it('skips the workshop when she did not come, and is off on every other visit', () => {
-    expect(guideTarget(facts({ mainStep: 2, sprocketAboard: false }))).toBe('command');
+  it('the first arrival, after the intro (she is not aboard yet), runs the church, the table and the lift', () => {
+    const intro = { sprocketAboard: false, mainStep: 0 };
+    expect(guideTarget(facts(intro))).toBe('highPriest');
+    expect(guideTarget(facts({ ...intro, mainStep: 2 }))).toBe('command');
+    expect(guideTarget(facts({ ...intro, mainStep: 2, tableSeen: true }))).toBe('lift');
     expect(guideTarget(facts({ missions: 0 }))).toBeNull();
-    expect(guideTarget(facts({ missions: 2 }))).toBeNull();
+  });
+
+  it('the first arrival after she is aboard glows her workshop until her lesson is taken or the lift lowers', () => {
+    const after = { missions: 2, mainStep: 2, tableSeen: false };
+    expect(guideTarget(facts(after))).toBe('sprocket');
+    expect(guideTarget(facts({ ...after, sprocketTaught: true }))).toBeNull();
+    expect(guideTarget(facts({ ...after, workshopSeen: true }))).toBeNull(); // a later visit: the lift lowered with her aboard
+    expect(guideTarget(facts({ ...after, sprocketAboard: false }))).toBeNull();
   });
 });

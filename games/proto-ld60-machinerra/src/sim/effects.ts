@@ -82,7 +82,7 @@ export type Phase = 'morning' | 'day' | 'evening' | 'midnight';
 export type EventKind = 'hit' | 'kill' | 'hurt' | 'down' | 'shot' | 'skill' | 'dash' | 'kick' | 'crash' | 'siphon' | 'search' | 'break' | 'decode' | 'dusk' | 'oracle' | 'tick' | 'cast';
 export type StateKind = 'always' | 'lit' | 'night';
 /** What the sim asks with `fx.flag`. `calm`: plain hornets leave the unit alone. `ghostly`: its hits land on ghosts. `frozen`: a kick shatters it. */
-export type Flag = 'stunned' | 'noMove' | 'cancelWindup' | 'blind' | 'taunted' | 'marked' | 'steady' | 'invulnerable' | 'calm' | 'ghostly' | 'frozen';
+export type Flag = 'stunned' | 'noMove' | 'cancelWindup' | 'blind' | 'taunted' | 'marked' | 'steady' | 'invulnerable' | 'calm' | 'ghostly' | 'frozen' | 'climbs';
 /** What a source is, for the stats screen. */
 export type SourceKind = 'gear' | 'mod' | 'type' | 'spec' | 'relic' | 'research' | 'title' | 'rescue' | 'building' | 'trait' | 'other';
 

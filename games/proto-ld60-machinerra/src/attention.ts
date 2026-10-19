@@ -74,3 +74,12 @@ export function hitScale(dmg: number): number {
 
 /** A routine pickup (scrap, coal, oil, copper) is said small; a part, a core or a relic reads full. */
 export const pickupSize = (kind: string): number => (kind === 'part' || kind === 'core' ? 15 : 12);
+
+/**
+ * The hours the day turns dangerous: the dial comes forward (`hud.ts`) and so does the map's way home (the "Send every crew to the
+ * lift" button): it rests through the quiet hours so the crews and the survey lead.
+ */
+export const dangerHour = (phase: string): boolean => phase === 'evening' || phase === 'midnight';
+
+/** How near the pointer must be to a map mark (map px) for its numbers to show; the short name is always there. */
+export const MAP_NEAR = 22;

@@ -261,6 +261,7 @@ export function swing(sim: Sim, b: Bot, a: number, w: { type?: DamageType; dmg: 
   const via = kick ? 'kick' : 'melee';
   if (kick) sim.engine.emit({ kind: 'kick', self: b });
   let hits = 0;
+  const struck: Hornet[] = [];
   const broken: Hornet[] = [];
   for (const h of sim.hornets) {
     if (h.dead || h.air || h.under || !inArc(h.x, h.y, h.r)) continue;
@@ -269,6 +270,7 @@ export function swing(sim: Sim, b: Bot, a: number, w: { type?: DamageType; dmg: 
       continue;
     }
     hits++;
+    struck.push(h);
     if (kick && h.boss) bossKicked(sim, h);
     const d = dist(b.x, b.y, h.x, h.y) || 1;
     // A boss barely budges; the lake flings; a Steady unit (Braced, Heavy) does not move at all.
@@ -299,6 +301,7 @@ export function swing(sim: Sim, b: Bot, a: number, w: { type?: DamageType; dmg: 
   if (sim.run?.swingWall(b.x, b.y, a, w.reach, w.arc)) hits++;
   sim.events.push({ e: 'swing', by: b, a, reach: w.reach, arc: w.arc, hits, ...(kick && { kick }) });
   if (kick) sim.noise(b.x, b.y);
+  return struck;
 }
 
 /**
@@ -425,6 +428,7 @@ export function shoot(sim: Sim, b: Bot, tx: number, ty: number, w: { dmg: number
   const a = Math.atan2(ty - b.y, tx - b.x);
   const s: Shot = { type: w.type, pierce: Math.floor(sim.engine.stat(b, 'pierceShots', 0)), id: sim.nextId++, x: b.x + Math.cos(a) * 16, y: b.y - 8 + Math.sin(a) * 16, vx: Math.cos(a) * w.speed, vy: Math.sin(a) * w.speed, dmg: w.dmg, life: w.range / w.speed, dead: false, big: b.role === 'controller', by: b.id, foe: false, ...(w.knock && { knock: w.knock }) };
   // Over the Rocks (a punch card): a marksman's shot at a Marked foe flies over rock.
+  if (b.climbs && sim.onRock(b)) s.high = true; // fired from a mesa (P53): it clears the rock it stands on
   if (b.role === 'marksman' && sim.engine.source(b, 'card:overTheRocks') && sim.hornets.some((h) => !h.dead && sim.engine.flag(h, 'marked') && dist(h.x, h.y, tx, ty) < h.r + 24)) s.over = true;
   sim.shots.push(s);
   b.face = Math.cos(a) >= 0 ? 1 : -1;
@@ -451,7 +455,7 @@ export function fire(sim: Sim, dt: number) {
       pigeonStep(sim, s, dt); // a brass pigeon (Pigeon Loft) homes on a foe and pecks
       continue;
     }
-    if (!s.over && sim.blocked(s.x, s.y + 8)) {
+    if (!s.over && !(s.high && sim.climbable(sim.tileOf(s.x, s.y + 8))) && sim.blocked(s.x, s.y + 8)) {
       const prop = solidAt(sim, s.x, s.y + 8);
       if (prop) hitProp(sim, prop, s.dmg, { by: s.foe ? null : sim.bot(s.by), via: 'gun' });
       if (!s.foe) sim.run?.blow(s.x, s.y + 8);
@@ -496,12 +500,15 @@ export function fire(sim: Sim, dt: number) {
       const by = sim.bot(s.by);
       damageHornet(sim, h, s.dmg, by, s.type ?? 'pierce', { via: 'gun', weapon: s.weapon });
       // A shove along the shot (the megaphone's blast), or a pull back to the shooter (the harpoon's reel).
-      const sh = s.weapon ? WEAPONS[s.weapon].shove : undefined;
+      const W = s.weapon ? WEAPONS[s.weapon] : undefined;
+      const sh = W?.shove !== undefined && W.fling ? W.shove / (W.pellets?.n ?? 1) : W?.shove; // Old Earful's shove is the whole cone's (`WeaponExtra.fling`)
       if (sh && !h.dead && !sim.engine.flag(h, 'steady')) {
         const v = Math.hypot(s.vx, s.vy) || 1, k = h.boss ? 0.12 : 1;
         h.vx += (s.vx / v) * sh * k;
         h.vy += (s.vy / v) * sh * k;
         if (sh < 0 && by) sim.events.push({ e: 'reel', h, by });
+        // Old Earful (P52): the blast flings what it hits, so the crash is the Communicator's doing.
+        if (sh > 0 && by && WEAPONS[s.weapon!].fling) flingFoe(sim, h, by, false);
       }
       if (h.dead && by?.role === 'guard') sim.deed('guard', 'cannonKill');
       // A Cannoneer's shell shoves the foe along its flight: it is flung, and what it crashes into is the Cannoneer's doing (`crash.ts`).

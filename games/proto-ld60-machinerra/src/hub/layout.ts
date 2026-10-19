@@ -157,6 +157,16 @@ export function lotProps(npcId: string, lotId: string) {
   return (LOT_PROPS[npcId] ?? []).map((kind, i) => ({ kind, ...spots[i], r: 18 }));
 }
 
+/** What each NPC leaves standing on their lot at the fifth step of their relationship track (P52): a prop from the set above, one per NPC (guesses). Sprocket's bench, the Oracle and the Princess have no lot. */
+export const KEEPSAKE: Record<string, PropKind> = { hob: 'barrels', gasket: 'plant', expeditioner: 'signal', cityPlanner: 'armchair', kicker: 'woodpile', trader: 'spool' };
+/** Where the keepsake stands: the back right of the lot, across from the first prop. Null for an NPC with none. */
+export function keepsake(npcId: string, lotId: string) {
+  const kind = KEEPSAKE[npcId];
+  if (!kind || lotId === WORKBENCH) return null;
+  const l = lotOf(lotId);
+  return { kind, x: l.x + l.w - 42, y: l.y + 118, r: 18 };
+}
+
 /** What a built station blocks: its booth and its props (the workbench is blocked as a fixed prop). */
 export const boothBlocks = (stations: Record<string, string>) =>
   Object.entries(stations).flatMap(([id, l]) => (l === WORKBENCH ? [] : [{ ...stationAt(l), r: 86 }, ...lotProps(id, l)]));

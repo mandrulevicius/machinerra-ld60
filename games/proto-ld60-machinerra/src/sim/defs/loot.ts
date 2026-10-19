@@ -15,11 +15,14 @@ export const SCRAP = { kill: { common: 2, elite: 6, boss: 40 } };
  */
 export const COPPER = { dead: 4, live: 8, elite: 2, start: 30 };
 
-/** What old research a mission finds (`Sim.insight`; `hub/economy.ts` banks it): a live ruin decoded (P30), the Parable's third verse, a Signal Mast. */
+/**
+ * The insight sources: a live ruin decoded (P30), the Parable's third verse, a Signal Mast, a steampunk building's find, a dungeon den.
+ * Minos: not more than one card a stage. The first insight found earns the stage's card (`Sim.cardEarned`, banked as a pick at docking:
+ * `hub/research.ts` `bankPick`); a later one adds nothing to it and its other finds stay.
+ */
 export const INSIGHT = { liveRuin: 1, parable: 1, mast: 1 };
-
-/** Insight from the live ruins decoded in a mission (P30, D9 row 1): one each. A dead ruin searched pays none (it pays scrap and junk). */
-export const insightFromRuins = (live: number) => (Number.isFinite(live) ? Math.max(0, Math.floor(live)) : 0) * INSIGHT.liveRuin;
+/** What the world says of the stage's card: when an insight earns it, when one finds it already earned, and a source's tooltip line (words are guesses). */
+export const CARD_SIGN = { first: 'Punch card earned', later: "This stage's card is already earned", tipFirst: "Its insight earns this stage's punch card.", tipLater: "This stage's punch card is already earned: it pays its finds, no card." };
 
 /**
  * What a downed mechahornet may drop: a gob of scrap or a robot part. Oil is not on the plain

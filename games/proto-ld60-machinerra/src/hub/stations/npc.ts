@@ -58,7 +58,7 @@ export function openBuild(host: HubHost, id: string, sel: string | null = null) 
   const n = npc(id)!;
   const wasOpen = !!host.hud.panel;
   const b = buildBody(host.s, n, openLots(Object.values(host.s.stations)), sel, host.me);
-  const el = host.hud.open('build', b.title, b.body, b.actions, 'Esc to close');
+  const el = host.hud.open('build', b.title, b.body, b.actions, '{esc} to close');
   el.querySelectorAll('[data-a="lot"]').forEach((g) =>
     g.addEventListener('click', () => {
       const lot = (g as HTMLElement).dataset.id!;

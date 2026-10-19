@@ -51,6 +51,11 @@ export interface Cue {
   key?: string;
   /** Upright on a wall, not flat on the floor. */
   wall?: boolean;
+  /**
+   * A land's interactable (P47 part A: the action's prompt and a lit cue, seen from afar), not a lesson: it never takes its turn
+   * in the one-at-a-time glow (`glowing`), it stays softly lit, and it shows its prompt when he is in reach (`cueview.ts`).
+   */
+  lamp?: { reach: number };
   /** Taken: its glow has become an engraving (`take`). */
   taken?: boolean;
 }
@@ -154,7 +159,7 @@ export class Onboard {
   }
   /** The one cue that glows: the first placed that is not taken yet. */
   get glowing(): CueRT | undefined {
-    return this.cues.find((c) => !c.taken);
+    return this.cues.find((c) => !c.taken && !c.lamp);
   }
 
   /** A cue not yet taken lies within `r` px of the point: it already says that thing, so a text hint for it stays quiet (one thing at a time). */

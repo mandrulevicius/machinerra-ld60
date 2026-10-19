@@ -77,7 +77,7 @@ export class GroundLive {
         uCloudOff: [0, 0], uCloud: l.cloud, uShade: l.shade, uZep: [0, 0, 0, 0],
         uWind: [1, 0], uDriftOff: 0, uGust: 0, uDrift: l.drift, uDriftCol: l.driftCol,
         uGlint: l.glint, uGlintCol: l.glintCol, uMote: l.mote, uMoteCol: l.moteCol, uMoteVis: l.moteVis,
-        uCanopy: l.canopy, uPulse: [...l.pulse, 0], uPulseCol: l.pulseCol,
+        uCanopy: l.canopy, uPulse: [...l.pulse, 0], uPulseCol: l.pulseCol, uDetail: 2,
       },
     });
     this.sh.setDepth(o.depth);
@@ -94,6 +94,14 @@ export class GroundLive {
   follow(img: Phaser.GameObjects.Image) {
     this.sh.setPosition(img.x - (img.originX - 0.5) * img.displayWidth, img.y - (img.originY - 0.5) * img.displayHeight);
     this.sh.setScale(img.displayWidth / this.sh.width, img.displayHeight / this.sh.height).setScrollFactor(img.scrollFactorX, img.scrollFactorY);
+  }
+
+  /** How many passes run (tier.ts `DETAIL`): 2 all (the default), 1 and 0 lighter on a slow machine. */
+  get detail() {
+    return this.sh.u.uDetail as number;
+  }
+  set detail(v: number) {
+    this.sh.u.uDetail = v;
   }
 
   destroy() {
@@ -116,6 +124,6 @@ export class GroundLive {
   /** What `debugState()` shows. */
   state() {
     const s = this.sky;
-    return { on: this.on, wind: [+s.windX.toFixed(2), +s.windY.toFixed(2)], gust: +s.gust.toFixed(2), zep: s.pass ? s.zep().map((v) => Math.round(v * 100) / 100) : null };
+    return { on: this.on, detail: this.detail, wind: [+s.windX.toFixed(2), +s.windY.toFixed(2)], gust: +s.gust.toFixed(2), zep: s.pass ? s.zep().map((v) => Math.round(v * 100) / 100) : null };
   }
 }

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { T } from './defs';
 import { loadLand } from './lands';
-import { LESSON, Lessons, TAUGHT, readTime } from './lessons';
+import { LESSON, Lessons, TAUGHT } from './lessons';
 import { NO_INPUT, Sim, type Hornet } from './sim';
 import { FIRST_SPAWNS, WANDER, expedition } from './spawntiers';
 
@@ -39,20 +39,45 @@ describe('the gates: what is taught by missions flown', () => {
   });
 });
 
-describe('mission 2 (level 1): the clock pause and calm spawns', () => {
-  it('time stops on landing while the Oracle names the clock, then runs; the dial shows with her line', () => {
+describe('mission 2 (level 1): no dial; mission 3: the clock pause', () => {
+  it('level 1 hides the dial (its clock is locked to the morning) and lands on the lift pause, which waits for a press', () => {
     const s = level1(1);
+    run(s, 1);
     expect(s.onboard.shows('clock')).toBe(false);
-    expect(s.onboard.shows('map')).toBe(false);
+    expect(s.lessons.hush).toEqual({ id: 'lift', until: 'press' });
+    expect(s.said.has('l1-lift')).toBe(true);
+    const t0 = s.time;
+    run(s, 60);
+    expect(s.time).toBe(t0); // the world waits for the press
+    s.lessons.press();
+    run(s, 1);
+    expect(s.lessons.hush).toBeNull();
+    expect(s.time).toBeGreaterThan(t0);
+    expect(s.onboard.shows('clock')).toBe(false);
+    expect(s.dayT).toBe(0);
+    expect(s.said.has('hello')).toBe(true); // level 1 skips her hello
+  });
+
+  it('mission 3: time stops on landing while the Oracle names the clock, and runs only when the player presses', () => {
+    const s = land(2);
+    expect(s.onboard.shows('clock')).toBe(false);
     run(s, 1);
     expect(s.lessons.hush?.id).toBe('clock');
     expect(s.onboard.shows('clock')).toBe(true);
     expect(s.dayT).toBe(0);
-    expect(s.said.has('l1-clock') && s.said.has('l1-dusk')).toBe(true);
+    expect(s.said.has('clock-day') && s.said.has('clock-hold')).toBe(true);
     expect(s.said.has('hello')).toBe(true); // marked said: the pause stands in for it
-    run(s, readTime('Mind the dial, Communicator: the sun runs fast over this patch.') + readTime('At dusk the machines turn worse. The lift is yours whenever you like.') + 1);
+    // Minos: no line moves on by itself. However long she waits, the world waits with her.
+    run(s, 600);
+    expect(s.lessons.hush?.id).toBe('clock');
+    expect(s.dayT).toBe(0);
+    s.lessons.did('map'); // another tool's act does not end it
+    expect(s.lessons.hush?.until).toBe('press');
+    s.lessons.press();
     expect(s.lessons.hush).toBeNull();
+    run(s, 2);
     expect(s.dayT).toBeGreaterThan(0);
+    expect(s.lessons.hush?.id).toBe('map'); // the map's pause comes after, never over it
   });
 
   it('a replay of level 1 off mission 2 has no pause', () => {
@@ -70,10 +95,9 @@ describe('mission 2 (level 1): the clock pause and calm spawns', () => {
     expect(wanderers).toHaveLength(FIRST_SPAWNS[1].wander.n);
     for (const h of wanderers) expect(Math.hypot(h.x - s.lift.x, h.y - s.lift.y)).toBeGreaterThan(WANDER.away * T);
     s.lessons.hush = null;
-    s.setClock('day');
     for (const n of s.nests) s.wake(n, 'test');
     const seen = new Set<Hornet>();
-    for (let t = 0; t < 80 && s.day.phase === 'day'; t += 1 / 30) {
+    for (let t = 0; t < 80; t += 1 / 30) {
       s.step(1 / 30, NO_INPUT);
       for (const h of s.hornets) if (!h.boss) seen.add(h);
     }
@@ -109,6 +133,8 @@ describe('mission 3: the map, then command mode, each with a pause', () => {
   it('the map pause waits until it is opened; command mode follows when calm and waits for C', () => {
     const s = land(2);
     s.hornets.length = 0;
+    run(s, 0.1);
+    s.lessons.press(); // the clock's pause comes first
     run(s, 1.5);
     expect(s.lessons.hush).toMatchObject({ id: 'map', until: 'map' });
     expect(s.onboard.shows('map')).toBe(true);

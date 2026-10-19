@@ -61,6 +61,8 @@ export interface Prop {
   hit: boolean;
   /** The ruin it is a piece of. */
   ruin?: number;
+  /** The building it is a piece of (P47, index in `MapData.buildings`): its health is the building's intactness (`buildings.ts`). */
+  bld?: number;
   /** Sliding (a kicked barrel): its speed, who kicked it, and a rocket's seconds left (`PropFx.rocket`). */
   vx: number;
   vy: number;
@@ -140,7 +142,7 @@ export function addProp(sim: Sim, s: PropSpec, ruin?: number, at?: Spot): Prop {
   const maxHp = Math.max(1, Math.round(MATERIALS[material].hp * def.size));
   const px = at ? at.x : (s.x + 0.5) * T, py = at ? at.y : (s.y + 0.5) * T;
   const tx = Math.floor(px / T), ty = Math.floor(py / T);
-  const p: Prop = { id: sim.nextId++, kind: s.kind, material, x: px, y: py, tx, ty, hp: Math.max(1, Math.round(maxHp * s.wear)), maxHp, solid: !!def.solid, r: def.r, broken: false, link: 0, hit: false, vx: 0, vy: 0, ...(ruin !== undefined && { ruin }) };
+  const p: Prop = { id: sim.nextId++, kind: s.kind, material, x: px, y: py, tx, ty, hp: Math.max(1, Math.round(maxHp * s.wear)), maxHp, solid: !!def.solid, r: def.r, broken: false, link: 0, hit: false, vx: 0, vy: 0, ...(ruin !== undefined && { ruin }), ...(s.bld !== undefined && { bld: s.bld }) };
   W.list.push(p);
   if (p.solid) occupy(sim, p);
   return p;

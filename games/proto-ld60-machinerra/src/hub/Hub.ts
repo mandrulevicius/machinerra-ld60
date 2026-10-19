@@ -100,7 +100,7 @@ import { QuestLog, questLogCommand } from '../questlog';
 import { Guide } from '../guideview';
 import { entriesFor } from '../guide';
 import { journal } from './journal';
-import { makeGearArt } from '../gearart';
+import { makeGearArt, texUrl } from '../gearart';
 import { installHubSounds } from './sound';
 import { installTalkSounds } from './talksound';
 import { type Act, actFor, Conversation, type Line } from './dialog';
@@ -380,21 +380,21 @@ export class Hub extends Phaser.Scene implements HubDevHost {
 
     const ui: HTMLElement = this.registry.get('ui');
     this.hud = new HubHud(ui);
-    useOracleFace(this.textures.getBase64('atlas', 'npc/oracle-face'));
+    useOracleFace(texUrl(this, 'atlas', 'npc/oracle-face'));
     this.hud.stores(s);
     // The inventory (I): crafting and salvage happen here, aboard (the workbench). Parts are the hub's stores, scrap and copper the economy's.
     this.inv = new Inventory(ui, {
       where: 'hub',
       stores: () => {
         const e = economy.get();
-        return { scrap: e.scrap, copper: e.copper, parts: this.s.parts, insight: e.insight, cores: e.cores };
+        return { scrap: e.scrap, copper: e.copper, parts: this.s.parts, cores: e.cores };
       },
       spend: (w) => {
         economy.set({ ...economy.get(), scrap: w.scrap });
         this.save({ ...this.s, parts: w.parts });
       },
       sound: (k) => this.k.audio.sfx.play(k === 'open' || k === 'close' || k === 'craft' ? 'latch' : 'near', { gain: k === 'deny' ? 0.3 : 0.6 }),
-      partIcon: (k) => this.textures.getBase64(`part-${k}`),
+      partIcon: (k) => texUrl(this, `part-${k}`),
       bench: () => this.has('workbench'),
       taught: (id) => isTaught(this.s, id, this.t.allRecipes),
       waiting: () => waitingNote(this.s, this.t.allRecipes),
@@ -736,7 +736,7 @@ export class Hub extends Phaser.Scene implements HubDevHost {
       this.shownAll = this.t.allRescued;
       this.refresh();
     }
-    this.hud.update(dt);
+    this.hud.update(dt, !!this.convo || !!this.cut || this.inv.open || this.log.open || this.guide.open);
     this.shade.update();
     this.guide.update(dt);
     this.animate(dt);
@@ -956,11 +956,13 @@ export class Hub extends Phaser.Scene implements HubDevHost {
   speak(id: string, text: string) {
     const n = npc(id)!;
     const oracle = id === 'highPriest';
-    this.hud.say(n.name, text, oracle);
-    this.pingT = 1.6;
-    this.k.audio.sfx.play(oracle ? 'blip' : 'heal', { gain: 0.6 });
-    const img = this.npcs.get(id);
-    if (img) this.tweens.add({ targets: img, y: img.y - 6, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
+    this.hud.later(text, () => {
+      this.hud.say(n.name, text, oracle);
+      this.pingT = 1.6;
+      this.k.audio.sfx.play(oracle ? 'blip' : 'heal', { gain: 0.6 });
+      const img = this.npcs.get(id);
+      if (img) this.tweens.add({ targets: img, y: img.y - 6, duration: 110, yoyo: true, ease: 'Quad.easeOut' });
+    });
   }
 
   // ------------------------------------------------------------ talking
@@ -968,7 +970,7 @@ export class Hub extends Phaser.Scene implements HubDevHost {
   /** The NPC's portrait for the glass: the painted bust, else their sprite (the painted figure or the drawn one), enlarged. */
   private portraitOf(id: string): string | null {
     const tex = this.textures.get('atlas');
-    for (const f of [`npc/portrait-${id}`, `npc/${id}`]) if (tex.has(f)) return this.textures.getBase64('atlas', f) ?? null;
+    for (const f of [`npc/portrait-${id}`, `npc/${id}`]) if (tex.has(f)) return texUrl(this, 'atlas', f);
     if (this.textures.exists(`npc-portrait-${id}`)) return this.textures.getBase64(`npc-portrait-${id}`) ?? null; // drawn (`art/portraits.ts`)
     return this.textures.exists(`npc-${id}`) ? this.textures.getBase64(`npc-${id}`) ?? null : null;
   }

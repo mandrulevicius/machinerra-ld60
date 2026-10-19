@@ -31,6 +31,8 @@ export const WEAR: Record<string, WearLook> = {
   glass: { ...ZERO, grit: 1, weather: 0.2, col: ['#5a6a66', '#a8bcb6', '#d8ece8'] },
   brass: { ...ZERO, rust: 0.7, grit: 0.9, dents: 0.8, flakes: 0.3, col: PATINA },
   concrete: { ...ZERO, grit: 1.1, damp: 1, flakes: 0.8, col: ['#46423c', '#7a746a', '#cfc8b8'] },
+  /** P47's steampunk stone: soot in the courses, damp at the foot. */
+  brick: { ...ZERO, grit: 1, damp: 1.1, flakes: 0.5, col: ['#3a2a22', '#7a5040', '#d8b8a0'] },
   /** Painted metal (a car, a vending machine, a cart): rust at the edges, flakes of paint gone, dents. */
   paint: { ...ZERO, rust: 0.9, grit: 1, dents: 1.2, flakes: 1, col: RUST },
   /** Bare old metal (a dish, a panel, wire, a rail). */

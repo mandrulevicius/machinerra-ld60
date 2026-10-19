@@ -55,14 +55,15 @@ describe('the rim tier on every land (Minos: out of screen, strongest)', () => {
 });
 
 describe('level 1 clock', () => {
-  it('midnight is 240 s of play after the landing pause (the Hurried Sun), a second for second', () => {
+  it('is locked to the morning: the Hurried Sun still sets midnight at 240 s, but the clock never leaves second 0 (clockhold.ts)', () => {
     const s = new Sim('level1', [], 'desert', [], undefined, undefined, { land: loadLand('level1'), crew: [{ role: 'gatherer', name: 'Bellows' }], owned: ['Bellows'], flown: 1 });
     s.god = true;
     run(s, 2);
     s.lessons.hush = null;
     const t0 = s.dayT;
     run(s, 100);
-    expect(s.dayT - t0).toBeCloseTo(100, 0);
+    expect(s.dayT - t0).toBe(0);
+    expect(s.day.phase).toBe('morning');
     expect(s.day.at.midnight).toBe(240);
   });
 });

@@ -4,8 +4,8 @@
  * and then himself ethereal, takes the Oracle's beam straight through him, and leaves with her into the Ether
  * (Laimonas, `LaimonasIdeas.md`, 2026-10-18).
  *
- * A beat is a line (`who` says `line`; Use, Space, Enter or a click moves on, or it moves on by itself) or an act (`act`:
- * something happens, then `wait` seconds). The runner letterboxes the screen, pans to the altar, captions the lines and
+ * A beat is a line (`who` says `line`; it stays until Use, Space, Enter or a click moves on: nothing the player reads moves on
+ * by itself, Minos) or an act (`act`: something happens with no caption up, then `wait` seconds). The runner letterboxes the screen, pans to the altar, captions the lines and
  * plays the acts on the actors the hub hands it. Add a scene: an array of beats, and the actors it needs in `Actors`.
  */
 import Phaser from 'phaser';
@@ -50,8 +50,6 @@ export interface Actors {
   flash(x: number, y: number, color: number): void;
 }
 
-const lineTime = (s: string) => 1.6 + s.length * 0.045;
-
 /** Play a cut scene; `done` runs when it is over (the last line moved on). Returns a function that skips to the end. */
 export function playCutscene(a: Actors, beats: Beat[], done: () => void): () => void {
   const { scene } = a;
@@ -83,7 +81,6 @@ export function playCutscene(a: Actors, beats: Beat[], done: () => void): () => 
       cap.dataset.who = b.who;
       text.textContent = b.line;
       a.sfx('tgTick', b.who === 'evil' ? 0.7 : 0.5);
-      timer = scene.time.delayedCall(lineTime(b.line) * 1000, next);
     } else {
       cap.hidden = true;
       act(b.act);

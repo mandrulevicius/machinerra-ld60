@@ -3,9 +3,10 @@
  * screen goes black and says it was the last boss, thanks the player, shows the time the run took (`playtime.ts`), rolls
  * the credits (`../credits.ts`) and ends on the studio's name. Then the deck again: the game goes on.
  *
- * Plain DOM over the canvas (styles `.hb-outro` in hub.css). A beat holds its time, or Use, Space, Enter or a click moves
- * on; Esc skips to the end card; on the end card any of them closes it. Add a card: a line in `beats`.
+ * Plain DOM over the canvas (styles `.hb-outro` in hub.css). A card stays until Use, Space, Enter or a click moves on (nothing
+ * the player reads moves on by itself, Minos); Esc skips to the end card; on the end card any of them closes it. Add a card: a line in `beats`.
  */
+import { promptHtml } from '../../../../harness/kit';
 import { CREDITS, STUDIO } from '../credits';
 import { fmtTime } from './playtime';
 
@@ -15,7 +16,7 @@ export interface OutroStats {
   missions: number;
 }
 
-type Beat = { kind: 'card' | 'roll' | 'end'; html: string; hold: number };
+type Beat = { kind: 'card' | 'roll' | 'end'; html: string };
 
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => `&#${c.charCodeAt(0)};`);
 
@@ -25,15 +26,14 @@ export function outroBeats(st: OutroStats): Beat[] {
     return `<p><b>${esc(who)}</b>${what ? `<span>${esc(what)}</span>` : ''}</p>`;
   }).join('');
   return [
-    { kind: 'card', html: '<p class="hb-outro__big">That was the last boss.</p>', hold: 3400 },
-    { kind: 'card', html: '<p class="hb-outro__big">Thanks for playing.</p>', hold: 3200 },
+    { kind: 'card', html: '<p class="hb-outro__big">That was the last boss.</p>' },
+    { kind: 'card', html: '<p class="hb-outro__big">Thanks for playing.</p>' },
     {
       kind: 'card',
       html: `<p class="hb-outro__label">Time to finish</p><p class="hb-outro__big">${fmtTime(st.time)}</p><p class="hb-outro__label">${st.missions} ${st.missions === 1 ? 'landing' : 'landings'}</p>`,
-      hold: 4200,
     },
-    { kind: 'roll', html: `<p class="hb-outro__label">Machinerra</p><p class="hb-outro__label">Credits</p>${roll}`, hold: 12000 },
-    { kind: 'end', html: `<p class="hb-outro__label">A game by</p><p class="hb-outro__studio">${esc(STUDIO)}</p>`, hold: 0 },
+    { kind: 'roll', html: `<p class="hb-outro__label">Machinerra</p><p class="hb-outro__label">Credits</p>${roll}` },
+    { kind: 'end', html: `<p class="hb-outro__label">A game by</p><p class="hb-outro__studio">${esc(STUDIO)}</p>` },
   ];
 }
 
@@ -42,7 +42,7 @@ export function playOutro(ui: HTMLElement, st: OutroStats, done: () => void, sfx
   const beats = outroBeats(st);
   const root = document.createElement('div');
   root.className = 'hb-outro';
-  root.innerHTML = '<div class="hb-outro__stage"></div><small class="hb-outro__more">Use to go on</small>';
+  root.innerHTML = '<div class="hb-outro__stage"></div><small class="hb-outro__more">' + promptHtml('{use} to go on') + '</small>';
   ui.appendChild(root);
   const stage = root.querySelector<HTMLElement>('.hb-outro__stage')!;
   const more = root.querySelector<HTMLElement>('.hb-outro__more')!;
@@ -62,12 +62,11 @@ export function playOutro(ui: HTMLElement, st: OutroStats, done: () => void, sfx
     }
     const el = document.createElement('div');
     el.className = `hb-outro__beat hb-outro__beat--${b.kind}`;
-    el.innerHTML = b.kind === 'roll' ? `<div class="hb-outro__scroll" style="animation-duration:${b.hold}ms">${b.html}</div>` : b.html;
+    el.innerHTML = b.kind === 'roll' ? `<div class="hb-outro__scroll">${b.html}</div>` : b.html;
     stage.prepend(el);
     requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('is-on')));
     sfx?.(b.kind === 'end' ? 'bell' : 'tgTick');
-    if (b.kind === 'end') more.textContent = 'Use to go back to the deck';
-    else timer = window.setTimeout(next, b.hold);
+    if (b.kind === 'end') more.innerHTML = promptHtml('{use} to go back to the deck');
   };
   const next = () => {
     if (over) return;

@@ -19,6 +19,8 @@ Also a full reload: a module that exports no scene class, or an anonymous one (`
 
 Source art builds itself: a change under `games/<g>/art/` (an image or `sizes.json`) runs `scripts/assets.mjs <g>` on the dev server (`assets-plugin.ts`: debounced 0.5 s, one run per game at a time, logged as `[assets]` in the server output, toast `building atlas: <g>`, or `atlas failed: ...`). Its output (atlas json and pages) then reloads live as above. `npm run assets -- <game>` still works by hand. Raising `quality.lights` above the baked cap still needs a reload (kit).
 
+A mirror (`OPTIMIZER_MIRROR` set, `harness/mirror/`) has no watcher and no HMR socket, and serves the files as they were when each was first requested.
+
 Never reloaded: capture output (`games/*/capture/**` is not watched, `public/previews/` is ignored here), build output (`dist/`).
 
 ## State: `data.hot`

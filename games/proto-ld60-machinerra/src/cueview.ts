@@ -22,6 +22,10 @@ type Img = Phaser.GameObjects.Image;
 export const CARVE = { box: 52, key: 44, flat: 0.62, fade: 1.2, halo: 96, ring: 40, depth: -8.9 };
 /** Tints and alphas: the carving (dark relief, pale lip), the glow's colour, and how a waiting cue shows. */
 export const TONE = { dark: 0x2a1c12, lip: 0xf0e0b8, glow: 0xffd070, body: 0.9, lip_a: 0.3, wait: 0.35, baked: 0.78 };
+/** A land's interactable (P47 part A, `Cue.lamp`): its glow while he is away (a steady lamp, no ring). */
+export const LAMP = { far: 0.45, depth: -5.5 };
+/** A cue's depth: a land's lies over the buildings' baked floors (`propview.ts`, depth -6), a lesson's in the ground's marks. */
+const depthOf = (c: CueRT) => (c.lamp ? LAMP.depth : CARVE.depth);
 
 const mix = (a: number, b: number, k: number) => {
   const c = Phaser.Display.Color.Interpolate.ColorWithColor(Phaser.Display.Color.IntegerToColor(a), Phaser.Display.Color.IntegerToColor(b), 100, Math.round(k * 100));
@@ -99,7 +103,7 @@ export class CueView extends ViewBase {
   }
 
   private halo(c: CueRT) {
-    const h = this.scene.add.image(c.x, c.y, 'world-soft').setDepth(CARVE.depth - 0.05).setBlendMode(Phaser.BlendModes.ADD).setTint(TONE.glow).setAlpha(0);
+    const h = this.scene.add.image(c.x, c.y, 'world-soft').setDepth(depthOf(c) - 0.05).setBlendMode(Phaser.BlendModes.ADD).setTint(TONE.glow).setAlpha(0);
     h.setScale(CARVE.halo / h.width, (CARVE.halo / h.width) * (c.wall ? 1 : CARVE.flat));
     this.k.lights.unlit(h);
     return h;
@@ -122,10 +126,10 @@ export class CueView extends ViewBase {
       const make = (tint: number, alpha: number, ox: number, oy: number, depth: number) =>
         this.scene.add.image(c.x + dx + ox, c.y + oy, p.tex.key, p.tex.frame).setScale(p.scale, p.scale * sy).setTint(tint).setAlpha(alpha).setDepth(depth);
       // The lip first, a hair down and right of the body: the pale edge a cut leaves.
-      const lip = make(TONE.lip, TONE.lip_a, 1, 1.6, CARVE.depth - 0.02);
-      const body = make(TONE.dark, TONE.wait, 0, 0, CARVE.depth);
+      const lip = make(TONE.lip, TONE.lip_a, 1, 1.6, depthOf(c) - 0.02);
+      const body = make(TONE.dark, TONE.wait, 0, 0, depthOf(c));
       this.k.lights.unlit(lip);
-      const lit = make(TONE.glow, 0, 0, 0, CARVE.depth + 0.02).setTintMode(Phaser.TintModes.FILL).setBlendMode(Phaser.BlendModes.ADD);
+      const lit = make(TONE.glow, 0, 0, 0, depthOf(c) + 0.02).setTintMode(Phaser.TintModes.FILL).setBlendMode(Phaser.BlendModes.ADD);
       this.k.lights.unlit(lit);
       return { tex: p.tex, dx, scale: p.scale, lip, body, lit };
     });
@@ -136,7 +140,8 @@ export class CueView extends ViewBase {
     l.baked = true;
     l.halo.destroy();
     const c = l.cue;
-    if (c.wall) {
+    if (c.wall || c.lamp) {
+      // A wall's stays upright; a land's lies over the floors the marks are under: both stay sprites.
       for (const p of l.parts) p.lit.destroy();
       for (const p of l.parts) p.body.setTint(TONE.dark).setAlpha(TONE.baked);
       for (const p of l.parts) p.lip.setAlpha(TONE.lip_a);
@@ -174,8 +179,12 @@ export class CueView extends ViewBase {
           this.bake(l);
           continue;
         }
+      } else if (c.lamp) {
+        // A land's interactable (P47): softly lit from afar, full and ringed when he is in reach (its prompt).
+        const near = Math.hypot(this.sim.controller.x - c.x, this.sim.controller.y - c.y) < c.lamp.reach + CARVE.ring;
+        glow = near ? 0.8 + 0.2 * Math.sin(t * 3.4) : LAMP.far;
       } else glow = c === glowing ? 0.6 + 0.4 * Math.sin(t * 3.4) : 0;
-      const live = c.taken || c === glowing;
+      const live = c.taken || c === glowing || !!c.lamp;
       const alpha = c.taken ? TONE.baked + (1 - TONE.baked) * glow : live ? TONE.body : TONE.wait;
       for (const p of l.parts) {
         p.body.setTint(mix(TONE.dark, TONE.glow, glow)).setAlpha(alpha);
@@ -183,7 +192,7 @@ export class CueView extends ViewBase {
       }
       l.halo.setAlpha(live ? (c.taken ? 0.6 * glow : 0.35 + 0.2 * glow) : 0);
       // A turning ring on the ground, as the lift's and the places' (`playhost.ts` `ring`): the amber that says "here" on sand and stone alike.
-      if (live) ring(g, c.x, c.y, CARVE.ring + 6 * glow, TONE.glow, 0.25 + 0.65 * glow, this.scene.time.now, c.wall ? 1 : CARVE.flat);
+      if (live && !(c.lamp && glow <= LAMP.far)) ring(g, c.x, c.y, CARVE.ring + 6 * glow, TONE.glow, 0.25 + 0.65 * glow, this.scene.time.now, c.wall ? 1 : CARVE.flat);
     }
   }
 

@@ -10,7 +10,8 @@ import type { StatusId } from '../effects';
 import type { DamageType } from '../effects';
 import type { BiomeId } from './biomes';
 
-export type Material = 'wood' | 'tin' | 'glass' | 'brass' | 'concrete';
+/** P47 (Minos): stone (concrete modern, brick steampunk), metal (tin modern, brass steampunk), glass and wood; brick is concrete's strength with the old look. */
+export type Material = 'wood' | 'tin' | 'glass' | 'brass' | 'concrete' | 'brick';
 
 /** Strength by material: the health of a size-1 prop of it, and the scrap it gives up broken (also by size; a wall gives none). */
 export const MATERIALS: Record<Material, { name: string; hp: number; scrap: number }> = {
@@ -19,9 +20,13 @@ export const MATERIALS: Record<Material, { name: string; hp: number; scrap: numb
   tin: { name: 'Tin', hp: 22, scrap: 4 },
   brass: { name: 'Brass', hp: 40, scrap: 6 },
   concrete: { name: 'Concrete', hp: 70, scrap: 2 },
+  brick: { name: 'Brick', hp: 70, scrap: 2 },
 };
 
-export type PropKind = 'wall' | 'debris' | 'crate' | 'barrel' | 'tank' | 'tower' | 'transformer' | 'car' | 'propane' | 'vending' | 'fridge' | 'ball' | 'shell' | 'sign';
+export type PropKind =
+  | 'wall' | 'debris' | 'crate' | 'barrel' | 'tank' | 'tower' | 'transformer' | 'car' | 'propane' | 'vending' | 'fridge' | 'ball' | 'shell' | 'sign'
+  // P47's furniture (what a building was: `defs/buildings.ts`), the small box and a hive village's turret.
+  | 'bed' | 'cabinet' | 'engine' | 'rack' | 'shelf' | 'counter' | 'pew' | 'server' | 'desk' | 'boiler' | 'pipes' | 'box' | 'turret';
 
 /** What a zone on the ground does to every machine and robot inside it, `every` seconds (`ZONES`). */
 export type ZoneKind = 'fire' | 'puddle' | 'steam' | 'shock' | 'alarm' | 'slick' | 'mud';
@@ -112,6 +117,21 @@ export const PROPS: Record<PropKind, PropDef> = {
   ball: { name: 'Bowling ball', cls: 'interact', material: 'concrete', size: 1, r: 10, kickable: true, bare: true },
   shell: { name: 'Field gun shell', cls: 'interact', material: 'brass', size: 1, r: 9, carry: true, bare: true },
   sign: { name: 'The First Scripture', cls: 'interact', material: 'wood', size: 2, r: 14, carry: true, bare: true },
+  // P47's furniture (materials, sizes and which pay are guesses): scenery says what a building was, loot pays scrap like any smashed prop.
+  bed: { name: 'Bed', cls: 'scenery', material: 'tin', size: 1, r: 14, bare: true },
+  pew: { name: 'Pew', cls: 'scenery', material: 'wood', size: 1, r: 14, bare: true },
+  desk: { name: 'Desk', cls: 'scenery', material: 'wood', size: 1, r: 14, solid: true, bare: true },
+  counter: { name: 'Counter', cls: 'scenery', material: 'wood', size: 1.5, r: 15, solid: true, bare: true },
+  pipes: { name: 'Pipes', cls: 'scenery', material: 'brass', size: 1, r: 12, bare: true },
+  cabinet: { name: 'Cabinet', cls: 'loot', material: 'tin', size: 1, r: 13, solid: true },
+  engine: { name: 'Engine block', cls: 'loot', material: 'tin', size: 1.5, r: 15, solid: true },
+  rack: { name: 'Tool rack', cls: 'loot', material: 'tin', size: 1, r: 13, solid: true },
+  shelf: { name: 'Shelf', cls: 'loot', material: 'wood', size: 1, r: 14, solid: true },
+  server: { name: 'Server rack', cls: 'loot', material: 'tin', size: 1.5, r: 13, solid: true },
+  boiler: { name: 'Boiler', cls: 'loot', material: 'brass', size: 2, r: 17, solid: true },
+  box: { name: 'Box', cls: 'loot', material: 'wood', size: 0.5, r: 10 },
+  // A hive village's turret (Minos): it shoots (`sim/turrets.ts`); broken, it pays scrap like any smashed machine.
+  turret: { name: 'Turret', cls: 'loot', material: 'tin', size: 1.5, r: 15, solid: true },
 };
 
 /** Looks by health: whole above this share, cracked at or below it, rubble at nothing. */

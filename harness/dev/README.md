@@ -16,7 +16,7 @@ One place for the dev tools. Agent rules: the `dev` skill. **F10** opens a sideb
 - **Notes for agents:** a line starting with `>` (or the Note button) saves a bug report with that text as the note, and the log shows the saved path. **F7** opens the console with `> ` ready. Reports land in `games/<game>/capture/bugs/` (`harness/capture/README.md`).
 
 ## Commands
-Every command is in a group. Built in: `dev` (`help`, `goto <scene>`, `step [n]`, `pause`, `resume`, `report [note]`) and `kit` (`tune [key] [value]`, `quality [low|medium|high]`). A game's commands go in a group named after the game unless it passes one.
+Every command is in a group. Built in: `dev` (`help`, `goto <scene>`, `step [n]`, `marks [on|off]`, `pause`, `resume`, `report [note]`) and `kit` (`tune [key] [value]`, `quality [low|medium|high]`). A game's commands go in a group named after the game unless it passes one.
 
 `help` prints one line per group with its command names (game groups first); `help <group>` the usage and help of each command in it; `help <command>` that command's. `__game.cmd('help')` returns the same text, so an agent reads it in one call. Names stay short (`spawn`); `group.name` (`units.spawn`) works too and is needed only where two groups use the same name: the bare name then fails with the qualified choices, and `help` shows such names qualified. Tab completes across groups (`units.` narrows to one).
 

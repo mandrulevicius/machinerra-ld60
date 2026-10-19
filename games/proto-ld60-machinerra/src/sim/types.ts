@@ -76,6 +76,7 @@ import type { PlaceRT } from './placeplay';
 import type { BotFling } from './crash';
 import type { MapData } from './mapgen';
 import type { Fling, PropEvent } from './props';
+import type { TurretEvent } from './turrets';
 import type { PlaceId } from './places';
 import type { Sim } from './sim';
 import type { SiteKind } from './sites';
@@ -386,6 +387,8 @@ export interface Seam {
   y: number;
   amount: number;
   max: number;
+  /** Its land cue (P47 part A, `buildings.ts` `landCues`): taken when it is mined out. */
+  cue?: number;
 }
 
 /** An old-tech ruin. One of the Parable Trail's three (`trail`: where it stands, outward from the lift) tells the verse it is searched at (`verse`: 0..2, by discovery order, not placement), with its line, bigger finds and the Oracle's word. */
@@ -411,6 +414,10 @@ export interface Ruin {
   oracle?: string;
   /** What searching it always gives (a land file's `junk`). */
   junk?: string;
+  /** Its land cue (P47 part A, `buildings.ts` `landCues`): taken when it is searched or decoded. */
+  cue?: number;
+  /** The building it stands in (P47, index in `MapData.buildings`): its find's tier is that building's intactness (`buildings.ts` `tierOf`). */
+  building?: number;
 }
 
 export interface Loot {
@@ -522,7 +529,7 @@ export type SimEvent =
   /** A weapon found (`Sim.give`); `hand`: it went into the free secondary slot, else it is only owned. */
   | { e: 'found'; weapon: WeaponId; hand: boolean }
   /** Mission 1's old works (`intro.ts`): the shovel taken, a room done, the den or the lift opened, a free respawn. */
-  | { e: 'intro'; what: 'shovel' | 'scrap' | 'tap' | 'bellows' | 'open' | 'lift' | 'respawn'; x?: number; y?: number }
+  | { e: 'intro'; what: 'shovel' | 'scrap' | 'tap' | 'ruin' | 'bellows' | 'open' | 'lift' | 'respawn'; x?: number; y?: number }
   /** A repairer mended a robot (`from` mends `to`). */
   | { e: 'heal'; from: Bot; to: Bot }
   /** The mission changed phase (rising, done, lost). */
@@ -554,6 +561,7 @@ export type SimEvent =
   | OnboardEvent
   | OracleEvent
   | PropEvent
+  | TurretEvent
   | SupportEvent
   | UseEvent
   | WeatherEvent
@@ -600,8 +608,12 @@ export interface SimOptions {
   wife?: 'none' | 'home' | 'stolen';
   /** The HUD starts empty (`empty`) with only what the save revealed (`shown`); default everything is up (`sim/onboard.ts`). */
   onboard?: { empty?: boolean; shown?: HudId[] };
+  /** The stage's card is already earned (a dungeon under a land that earned it, `sim.cardEarned`). */
+  cardHeld?: boolean;
   /** Missions flown before this one (the hub's `missions`): what is taught by now (`lessons.ts`); unset, everything is. */
   flown?: number;
+  /** P47's buildings on a generated land (default: from the fourth mission, `mapgen.ts` `remnantsOn(flown)`). */
+  remnants?: boolean;
   /** The Communicator's chassis from the workshop (`sim/bots.ts`). */
   chassis?: Stats;
   /** The titles earned (`hub/titles.ts`): their passives are sources. */

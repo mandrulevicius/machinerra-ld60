@@ -12,24 +12,26 @@
  * Legend (one character a tile; `INTRO_KEYS`):
  *   S  where he lands         k  a checkpoint (a fall stands him up at the last one he reached)
  *   w  a crumbling wall piece (a plug; one piece broken brings its whole plug down)
- *   1  a dazed Crawlcam before the first plug (it comes back if it dies before the plug falls, so the lesson cannot lock)
+ *   1  a dazed Crawlcam before the first plug (if it dies before the plug falls, the plug falls with it, so the lesson cannot lock)
  *   2, 3  a dazed Crawlcam and a dazed one standing right behind it
  *   v  the shovel             c  the Crawlcam that walks over once the shovel is in hand
  *   $  the scrap pile (room A)  f  a room's foe (leashed to its room)  b  a baby caterpillar beside them  T  the tap (room B; the land's seep)
- *   x  crates on room C's door  B  Bellows, lying downed  g  his three guards
+ *   x  crates on room C's door  g  room C's three guards (they stand round its ruin: an `entities` entry of kind `ruin` in the land file)
+ *   B  Bellows, lying downed in the den past the boss; he can be mended only once the boss is dead
  *   =  the den's blockage (sealed until the three rooms are done)  M  the mini-boss (the Tusked Caterpillar, `caterpillar.ts`)  |  the lift's blockage (falls with it)
  * Dazed foes (`Hornet.dazed`) cannot move or attack (`foes.ts` `fly`); a kick still sends them flying.
  *
- * Steps (`IntroRun.step`, shown in `debugState().intro`): kick, crash, shovel, walker, rooms, den, lift.
+ * Steps (`IntroRun.step`, shown in `debugState().intro`): kick, crash, shovel, walker, rooms, den, mend, lift.
  * Onboarding (`onboard.ts`; the land's `emptyHud` starts the HUD empty): each cue is placed as he comes near its thing and taken when
  * it is done (the onboard glows the first untaken one only): the kick engraved before each dazed pair, the shovel under the shovel,
- * the swing beside it, the scrap under the pile, the tap, Use at Bellows. HUD pieces show with what needs them: the weapon with the
+ * the swing beside it, the scrap under the pile, the tap, Use at room C's ruin, Use at Bellows once the boss is down. HUD pieces show with what needs them: the weapon with the
  * shovel, oil when he is first hurt or reaches the tap, the objective in the hall, scrap at the pile, the crew list when Bellows stands.
  * Add a beat: a letter in the land's rows and in `INTRO_KEYS`, its rule in `step`, its line in `introlines.ts`.
  */
 import { LEVEL1, T, TAP, type Material } from './defs';
 import { dist } from './geom';
 import { LANDS } from './lands';
+import { pause } from './lessons';
 import { tie } from './leash';
 import { spawnBoss } from './boss';
 import { spawnHornet } from './foes';
@@ -38,6 +40,7 @@ import { INTRO_ICONS, INTRO_LINES, INTRO_WITHIN, MOMENT, type IntroLine } from '
 import type { Spot } from './mapgen';
 import type { Cue, HudId } from './onboard';
 import type { Bot, Hornet, Loot, Sim } from './sim';
+import type { Ruin } from './types';
 
 /** The intro land's id (`levels/lands/intro.json`). */
 export const INTRO_LAND = 'intro';
@@ -46,7 +49,7 @@ export const INTRO_LAND = 'intro';
  * Numbers, all guesses except `oil` (onboarding.md: half oil). `wall`: a plug's pieces (a worn wood wall, cracked from the start).
  * `foe`/`guard`: a room's foes wake within `wake` tiles and hunt no farther than `tiles` from where they stand. `boss`: the den's.
  * `shovel`: px he must come within. `check`: tiles from a checkpoint that count as reaching it. `down`: seconds he lies before a
- * free respawn, standing up with `oil` of his bar. `key`: seconds before the first plug's dazed Crawlcam comes back.
+ * free respawn, standing up with `oil` of his bar.
  * `dazedHp`: the share of its health a dazed Crawlcam stands with (Minos: hurt and stunned, about 10%), so any crash kills it.
  * Placing the dazed ones: about half a kick's travel (`KICK.knock`, about 4.6 tiles on open ground) from what they crash into.
  */
@@ -59,15 +62,14 @@ export const INTRO = {
   shovel: 26,
   check: 2.5,
   down: 2,
-  key: 2,
   dazedHp: 0.1,
 };
 
 export const INTRO_KEYS = 'Sk w123vc$fbTxB g=M|'.replace(/ /g, '');
-export type IntroStep = 'kick' | 'crash' | 'shovel' | 'walker' | 'rooms' | 'den' | 'lift' | 'done';
-export type IntroRoom = 'scrap' | 'tap' | 'bellows';
+export type IntroStep = 'kick' | 'crash' | 'shovel' | 'walker' | 'rooms' | 'den' | 'mend' | 'lift' | 'done';
+export type IntroRoom = 'scrap' | 'tap' | 'ruin';
 /** The places a dev command jumps to (`intro go <where>`): the steps' spots, by name. */
-export const INTRO_SPOTS = ['start', 'plug', 'pair', 'shovel', 'hall', 'scrap', 'tap', 'bellows', 'den', 'boss', 'lift'] as const;
+export const INTRO_SPOTS = ['start', 'plug', 'pair', 'shovel', 'hall', 'scrap', 'tap', 'ruin', 'den', 'boss', 'bellows', 'lift'] as const;
 export type IntroSpot = (typeof INTRO_SPOTS)[number];
 
 /** Every tile of each letter in the land's rows. */
@@ -79,6 +81,7 @@ export function introLetters(rows = LANDS[INTRO_LAND]?.rows?.rows ?? []): Record
 
 const px = (s: Spot): Spot => ({ x: (s.x + 0.5) * T, y: (s.y + 0.5) * T });
 const sealed = 1e9;
+const tileOf = (p: Spot): Spot => ({ x: Math.floor(p.x / T), y: Math.floor(p.y / T) });
 
 /** The old works while the mission runs: what each beat holds and how far he has got. */
 export class IntroRun {
@@ -91,19 +94,22 @@ export class IntroRun {
   gate: Prop[] = [];
   crates: Prop[] = [];
   key: Hornet | null = null;
-  keyT = 0;
   pair: Hornet[] = [];
   walker: Hornet | null = null;
   boss: Hornet | null = null;
   bellows: Bot | null = null;
+  /** Room C's ruin: searched, the room is done. */
+  ruin: Ruin | null = null;
   guards: Hornet[] = [];
   pile: Loot[] = [];
   /** He has the shovel in hand; the rooms done; he has stood in the tap's steam; the den's way and the lift's are open. */
   armed = false;
   tapped = false;
-  rooms: Record<IntroRoom, boolean> = { scrap: false, tap: false, bellows: false };
+  rooms: Record<IntroRoom, boolean> = { scrap: false, tap: false, ruin: false };
   open = false;
   lift = false;
+  /** Bellows stands: the crew list shows. */
+  mended = false;
   /** Lines said by this module (also in `Sim.said`). */
   private lines = new Set<IntroLine>();
   /** The onboard's cue ids, by name (placed once). */
@@ -139,18 +145,27 @@ export class IntroRun {
     this.pile = (at.$ ?? []).map((s) => sim.restLoot(px(s).x, px(s).y, 'scrap'));
     const bs = at.B?.[0];
     if (bs) {
-      // Bellows lies as a wreck mended for free (`downed.ts`): standing up, he is one of the crew and `found` sends him home with the haul.
+      // Bellows lies in the den as a wreck mended for free (`downed.ts`): standing up, he is one of the crew and `found` sends him home with the haul. Mendable once the boss is dead (`holds`).
       const b = (this.bellows = sim.addBot('gatherer', 'Bellows', px(bs).x, px(bs).y, 0));
       b.hp = 0;
       b.downed = { by: null, fix: LEVEL1.fix, wreck: true, found: true };
       b.state = 'idle';
+    }
+    // Room C: a small ruin to search, its guards round it.
+    this.ruin = sim.ruins[0] ?? null;
+    if (this.ruin) {
       for (const s of at.g ?? []) {
         const h = this.crawlcam(s);
-        tie(h, px(bs), INTRO.guard);
+        tie(h, { x: this.ruin.x, y: this.ruin.y }, INTRO.guard);
         this.guards.push(h);
       }
     }
     this.say('landed');
+  }
+
+  /** Bellows lies out of reach of Use until the boss is down (`downed.ts` `downedNear`). */
+  holds(b: Bot) {
+    return b === this.bellows && !this.lift;
   }
 
   /** A wall that holds until this module brings it down. */
@@ -173,7 +188,7 @@ export class IntroRun {
 
   private say(id: IntroLine, tone: 'calm' | 'warn' = 'calm') {
     this.lines.add(id);
-    this.sim.say(`intro-${id}`, INTRO_LINES[id], tone, { within: INTRO_WITHIN[id] ?? MOMENT, icon: INTRO_ICONS[id] });
+    if (INTRO_LINES[id]) this.sim.say(`intro-${id}`, INTRO_LINES[id], tone, { within: INTRO_WITHIN[id] ?? MOMENT, icon: INTRO_ICONS[id] }); // an emptied line is cut (P59 C)
   }
 
   /** A cue placed once, at a tile's centre (`dy` tiles below it). */
@@ -210,14 +225,8 @@ export class IntroRun {
     }
     if (!plugUp) this.took('kick1');
     if (!plugUp && this.lines.has('plug')) this.say('plugDown');
-    // The first plug's dazed Crawlcam comes back if it died with the plug still up (kicked into the rock instead).
-    if (plugUp && this.key?.dead && at[1]?.[0]) {
-      this.keyT += dt;
-      if (this.keyT >= INTRO.key) {
-        this.keyT = 0;
-        this.key = this.dazed(at[1][0]);
-      }
-    }
+    // The first plug falls anyway if its dazed Crawlcam died with it still up (kicked into the rock instead), so the lesson cannot lock (Minos).
+    if (plugUp && this.key?.dead) this.fell(this.plug);
     if (this.near(at[2]?.[0], 5) && !plugUp) {
       this.say('pair');
       this.cue('kick2', at[2]?.[0], { icon: '', key: 'kick' }, -1);
@@ -251,18 +260,24 @@ export class IntroRun {
     }
     if (!this.rooms.tap && tap && dist(c.x, c.y, tap.x, tap.y) <= TAP.reach) this.done('tap');
     if (this.crates.some((p) => !p.broken) && this.near(at.x?.[1], 4)) this.say('crates');
-    if (this.bellows && this.near(at.B?.[0], 7)) {
+    if (this.ruin && !this.ruin.searched && this.near(tileOf(this.ruin), 6)) this.cue('ruin', tileOf(this.ruin), { icon: '', key: 'use' }, 0, 1);
+    if (!this.rooms.ruin && this.ruin?.searched) this.done('ruin');
+    // Bellows, once the boss is down.
+    if (this.lift && this.bellows?.downed && this.near(at.B?.[0], 7)) {
       this.say('bellows');
       this.cue('use', at.B?.[0], { icon: '', key: 'use' }, 0, 1);
     }
-    if (!this.rooms.bellows && this.bellows && !this.bellows.downed) {
-      this.done('bellows');
+    if (!this.mended && this.bellows && !this.bellows.downed) {
+      this.mended = true;
+      this.took('use');
+      this.sim.events.push({ e: 'intro', what: 'bellows' });
       this.show('roster');
       this.say('mended');
     }
     if (!this.open && Object.values(this.rooms).every(Boolean)) this.unseal();
     if (this.open && this.near(at.M?.[0], 10)) {
-      this.say('den', 'warn');
+      // The boss's warning is the intro's one Oracle pause (a cutscene, `cutview.ts`; Minos, P59).
+      if (!this.lines.has('den')) this.lines.add('den'), pause(sim, 'den', 'press', [{ id: 'intro-den', text: INTRO_LINES.den }]);
       this.boss ??= this.spawnBoss();
     }
     if (!this.lift && this.boss?.dead) {
@@ -299,7 +314,7 @@ export class IntroRun {
 
   private done(room: IntroRoom) {
     this.rooms[room] = true;
-    this.took(room === 'bellows' ? 'use' : room);
+    this.took(room);
     this.sim.events.push({ e: 'intro', what: room });
   }
 
@@ -316,7 +331,7 @@ export class IntroRun {
   /** Where he is in the old works. */
   get stepNow(): IntroStep {
     if (this.sim.phase !== 'mission') return 'done';
-    if (this.lift) return 'lift';
+    if (this.lift) return this.bellows?.downed ? 'mend' : 'lift';
     if (this.open) return 'den';
     if (this.armed) return this.walker && !this.walker.dead ? 'walker' : 'rooms';
     if (this.plug.some((p) => !p.broken)) return 'kick';
@@ -332,6 +347,7 @@ export class IntroRun {
       case 'walker': return 'Beat the Crawlcam ({fire}).';
       case 'rooms': return `See to the rooms round the hall (${Object.values(this.rooms).filter(Boolean).length}/3).`;
       case 'den': return 'Beat what waits in the den.';
+      case 'mend': return 'Mend Bellows ({use}), then take the lift.';
       case 'lift': return 'Ride the lift up ({use} twice).';
       default: return 'Rising to the Wanderer.';
     }
@@ -355,15 +371,15 @@ export class IntroRun {
     const c = sim.controller;
     const spot: Record<IntroSpot, Spot | undefined> = {
       start: at.S?.[0], plug: at.k?.[0] && { x: at[1]![0].x - 2, y: at[1]![0].y }, pair: at.k?.[0], shovel: at.k?.[1], hall: at.k?.[2],
-      scrap: at.$?.[0] && { x: at.$[0].x, y: at.$[0].y + 2 }, tap: at.T?.[0] && { x: at.T[0].x, y: at.T[0].y - 2 }, bellows: at.B?.[0] && { x: at.B[0].x, y: at.B[0].y + 2 },
+      scrap: at.$?.[0] && { x: at.$[0].x, y: at.$[0].y + 2 }, tap: at.T?.[0] && { x: at.T[0].x, y: at.T[0].y - 2 }, ruin: this.ruin ? { x: Math.floor(this.ruin.x / T) - 2, y: Math.floor(this.ruin.y / T) } : undefined, bellows: at.B?.[0] && { x: at.B[0].x - 2, y: at.B[0].y },
       den: at.k?.[3], boss: at.M?.[0] && { x: at.M[0].x - 5, y: at.M[0].y }, lift: at.L?.[0] ?? sim.map.lift,
     };
     const late = INTRO_SPOTS.indexOf(where);
     if (late >= INTRO_SPOTS.indexOf('pair')) this.fell(this.plug);
     if (late >= INTRO_SPOTS.indexOf('hall')) this.arm();
-    if (where === 'bellows') this.fell(this.crates);
+    if (where === 'ruin') this.fell(this.crates);
     if (late >= INTRO_SPOTS.indexOf('den')) this.unseal();
-    if (where === 'lift') {
+    if (late >= INTRO_SPOTS.indexOf('bellows')) {
       this.boss ??= this.spawnBoss();
       sim.slay(this.boss);
     }

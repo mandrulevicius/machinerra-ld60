@@ -9,6 +9,7 @@
  */
 import type Phaser from 'phaser';
 import { COL, S, SIZE, canvas, circ, grad, rr, shape, type Ctx } from './art';
+import { FURNITURE, FURNITURE_SIZE, classLook, makeFloorArt, wallFace } from './buildingart';
 import { LINE } from './house';
 import { WEAR, wearItem } from './itemwear';
 import type { Material, PropKind } from './sim/defs';
@@ -21,12 +22,14 @@ export const MAT: Record<Material, [string, string]> = {
   glass: ['#d6efec', '#8dbab6'],
   brass: ['#f0cf7a', '#7a5a22'],
   concrete: ['#aea89c', '#6c675d'],
+  brick: ['#b0705a', '#6a3c2c'],
 };
 
 export const PROP_SIZE: Record<PropKind, [number, number]> = {
   wall: [32, 40], debris: [30, 18], crate: [30, 32], barrel: [22, 32], tank: [36, 46], tower: [50, 88],
   transformer: [34, 44], car: [78, 42], propane: [20, 30], vending: [32, 54],
   fridge: [40, 58], ball: [20, 20], shell: [14, 26], sign: [44, 34],
+  ...FURNITURE_SIZE,
 };
 
 const body = (c: Ctx, m: Material, x0: number, y0: number, x1: number, y1: number) => grad(c, x0, y0, x1, y1, [[0, MAT[m][0]], [1, MAT[m][1]]]);
@@ -49,29 +52,27 @@ type Paint = (c: Ctx, m: Material, cr: boolean) => void;
 
 const PAINT: Record<PropKind, Paint> = {
   wall: (c, m, cr) => {
-    // A broken length of wall: blocks, a seam, and the top edge ragged.
+    // A length of wall, its face by material (P47: brick, slabs, planks, panes). Whole, its top is straight under a coping;
+    // cracked, the top is ragged and it is split. Each tile's piece meets its neighbours', so a run reads as one wall.
     shape(c, body(c, m, 0, 0, 0, 40), () => {
-      c.moveTo(2, 38);
-      c.lineTo(2, 10);
-      c.lineTo(8, 6);
-      c.lineTo(14, 9);
-      c.lineTo(20, 3);
-      c.lineTo(27, 7);
-      c.lineTo(30, 4);
-      c.lineTo(30, 38);
+      c.moveTo(0, 38);
+      if (cr) {
+        c.lineTo(1, 12);
+        c.lineTo(8, 8);
+        c.lineTo(14, 11);
+        c.lineTo(20, 5);
+        c.lineTo(27, 9);
+        c.lineTo(32, 6);
+      } else {
+        c.lineTo(0, 6);
+        c.lineTo(32, 6);
+      }
+      c.lineTo(32, 38);
       c.closePath();
     }, 1.4);
-    c.strokeStyle = 'rgba(29,26,23,0.55)';
-    c.lineWidth = LINE.detail;
-    c.beginPath();
-    c.moveTo(2, 20);
-    c.lineTo(30, 20);
-    c.moveTo(16, 20);
-    c.lineTo(16, 38);
-    c.moveTo(9, 8);
-    c.lineTo(9, 20);
-    c.stroke();
-    if (cr) cracks(c, [[8, 24, 10, 12], [22, 8, -6, 12]]);
+    wallFace(c, m);
+    if (!cr) shape(c, MAT[m][0], rr(c, -1, 3, 34, 4, 1), 1);
+    else cracks(c, [[8, 24, 10, 12], [22, 10, -6, 12]]);
   },
   debris: (c, m, cr) => {
     const n = cr ? 3 : 5;
@@ -245,6 +246,7 @@ const PAINT: Record<PropKind, Paint> = {
     if (cr) cracks(c, [[4, 14, 5, 8]]);
     void m;
   },
+  ...FURNITURE,
   sign: (c, m, cr) => {
     // NO WIFI. TALK TO EACH OTHER: a café's chalkboard on its two feet.
     c.strokeStyle = MAT.wood[1];
@@ -265,7 +267,7 @@ const PAINT: Record<PropKind, Paint> = {
 };
 
 /** Props with a painted body (they wear as painted metal: rust at the edges, flakes of paint gone, dents), whatever their material says. */
-const PAINTED = new Set<PropKind>(['car', 'vending', 'propane', 'barrel', 'transformer']);
+const PAINTED = new Set<PropKind>(['car', 'vending', 'propane', 'barrel', 'transformer', 'cabinet', 'server', 'turret', 'engine']);
 
 /** The texture of a prop in a state; `material` matters for walls and debris, whose look is the land's. */
 export function propKey(kind: PropKind, material: Material, state: 'whole' | 'cracked' | 'rubble') {
@@ -304,6 +306,27 @@ function packAtlas(scene: Phaser.Scene, keys: string[]) {
   tex.refresh();
 }
 
+/** Each prop picture as drawn, before its class's look (P47 part A), so the dev toggle can take the looks off and put them back. */
+const PLAIN = new Map<string, { data: ImageData; kind: PropKind }>();
+const looks = { on: true };
+
+/** Dev (`looks [on|off]`): the classes' looks on every prop picture, or the pictures as drawn; the atlas is drawn again in place, so the land's sprites change at once. */
+export function classLooks(scene: Phaser.Scene, on: boolean) {
+  looks.on = on;
+  const atlas = scene.textures.get(PROP_ATLAS) as Phaser.Textures.CanvasTexture, ac = atlas.getContext();
+  for (const [key, p] of PLAIN) {
+    const tex = scene.textures.get(key) as Phaser.Textures.CanvasTexture;
+    tex.getContext().putImageData(p.data, 0, 0);
+    if (on) classLook(scene, key, PROPS[p.kind].cls, p.kind);
+    else tex.refresh();
+    const f = atlas.get(key);
+    ac.clearRect(f.cutX, f.cutY, f.cutWidth, f.cutHeight);
+    ac.drawImage(tex.getSourceImage() as CanvasImageSource, f.cutX, f.cutY);
+  }
+  atlas.refresh();
+  return looks.on;
+}
+
 export function makePropArt(scene: Phaser.Scene) {
   Object.assign(SIZE, Object.fromEntries(Object.entries(PROP_SIZE).map(([k, v]) => [`prop-${k}`, v])));
   const made: string[] = [];
@@ -317,8 +340,11 @@ export function makePropArt(scene: Phaser.Scene) {
         SIZE[key] = [w, h];
         canvas(scene, key, w, h, (c) => {
           PAINT[kind](c, m, cr);
-          wearItem(c, w, h, key, WEAR[PAINTED.has(kind) ? 'paint' : m], cr ? 1.35 : 1);
+          wearItem(c, w, h, key, WEAR[PAINTED.has(kind) ? 'paint' : m] ?? WEAR.concrete, cr ? 1.35 : 1);
         });
+        const tex = scene.textures.get(key) as Phaser.Textures.CanvasTexture;
+        PLAIN.set(key, { data: tex.getContext().getImageData(0, 0, tex.width, tex.height), kind });
+        if (looks.on) classLook(scene, key, PROPS[kind].cls, kind); // P47 part A: one look per class
       }
   }
   for (const m of Object.keys(MATERIALS) as Material[]) {
@@ -327,8 +353,9 @@ export function makePropArt(scene: Phaser.Scene) {
     canvas(scene, `prop-rubble-${m}`, 34, 16, (c) => {
       const chips: [number, number, number, number][] = [[2, 8, 9, 6], [10, 4, 8, 7], [18, 8, 7, 6], [24, 5, 8, 8], [14, 10, 8, 5]];
       for (const [x, y, w2, h2] of chips) shape(c, body(c, m, 0, y, 0, y + h2), rr(c, x, y, w2, h2, 2), 1);
-      wearItem(c, 34, 16, `prop-rubble-${m}`, { ...WEAR[m], dents: 0 }, 0.8, [0.1, 0.95]);
+      wearItem(c, 34, 16, `prop-rubble-${m}`, { ...(WEAR[m] ?? WEAR.concrete), dents: 0 }, 0.8, [0.1, 0.95]);
     });
   }
+  made.push(...makeFloorArt(scene)); // P47's floors and overgrowth, stamped into the baked ground
   packAtlas(scene, made);
 }

@@ -32,6 +32,8 @@ const MW = 820, MH = 615;
 const HELP = 'Click or drag to pick robots, right click to send them.';
 /** How near a click picks a robot, and a right click lands on him (map px); a drag shorter than CLICK is a click. */
 const PICK = 9, COMM = 11, CLICK = 5;
+/** How often the survey is redrawn while nothing is touched (ms): the crews move and the rings shimmer at this pace. */
+const REDRAW_MS = 100;
 
 /** What a signal's area is called on the map, and the brass of its ring and icon. */
 const SIGNAL_NAME: Record<SignalKind, string> = { pilgrim: 'pilgrim', shrine: 'shrine', castle: 'castle', mast: 'mast', ruins: 'rich ruins', vault: 'vault', cache: 'cache', kennel: 'kennel', place: 'something old' };
@@ -110,6 +112,10 @@ export class MapView {
   }
   open = false;
   private sig = '';
+  /** The survey is redrawn every `REDRAW_MS`, at once when the pointer, a drag or the pick changes (`dirty`). */
+  private dirty = true;
+  private drawnAt = 0;
+  private drawnPick = '';
   /** The pointer over the survey (map px), or null: a mark's numbers show only near it. */
   private hov: { x: number; y: number } | null = null;
   /** Is the pointer near this spot (map px)? */
@@ -158,8 +164,14 @@ export class MapView {
     this.fog.height = MH;
     this.paintBase();
     this.cv.addEventListener('mousedown', (e) => this.down(e));
-    this.cv.addEventListener('mousemove', (e) => (this.hov = this.at(e)));
-    this.cv.addEventListener('mouseleave', () => (this.hov = null));
+    this.cv.addEventListener('mousemove', (e) => {
+      this.hov = this.at(e);
+      this.dirty = true;
+    });
+    this.cv.addEventListener('mouseleave', () => {
+      this.hov = null;
+      this.dirty = true;
+    });
     window.addEventListener('mousemove', this.moveDrag);
     window.addEventListener('mouseup', this.up);
     this.cv.addEventListener('contextmenu', (e) => this.rightClick(e));
@@ -247,6 +259,7 @@ export class MapView {
   show() {
     this.open = true;
     this.sig = '';
+    this.dirty = true;
     this.el.classList.add('is-open');
     this.refresh();
   }
@@ -277,6 +290,7 @@ export class MapView {
     if (e.button !== 0) return;
     const p = this.at(e);
     this.drag = { x0: p.x, y0: p.y, x: p.x, y: p.y };
+    this.dirty = true;
   }
 
   private moveDrag = (e: MouseEvent) => {
@@ -284,6 +298,7 @@ export class MapView {
     const p = this.at(e);
     this.drag.x = p.x;
     this.drag.y = p.y;
+    this.dirty = true;
   };
 
   /** A left click picks the robot under it (Ctrl: its whole crew) or nobody; a drag picks the robots in its box. */
@@ -291,6 +306,7 @@ export class MapView {
     const d = this.drag;
     if (!d || e.button !== 0) return;
     this.drag = null;
+    this.dirty = true;
     const k = this.k;
     if (Math.hypot(d.x - d.x0, d.y - d.y0) > CLICK) {
       this.pick.ids = new Set(boxBots(this.sim, d.x0 / k, d.y0 / k, d.x / k, d.y / k, 0));
@@ -364,7 +380,13 @@ export class MapView {
 
   refresh() {
     if (!this.open) return;
-    this.drawMap();
+    const now = performance.now(), picked = [...this.sel].join(',');
+    if (this.dirty || this.sig === '' || picked !== this.drawnPick || now - this.drawnAt >= REDRAW_MS) {
+      this.dirty = false;
+      this.drawnAt = now;
+      this.drawnPick = picked;
+      this.drawMap();
+    }
     const s = this.sim;
     // Weights: the way home comes forward when the day turns dangerous; robots picked make the crews the place to click.
     const evac = this.el.querySelector<HTMLElement>('.mc-evac')!;

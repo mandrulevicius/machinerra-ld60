@@ -9,7 +9,7 @@
  *   scrap each (`scrapMul`, the Communicator's `scrapRate`: shown on the stats screen as "The Rising District"), and owes a pick of three city perks.
  * - **The perks** (`CITY_PERKS`): three of the pool not yet taken, seeded by how many are held (`offerPerks`); the pick is kept for good. Sim-side ones ride with
  *   the mission as sources (`stat` effects) or flags in `Sim.perks` (`districtFx`, into `CityFx`); their numbers are `PERK_FX` (`sim/perks.ts`). The Chapel's is read by
- *   `researchCtx` (one more card on the Oracle's free pick).
+ *   `researchCtx` (one more card on the Oracle's pick).
  *
  * All the numbers are guesses (P55): prices, crowd, +10% a stage, the perks' strengths.
  */

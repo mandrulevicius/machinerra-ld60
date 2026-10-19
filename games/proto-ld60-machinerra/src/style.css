@@ -22,7 +22,7 @@
 .mc-bar--hp > span, .mc-bar--steam > span { justify-content: start; padding-left: 10px; font-size: 13px; }
 .mc-bar--hp .mc-bar__fill { background: linear-gradient(#4a4440 0%, #14100c 35%, #050403 100%); box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.25); }
 .mc-bar--hp > span { color: #f4e2bc; }
-.mc-bar--hp.is-low { border-color: var(--ui-c-danger); animation: mc-pulse 1s ease-in-out infinite; }
+.mc-bar--hp.is-low { border-color: var(--ui-c-danger); }
 .mc-bar--steam { background: #4a4038; }
 .mc-bar--steam .mc-bar__fill { background: linear-gradient(#ffffff, #d8d4cc); transition: width 60ms linear; }
 .mc-bar--steam > span { color: #2a241e; text-shadow: 0 1px 0 rgb(255 255 255 / 0.7); }
@@ -58,8 +58,18 @@
 .mc-track { display: none; flex-direction: column; align-items: center; gap: 2px; font-size: 13px; font-weight: 600; max-width: 640px; text-align: center; color: #e8d6b0; text-shadow: 0 1px 0 #000; }
 .mc-track.is-on { display: flex; }
 .mc-track__line { padding: 1px 10px; border-radius: 5px; background: rgb(20 14 9 / 0.6); border: 1px solid #5a4418; opacity: 0.9; }
-.mc-obj.is-urgent { color: #ffd0c0; border-color: var(--ui-c-danger); animation: mc-pulse 1s ease-in-out infinite; }
-@keyframes mc-pulse { 50% { box-shadow: 0 0 14px rgb(224 80 58 / 0.7); } }
+.mc-obj.is-urgent { position: relative; color: #ffd0c0; border-color: var(--ui-c-danger); }
+/* Glow pulses stay on the compositor: the glow is a static box-shadow on a pseudo-element and only its opacity pulses. */
+.mc-bar--hp.is-low::after, .mc-bar--hp[data-w="alarm"]::after, .mc-boss.is-rage .mc-bar--boss::after, .mc-obj.is-urgent::after, .mc-support[data-state="inbound"]::after {
+  content: ""; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; opacity: 0; box-shadow: 0 0 14px rgb(224 80 58 / 0.7); animation: mc-glow-in 1s ease-in-out infinite;
+}
+.mc-obj.is-urgent::after { inset: -1px; }
+.mc-boss.is-rage .mc-bar--boss::after, .mc-support[data-state="inbound"]::after { animation-duration: 0.7s; }
+@keyframes mc-glow-in { 50% { opacity: 1; } }
+@keyframes mc-glow-out { 50% { opacity: 0; } }
+/* A bar that glows cannot clip (the glow sits outside it): the fill takes the bar's inner curve instead. */
+.mc-bar--hp.is-low, .mc-bar--hp[data-w="alarm"], .mc-boss.is-rage .mc-bar--boss { overflow: visible; }
+.mc-bar--hp.is-low .mc-bar__fill, .mc-bar--hp[data-w="alarm"] .mc-bar__fill, .mc-boss.is-rage .mc-bar--boss .mc-bar__fill { border-radius: 7px 0 0 7px; }
 
 .mc-salvage { display: none; font-size: 14px; font-weight: 700; color: #9ff6ff; padding: 2px 10px; border-radius: 6px; background: rgb(10 30 34 / 0.75); border: 1px solid #2a8a94; }
 .mc-salvage.is-on { display: flex; align-items: center; gap: 5px; }
@@ -67,7 +77,7 @@
 /* ---- the Oracle ---- */
 .mc-oracle { position: absolute; left: 14px; bottom: 14px; width: 470px; display: flex; gap: 12px; padding: 12px 14px; border-radius: 10px; background: linear-gradient(170deg, rgb(26 34 40 / 0.94), rgb(12 16 20 / 0.94)); border: 2px solid #6a8a94; box-shadow: 0 0 0 2px var(--soot), 0 10px 24px rgb(0 0 0 / 0.5); opacity: 0; transform: translateY(12px); transition: opacity 300ms, transform 300ms; }
 .mc-oracle.is-on { opacity: 1; transform: none; }
-.mc-oracle.is-quiet { opacity: 0.45; }
+.mc-oracle.is-quiet { opacity: 0.55; }
 .mc-oracle[data-tone="warn"] { border-color: var(--amber); }
 .mc-oracle[data-tone="urgent"] { border-color: var(--ui-c-danger); }
 .mc-oracle__eye { flex: none; width: 52px; height: 52px; border-radius: 50%; background: radial-gradient(circle, #0a1418 30%, #2a3a40 70%); border: 2px solid #8ab0bc; display: grid; place-items: center; }
@@ -104,6 +114,14 @@
 .mc-banner { position: absolute; left: 0; right: 0; top: 34%; text-align: center; font-family: var(--ui-font-display); font-size: 54px; color: var(--brass-hi); text-shadow: 0 3px 0 #000, 0 0 30px rgb(255 140 40 / 0.6); opacity: 0; pointer-events: none; }
 .mc-banner.is-on { animation: mc-banner 2.6s ease-out forwards; }
 @keyframes mc-banner { 0% { opacity: 0; transform: scale(1.3); } 12% { opacity: 1; transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; } }
+/* A phase banner grows with the danger (`hudfx.ts` `BEAT`): the day is quiet, dusk is large and violet, midnight fills the screen and slams in. Banners take no input. */
+.mc-banner-sub { display: block; margin-top: 0.14em; font-family: var(--ui-font-body); font-size: clamp(15px, 0.26em, 28px); font-weight: normal; letter-spacing: 0.04em; text-shadow: 0 2px 0 #000; }
+.mc-banner[data-tone="day"] { font-size: 38px; color: var(--brass); text-shadow: 0 2px 0 #000; animation-name: mc-banner-day; }
+.mc-banner[data-tone="dusk"] { font-size: 92px; letter-spacing: 0.04em; color: #ffc08a; text-shadow: 0 4px 0 #1a0c33, 0 0 42px rgb(150 80 255 / 0.9), 0 0 90px rgb(110 40 255 / 0.55); animation-name: mc-banner-dusk; }
+.mc-banner[data-tone="midnight"] { top: 28%; font-size: 168px; letter-spacing: 0.06em; color: #ffe8e8; text-shadow: 0 6px 0 #2a0008, 0 0 36px rgb(255 48 72 / 1), 0 0 110px rgb(255 20 50 / 0.8), 0 0 220px rgb(255 20 50 / 0.5); animation-name: mc-banner-midnight; }
+@keyframes mc-banner-day { 0% { opacity: 0; } 20% { opacity: 0.85; } 70% { opacity: 0.85; } 100% { opacity: 0; } }
+@keyframes mc-banner-dusk { 0% { opacity: 0; transform: scale(1.5); letter-spacing: 0.01em; } 14% { opacity: 1; transform: scale(1); letter-spacing: 0.04em; } 80% { opacity: 1; letter-spacing: 0.08em; } 100% { opacity: 0; letter-spacing: 0.1em; } }
+@keyframes mc-banner-midnight { 0% { opacity: 0; transform: scale(2.6); } 4% { opacity: 1; transform: scale(0.94); } 7% { transform: scale(1.04); } 10% { transform: scale(1); } 14%, 20%, 26% { transform: translateX(-5px) scale(1.01); } 17%, 23% { transform: translateX(5px) scale(1.01); } 30% { transform: scale(1); } 85% { opacity: 1; letter-spacing: 0.12em; } 100% { opacity: 0; letter-spacing: 0.16em; } }
 
 /* ---- the map ---- */
 .mc-map { position: absolute; inset: 0; display: none; gap: 16px; padding: 22px; background: rgb(8 6 4 / 0.9); align-items: flex-start; justify-content: center; font-family: var(--ui-font-body); color: var(--ui-c-text); }
@@ -147,8 +165,10 @@
 /* ---- the day: the dial, the dusk vignette, washes, the queen's bar ---- */
 .mc-dusk { position: absolute; inset: 0; opacity: 0; background: radial-gradient(ellipse at 50% 55%, transparent 42%, rgb(10 6 34 / 0.55) 78%, rgb(6 3 20 / 0.85) 100%); }
 .mc-wash { position: absolute; inset: 0; opacity: 0; background: radial-gradient(ellipse at center, transparent 35%, var(--wash, #fff) 140%); }
-.mc-wash.is-on { animation: mc-wash 1.6s ease-out forwards; }
-@keyframes mc-wash { 0% { opacity: 0.9; } 100% { opacity: 0; } }
+.mc-wash.is-on { animation: mc-wash var(--wash-ms, 1.6s) ease-out forwards; }
+.mc-wash.is-throb.is-on { animation-name: mc-wash-throb; }
+@keyframes mc-wash { 0% { opacity: var(--wash-a, 0.9); } 100% { opacity: 0; } }
+@keyframes mc-wash-throb { 0% { opacity: var(--wash-a, 0.9); } 14% { opacity: 0.45; } 24% { opacity: var(--wash-a, 0.9); } 38% { opacity: 0.35; } 48% { opacity: calc(var(--wash-a, 0.9) * 0.8); } 100% { opacity: 0; } }
 .mc-clock { position: absolute; right: 14px; top: 10px; display: flex; flex-direction: column; align-items: center; filter: drop-shadow(0 3px 0 rgb(0 0 0 / 0.6)); }
 .mc-clock__phase { margin-top: -6px; font-family: var(--ui-font-display); font-size: 17px; color: var(--brass-hi); text-shadow: var(--ui-text-shadow); }
 .mc-clock__next { font-family: "Share Tech Mono", monospace; font-size: 13px; color: #d8c8a8; padding: 1px 8px; border-radius: 4px; background: rgb(20 14 9 / 0.72); }
@@ -170,7 +190,7 @@
 .mc-boss__name { font-family: var(--ui-font-display); font-size: 20px; color: #ffb0c0; text-shadow: 0 2px 0 #000, 0 0 14px rgb(255 32 96 / 0.7); }
 .mc-bar--boss { width: 100%; height: 16px; background: #2a1020; border-color: #b04060; }
 .mc-bar--boss .mc-bar__fill { background: linear-gradient(#ff5080, #a01040); box-shadow: inset 0 2px 0 rgb(255 255 255 / 0.3); transition: width 160ms linear; }
-.mc-boss.is-rage .mc-bar--boss { animation: mc-pulse 0.7s ease-in-out infinite; border-color: #ff3048; }
+.mc-boss.is-rage .mc-bar--boss { border-color: #ff3048; }
 
 /* ---- leeway: the oil reserve (cans beside the oil bar) and D-city air support (bottom centre) ---- */
 .mc-hprow { display: flex; align-items: flex-end; gap: 10px; }
@@ -192,7 +212,7 @@
 .mc-support__key { font-size: 13px; color: var(--ui-c-text-dim); margin-top: 3px; }
 .mc-support__state { font-family: "Share Tech Mono", monospace; font-size: 14px; letter-spacing: 0.1em; text-transform: uppercase; min-width: 74px; text-align: right; }
 .mc-support[data-state="ready"] { box-shadow: 0 3px 0 #000, 0 0 12px rgb(240 207 122 / 0.35); }
-.mc-support[data-state="inbound"] { border-color: var(--friend); color: #d8f8ff; animation: mc-pulse 0.7s ease-in-out infinite; }
+.mc-support[data-state="inbound"] { border-color: var(--friend); color: #d8f8ff; }
 .mc-support[data-state="spent"] { opacity: 0.45; filter: grayscale(0.7); border-color: #5e4a32; }
 
 /* ---- command mode: cold steel against the warm dusk, so it can never be mistaken for play ---- */
@@ -231,7 +251,9 @@
 .mc-bar--steam[data-w="rest"] { height: 11px; opacity: 0.7; }
 .mc-bar[data-w="rest"] span { opacity: 0; }
 .mc-bar span { transition: opacity 240ms; }
-.mc-bar--hp[data-w="alarm"] { height: 28px; border-color: var(--red); box-shadow: 0 2px 0 #000, 0 0 16px rgb(255 48 72 / 0.55); animation: mc-pulse 0.9s ease-in-out infinite; }
+.mc-bar--hp[data-w="alarm"] { height: 28px; border-color: var(--red); }
+.mc-bar--hp[data-w="alarm"]::before { content: ""; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; box-shadow: 0 0 16px rgb(255 48 72 / 0.55); animation: mc-glow-out 0.9s ease-in-out infinite; }
+.mc-bar--hp[data-w="alarm"]::after { animation-duration: 0.9s; }
 .mc-bar--hp[data-w="alarm"] span { font-size: 15px; }
 .mc-spare[data-w="rest"] { opacity: 0.55; }
 .mc-spare[data-w="rest"] .mc-spare__label { opacity: 0; }
@@ -243,20 +265,18 @@
 .mc-stock[data-w="up"], .mc-salvage[data-w="up"] { border-color: var(--brass-hi); }
 .mc-obj[data-w="rest"] { opacity: 0.5; }
 .mc-support[data-state="ready"]:not(.is-hover) { opacity: 0.62; transform: translateX(-50%) scale(0.92); transform-origin: 50% 100%; box-shadow: 0 3px 0 #000; }
-.mc-support[data-state="inbound"] { box-shadow: 0 3px 0 #000, 0 0 16px rgb(255 48 72 / 0.5); }
+.mc-support[data-state="inbound"]::before { content: ""; position: absolute; inset: -2px; border-radius: inherit; pointer-events: none; box-shadow: 0 0 16px rgb(255 48 72 / 0.5); animation: mc-glow-out 0.7s ease-in-out infinite; }
 .mc-chip[data-w="rest"] { opacity: 0.55; }
 .mc-chip[data-w="rest"] .mc-chip__state { opacity: 0; }
 .mc-roster__list.is-hover .mc-chip { opacity: 1; }
 .mc-roster__list.is-hover .mc-chip .mc-chip__state { opacity: 1; }
 .mc-mapbtn { opacity: 0.6; transition: opacity 200ms; }
 .mc-mapbtn:hover { opacity: 1; }
-.mc-oracle.is-quiet .mc-oracle__name { display: none; }
-.mc-oracle.is-quiet .mc-oracle__text { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; min-height: 0; }
 /* Oil low: the screen's edge reddens the lower it runs, and beats under a quarter. */
 .mc-alarm { position: absolute; inset: 0; opacity: var(--a, 0); pointer-events: none; background: radial-gradient(ellipse at 50% 50%, transparent 62%, rgb(185 16 30 / 0.65) 100%); transition: opacity 300ms; }
 .mc-alarm.is-urgent { animation: mc-heartbeat 1.1s ease-in-out infinite; }
 @keyframes mc-heartbeat { 0%, 40%, 100% { filter: brightness(0.85); } 12% { filter: brightness(1.5); } 26% { filter: brightness(1.15); } }
-@media (prefers-reduced-motion: reduce) { .mc-alarm.is-urgent, .mc-bar--hp[data-w="alarm"] { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .mc-alarm.is-urgent, .mc-bar--hp[data-w="alarm"]::before, .mc-bar--hp[data-w="alarm"]::after { animation: none; } }
 
 /*
  * ---- results: what came up the lift ----
@@ -301,6 +321,12 @@
 .mc-oracle__more { margin-top: 4px; font-size: 11px; color: #6a8a94; }
 /* The opening's cut scene: her panel centred above the bottom bar. */
 .hb-cut .mc-oracle { left: calc(50% - 235px); bottom: calc(11% + 18px); }
+/* An Oracle pause is a cutscene (`cutview.ts`, `Hud.update`): her panel slides to the centre under him, the rest of the HUD dims but the piece she names (`is-cut-focus`). */
+.mc-hud > .mc-oracle { transition: opacity 300ms, transform 300ms, left 450ms ease, bottom 450ms ease; }
+.mc-cut .mc-oracle:not(.mc-oracle--her) { left: calc(50% - 235px); bottom: 16%; }
+.mc-cut .mc-oracle:not(.mc-oracle--her) .mc-oracle__text { font-size: 19px; }
+.mc-cut .mc-hud > :not(.mc-oracle, .mc-dusk, .mc-wash, .mc-alarm, .is-cut-focus):not(:has(.is-cut-focus)), .mc-cut .mc-oracle--her { opacity: 0.25; }
+.mc-cut .mc-hud > :has(.is-cut-focus) > :not(.is-cut-focus) { opacity: 0.25; }
 
 /*
  * ---- icons, the lift's ask, the dial's beats and the tooltip's host (tips.ts, tipview.ts, hud.ts) ----
@@ -333,9 +359,12 @@
 .mc-clock.is-beat-big { animation: mc-menace 1.4s ease-out; --pulse: 255 48 72; }
 .mc-clock.is-beat-big .mc-clock__next { animation: mc-tick 1.2s ease-out; }
 .mc-clock.is-toll { animation: mc-toll 1.1s ease-out; --pulse: 255 216 106; }
+.mc-clock.is-strike-dusk { transform-origin: 100% 0; animation: mc-menace 1.8s ease-out; --pulse: 150 90 255; }
+.mc-clock.is-strike-midnight { transform-origin: 100% 0; animation: mc-strike-midnight 3.2s ease-out; --pulse: 255 48 72; }
+@keyframes mc-strike-midnight { 0% { scale: 1.6; filter: drop-shadow(0 0 28px rgb(255 48 72 / 1)) brightness(2); } 12% { scale: 1.3; rotate: -4deg; } 24% { scale: 1.4; rotate: 4deg; filter: drop-shadow(0 0 24px rgb(255 48 72 / 1)) brightness(1.7); } 40% { scale: 1.2; rotate: -3deg; } 100% { scale: 1; rotate: 0deg; filter: none; } }
 @keyframes mc-tick { 0% { scale: 1.25; color: #fff; background: rgb(150 20 30 / 0.9); } 100% { scale: 1; } }
 @keyframes mc-menace { 0% { scale: 1.3; filter: drop-shadow(0 0 16px rgb(255 48 72 / 1)) brightness(1.6); } 100% { scale: 1; filter: none; } }
 @keyframes mc-toll { 0%, 30%, 60% { rotate: -5deg; filter: drop-shadow(0 0 14px rgb(255 216 106 / 1)); } 15%, 45% { rotate: 5deg; } 100% { rotate: 0deg; filter: none; } }
-@media (prefers-reduced-motion: reduce) { .mc-clock.is-beat, .mc-clock.is-beat-big, .mc-clock.is-toll, .mc-clock.is-beat .mc-clock__next, .mc-clock.is-beat-big .mc-clock__next { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .mc-clock.is-beat, .mc-clock.is-beat-big, .mc-clock.is-toll, .mc-clock.is-strike-dusk, .mc-clock.is-strike-midnight, .mc-clock.is-beat .mc-clock__next, .mc-clock.is-beat-big .mc-clock__next { animation: none; } }
 /* The Blood Moon: the dial's moon is red (a sign of the anomaly, with the red ring where a foe is twisted, `signview.ts`). */
 .mc-clock.is-blood [data-k="moon"] circle:first-child { fill: #c8343c; }

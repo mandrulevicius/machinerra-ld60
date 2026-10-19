@@ -1,7 +1,7 @@
 /**
  * Misread junk at home (P19; `sim/junk.ts` has the relics themselves): the stock a mission brings (`Economy.junk`), fitting
  * one to a robot's relic socket by hand (D10: no auto-fit; one socket per robot, D4), selling it to the Trader, and offering
- * a duplicate of a worn relic to the Oracle for insight. Plain TS, no Phaser; each rule takes and returns a `Shop`
+ * a duplicate of a worn relic to the Oracle for scrap. Plain TS, no Phaser; each rule takes and returns a `Shop`
  * (`workshop.ts`) and throws with the reason when it cannot, as the workshop's do. `Hub` commits it.
  *
  * The two uniques are a boss's own parts in the stores (`HubState.parts`): fitting one takes it from there, taking it off
@@ -90,16 +90,16 @@ export function sellJunk(s: Shop, index: number, titles?: Titles): Shop & { scra
   return { ...s, eco, scrap: pay, id };
 }
 
-/** The pieces of junk in the stock that a robot already wears one of (the Oracle takes these for insight). */
+/** The pieces of junk in the stock that a robot already wears one of (the Oracle takes these for scrap). */
 export const offerable = (s: { eco: Pick<Economy, 'junk'>; roster: { bots: readonly { relic?: string }[] } }) => duplicates(s.eco.junk, s.roster.bots.map((b) => b.relic));
 
-/** A duplicate of a worn relic, offered to the Oracle: gone, for `JUNK.offer` insight. */
-export function offerJunk(s: Shop, index: number): Shop & { insight: number; id: RelicId } {
+/** A duplicate of a worn relic, offered to the Oracle: gone, for `JUNK.offer` scrap. */
+export function offerJunk(s: Shop, index: number): Shop & { scrap: number; id: RelicId } {
   const id = s.eco.junk[index];
   if (!id) throw new Error('no such junk in the stock');
   if (!offerable(s).includes(index)) throw new Error(`the Oracle wants a second ${RELICS[id].item.toLowerCase()} only while a robot already wears one`);
-  const eco = gain({ ...s.eco, junk: s.eco.junk.filter((_, i) => i !== index) }, 'insight', JUNK.offer);
-  return { ...s, eco, insight: JUNK.offer, id };
+  const eco = gain({ ...s.eco, junk: s.eco.junk.filter((_, i) => i !== index) }, 'scrap', JUNK.offer);
+  return { ...s, eco, scrap: JUNK.offer, id };
 }
 
 /** "Bread cannon (toaster)" for banners. */

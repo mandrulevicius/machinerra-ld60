@@ -174,13 +174,11 @@
 .hb-outro__big { font-family: var(--ui-font-display); font-size: 44px; letter-spacing: 0.02em; color: #f0cf7a; text-shadow: 0 0 24px rgb(240 207 122 / 0.25); }
 .hb-outro__label { font-family: var(--ui-font-display); font-size: 15px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ui-c-text-dim); }
 .hb-outro__studio { font-family: var(--ui-font-display); font-size: 58px; letter-spacing: 0.04em; color: #f4efe6; text-shadow: 0 0 30px rgb(61 242 255 / 0.25); }
-.hb-outro__beat--roll { justify-content: flex-start; }
-.hb-outro__scroll { display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 100vh; animation-name: hb-outro-roll; animation-timing-function: linear; animation-fill-mode: forwards; }
+.hb-outro__scroll { display: flex; flex-direction: column; align-items: center; gap: 18px; }
 .hb-outro__scroll p { display: flex; flex-direction: column; gap: 2px; font-size: 20px; }
 .hb-outro__scroll b { font-family: var(--ui-font-display); font-weight: normal; font-size: 26px; color: #f0cf7a; }
 .hb-outro__scroll span { color: var(--ui-c-text-dim); }
 .hb-outro__scroll .hb-outro__label:first-child { font-size: 30px; color: #f4efe6; margin-bottom: 24px; }
-@keyframes hb-outro-roll { from { transform: translateY(0); } to { transform: translateY(-100%); } }
 .hb-outro__more { position: absolute; left: 0; right: 0; bottom: 5%; text-align: center; font-size: 12px; color: var(--ui-c-text-dim); }
 
 /* Station panels with tabs (the Trader's Buy / Sell / Specials): the tab pane scrolls, the panel keeps its height. */

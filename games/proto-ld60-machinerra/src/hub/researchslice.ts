@@ -30,7 +30,7 @@ export function researchCtx(): Ctx {
   return { types, dog: hasDog(hub.get()), more: (questBook.get().signHung ? 1 : 0) + (hasCityPerk(hub.get(), 'districtChapel') ? 1 : 0) };
 }
 
-/** Picks waiting now: the free ones banked at docking (`bankPick`) and any bought with insight. */
+/** Picks waiting now: the stage's, banked at docking (`bankPick`), and any a quest paid. */
 export const picksWaiting = () => waiting(researchSave.get());
 
 /** What the Oracle's script reads (`factsFor`): `picks` waiting, and `research` once there is a pick or a card (her lever shows). */

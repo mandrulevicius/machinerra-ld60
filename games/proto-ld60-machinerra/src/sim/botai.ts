@@ -20,6 +20,7 @@ import { sawStroke, untouchable } from './combat';
 import { CLIMB } from './path';
 import { typeMul } from './missionfx';
 import { propTeles } from './props';
+import { turretTeles } from './turrets';
 import { weatherTeles } from './weather';
 import { behaviourOf, isBotType, type SpecId } from './specs';
 import { limbTeles } from './limbs';
@@ -145,6 +146,7 @@ export function telegraphs(sim: Sim): Tele[] {
   }
   for (const p of sim.tiers.patches) out.push({ id: `patch${p.id}`, kind: 'patch', x: p.x, y: p.y, r: p.r });
   out.push(...propTeles(sim)); // props about to burst, fire, steam and shock zones
+  out.push(...turretTeles(sim)); // a village's turret winding up (P47)
   out.push(...weatherTeles(sim)); // the Ember Rain's marks
   return out;
 }

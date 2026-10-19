@@ -4,7 +4,7 @@ import { Effects, validate, type Unit } from '../sim/effects';
 import { NO_INPUT, Sim } from '../sim/sim';
 import { STEAM } from '../sim/defs';
 import {
-  CARDS, RESEARCH, autoFit, bankPick, buyPick, cardOf, cardSources, cleanResearch, fit, fittedAt, freshResearch, noCtx, offerFor, pick, prepare, slotsFor, typeSlot, unfit, usablePools, waiting,
+  CARDS, RESEARCH, autoFit, bankPick, cardOf, cardSources, cleanResearch, fit, fittedAt, freshResearch, noCtx, offerFor, pick, prepare, slotsFor, typeSlot, unfit, usablePools, waiting,
   type Ctx, type Research,
 } from './research';
 
@@ -69,28 +69,34 @@ describe('the offer rule', () => {
 });
 
 describe('picks', () => {
-  it('a return banks one free pick at docking, kept until spent; an insight buys one more', () => {
+  it('a stage that earned its card banks one pick at docking, kept until spent; one that found nothing banks none', () => {
     let r = freshResearch();
     expect(waiting(r)).toBe(0);
-    r = bankPick(r, 'h1');
+    expect(waiting(bankPick(r, 'dry', false))).toBe(0); // nothing decoded: no pick, and no free pick for docking
+    r = bankPick(r, 'h1', true);
     expect(waiting(r)).toBe(1);
     // The same haul twice banks one; preparing only draws the offer and adds none.
-    expect(bankPick(r, 'h1')).toEqual(r);
+    expect(bankPick(r, 'h1', true)).toEqual(r);
     r = prepare(r, ctx);
     expect(r.offer).toHaveLength(3);
     expect(waiting(r)).toBe(1);
     expect(prepare(r, ctx)).toEqual(r);
-    const bought = buyPick(r, 1, ctx);
-    expect(bought.insight).toBe(0);
-    expect(bought.r.credit).toBe(2);
-    expect(() => buyPick(r, 0, ctx)).toThrow(/insight/i);
-    // Another return is another free pick, on top of the one still unspent.
-    expect(waiting(bankPick(bought.r, 'h2'))).toBe(3);
+  });
+
+  it('no carry-over: a second stage pick does not stack on one still unspent', () => {
+    let r = bankPick(freshResearch(), 'h1', true);
+    r = bankPick(r, 'h2', true);
+    expect(waiting(r)).toBe(1);
+    r = bankPick(r, 'h3', false);
+    expect(waiting(r)).toBe(1);
+    // Spent, the next stage's pick comes as usual; a quest's pick (credit added by hand) is its own.
+    r = pick(prepare(r, ctx), prepare(r, ctx).offer[0], ctx).r;
+    expect(waiting(r)).toBe(0);
+    expect(waiting(bankPick(r, 'h4', true))).toBe(1);
   });
 
   it('a pick adds the card for good, fits it into a free slot, and draws again while picks are left', () => {
-    let r = prepare(bankPick(freshResearch(), 'h1'), ctx);
-    r = buyPick(r, 1, ctx).r;
+    let r = prepare({ ...bankPick(freshResearch(), 'h1', true), credit: 2 }, ctx); // two waiting: a stage's and a quest's
     const first = r.offer[0];
     const got = pick(r, first, ctx);
     expect(got.r.owned).toEqual([first]);
@@ -105,14 +111,13 @@ describe('picks', () => {
     expect(() => pick(last.r, 'twinNozzle', ctx)).toThrow();
   });
 
-  it('level 1: the free pick and the car\'s insight are two picks of three', () => {
-    let r = prepare(bankPick(freshResearch(), 'level1'), noCtx);
-    r = buyPick(r, 1, noCtx).r;
-    expect(waiting(r)).toBe(2);
+  it('level 1: the mast insight is the one pick, of three', () => {
+    const r = prepare(bankPick(freshResearch(), 'level1', true), noCtx);
+    expect(waiting(r)).toBe(1);
     expect(r.offer).toHaveLength(3);
     const a = pick(r, r.offer[0], noCtx);
-    expect(a.r.offer).toHaveLength(3);
-    expect(pick(a.r, a.r.offer[0], noCtx).r.owned).toHaveLength(2);
+    expect(a.r.owned).toHaveLength(1);
+    expect(a.r.offer).toEqual([]);
   });
 });
 

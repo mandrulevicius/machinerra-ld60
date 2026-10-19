@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { EventEmitter } from 'node:events';
-import { onEscape, runEscape } from './escape';
+import { enableEscAlt, escAltWorks, leftByEsc, onEscape, runEscape } from './escape';
 
 const open: { shutdown(): void }[] = [];
 afterEach(() => open.splice(0).forEach((s) => s.shutdown())); // the stack is module state
@@ -42,5 +42,21 @@ describe('escape stack', () => {
     expect(n).toBe(1);
     off();
     expect(runEscape()).toBe(false);
+  });
+});
+
+describe('keys the browser keeps', () => {
+  it('a leave of fullscreen is an Esc only with the page focused and no Esc/F11 keydown with it', () => {
+    expect(leftByEsc(true, true, 5000)).toBe(true);
+    expect(leftByEsc(true, false, 5000)).toBe(false); // the host page's button took the focus
+    expect(leftByEsc(true, true, 50)).toBe(false); // the keydown came: F11, or an Esc the page saw
+    expect(leftByEsc(false, true, 5000)).toBe(false); // no leave
+  });
+
+  it('the second key works once the menu is on, and not where an action took it', () => {
+    expect(escAltWorks(false)).toBe(false);
+    enableEscAlt();
+    expect(escAltWorks(false)).toBe(true);
+    expect(escAltWorks(true)).toBe(false);
   });
 });

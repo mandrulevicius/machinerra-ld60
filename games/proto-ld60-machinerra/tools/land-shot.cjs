@@ -1,11 +1,12 @@
 // One whole generated land in one image (P47 part A's "before" pictures): boots the land for a seed in headless Chromium,
 // freezes the mission clock, hides the HUD, shoots the land in camera-sized tiles at a fixed zoom and stitches them.
 // Needs the dev server (npm run dev -- --port 5184) and Playwright (global is fine).
-//   npm run land -- <seed> [biome] [--classes|--both] [--zoom 0.5] [--base http://localhost:5184] [--out dir] [--quality 85]
+//   npm run land -- <seed> [biome] [--classes|--both] [--remnants] [--zoom 0.5] [--base http://localhost:5184] [--out dir] [--quality 85]
 //   node games/proto-ld60-machinerra/tools/land-shot.cjs 2 jungle --classes
 // biome: desert (default), jungle, city, mountains, demon, ether.
 // --classes turns the class overlay on (`classes on`, `src/classview.ts`: scenery grey, loot gold, interact cyan,
 // centre red over a dimmed land); --both shoots the land plain and then with the overlay, in one boot.
+// --remnants: P47's buildings (`?remnants=1`; a land has them from the fourth mission).
 // --zoom is output px per land px (0.5: a 100x75 land is 1600x1200; 1 is full detail, more tiles).
 // The same seed, biome and zoom give the same land and framing. The jpg lands in
 // `games/proto-ld60-machinerra/capture/land/land-<seed>-<biome>[-classes].jpg` (git-ignored).
@@ -27,6 +28,7 @@ const flags = {};
 const rest = process.argv.slice(2);
 for (let i = 0; i < rest.length; i++) {
   if (rest[i] === '--classes') flags.classes = true;
+  else if (rest[i] === '--remnants') flags.remnants = true;
   else if (rest[i] === '--both') flags.both = true;
   else if (rest[i].startsWith('--')) flags[rest[i].slice(2)] = rest[++i];
   else args.push(rest[i]);
@@ -48,7 +50,7 @@ fs.mkdirSync(OUT, { recursive: true });
   const fails = [];
   page.on('pageerror', (e) => fails.push(e.message));
   page.setDefaultTimeout(300000);
-  await page.goto(`${BASE}/games/proto-ld60-machinerra/?scene=Play&seed=${seed}&biome=${biome}&bgvol=0`, { timeout: 180000 });
+  await page.goto(`${BASE}/games/proto-ld60-machinerra/?scene=Play&seed=${seed}&biome=${biome}&bgvol=0${flags.remnants ? '&remnants=1' : ''}`, { timeout: 180000 });
   await page.waitForFunction(() => window.__game && window.__game.scene('Play') && window.__game.scene('Play').sim, null, { timeout: 180000 });
   // Our own frames only: the rAF loop sleeps, the mission clock stops, the HUD hides, the camera is ours.
   const land = await page.evaluate(async (z) => {
@@ -91,7 +93,7 @@ fs.mkdirSync(OUT, { recursive: true });
     // The caption: what land it is, and the legend when the overlay is on.
     const legend = classes ? ['scenery', 'loot', 'interact', 'centre'].map((c, i) => `<rect x="${12 + i * 96}" y="34" width="14" height="14" rx="3" fill="${info.colors[c]}"/><text x="${32 + i * 96}" y="46" font-size="14" fill="#fff">${c}</text>`).join('') : '';
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}"><rect x="6" y="6" width="${classes ? 404 : 250}" height="${classes ? 52 : 28}" rx="6" fill="#000" fill-opacity="0.65"/><text x="12" y="25" font-family="sans-serif" font-size="16" font-weight="bold" fill="#fff">seed ${seed}, ${land.biome}${classes ? ', classes' : ''}</text><g font-family="sans-serif">${legend}</g></svg>`;
-    const file = path.join(OUT, `land-${seed}-${land.biome}${classes ? '-classes' : ''}.jpg`);
+    const file = path.join(OUT, `land-${seed}-${land.biome}${flags.remnants ? '-remnants' : ''}${classes ? '-classes' : ''}.jpg`);
     await sharp(sheet).extract({ left: 0, top: 0, width: W, height: H }).composite([{ input: Buffer.from(svg) }]).jpeg({ quality: QUALITY, mozjpeg: true }).toFile(file);
     log(`${file}  ${(fs.statSync(file).size / 1024).toFixed(0)} KB, ${W}x${H}${info ? ` ${JSON.stringify(info.total)}` : ''}`);
   }

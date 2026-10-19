@@ -47,7 +47,7 @@ export function districtBody(s: HubState, o: { have: number; pick: string | null
 export function openDistrict(host: HubHost, onBack: () => void, pick: string | null = null) {
   const wasOpen = !!host.hud.panel;
   const b = districtBody(host.s, { have: economy.get().copper, pick, all: host.allRescued });
-  const el = host.hud.open('district', b.title, b.body, b.actions, 'Esc to close');
+  const el = host.hud.open('district', b.title, b.body, b.actions, '{esc} to close');
   const slider = el.querySelector<HTMLInputElement>('[data-a="amount"]');
   const label = () => {
     if (!slider) return;

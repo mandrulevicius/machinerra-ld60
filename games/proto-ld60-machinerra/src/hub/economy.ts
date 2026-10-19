@@ -1,5 +1,5 @@
 /**
- * The economy's rules, plain TS (no Phaser): the run state that outlives a mission (scrap, insight, AI cores, copper), what
+ * The economy's rules, plain TS (no Phaser): the run state that outlives a mission (scrap, AI cores, copper), what
  * each source pays, and every sink that spends it. Parts stay in `HubState`; a rule that touches both takes and returns
  * `Books`. Nothing here writes: a caller keeps what comes back with `commit` (or `economy.set` and `hub.set`).
  *
@@ -17,11 +17,11 @@
  * hub refills the pack for the next lift. Air support works the other way: the charges a mission left come back in
  * `Haul.charges` (at most `CHARGES_KEPT` a call) and the next mission starts with them on top of its own.
  *
- * `Play.create` calls `depart` and `land()` (carry.ts) calls `bank`; the Sim counts scrap, insight, cores and copper and
+ * `Play.create` calls `depart` and `land()` (carry.ts) calls `bank`; the Sim counts scrap, cores and copper and
  * `haulFrom` (state.ts) hands them over. The workshop (`workshop.ts`) asks `partyRoom` whether a core is free for a new body.
  */
 import { cleanJunk, type RelicId } from '../sim/junk';
-import { COPPER, INSIGHT, SCRAP, START_CORES, SUPPORT, insightFromRuins, type PartKind, type SupportId } from '../sim/defs';
+import { COPPER, SCRAP, START_CORES, SUPPORT, type PartKind, type SupportId } from '../sim/defs';
 import { persist, hub } from './save';
 import { BUILDINGS, PRICE_STOCK, draw, priceOf, type BuildingId } from './buildings';
 import { build, npc, stationCost, type Haul, type HubState } from './state';
@@ -31,8 +31,6 @@ import { freshTrade, type Trade } from './trade';
 export interface Economy {
   /** The main currency and the constant need: robots, parts, repairs, crafting, trade. */
   scrap: number;
-  /** Old research: spent at the Oracle's church. */
-  insight: number;
   /** AI cores held: one per robot owned, so a new body needs a free one. A bot lost on the sands brings its core home, so cores are never spent. */
   cores: number;
   /** Copper in the hold: for building and one-time upgrades (`buildStation`, ranks, the chassis). */
@@ -51,15 +49,15 @@ export interface Economy {
  * A new game has `COPPER.start` copper (the first station is reachable before any ruin is stripped) and no cores
  * (`START_CORES`; level 1's wreck brings the first, P9).
  */
-export const freshEconomy = (): Economy => ({ scrap: 0, insight: 0, cores: START_CORES, copper: COPPER.start, coal: 0, junk: [], charges: {}, haul: null });
+export const freshEconomy = (): Economy => ({ scrap: 0, cores: START_CORES, copper: COPPER.start, coal: 0, junk: [], charges: {}, haul: null });
 
 const isWhole = (n: unknown) => Number.isInteger(n) && (n as number) >= 0;
+// Version 7: insight is no stock: a stage's first insight earns its one card pick (`research.ts` `bankPick`); an old stock is dropped.
 // Version 4: cores cap the party (P17). A save from before has the crew it built and no cores to show for it, so it keeps at least the starting crew's.
 // Version 6: coal is back as the expeditions' fuel (a field resource the Gatherer mines): old saves have none.
 // Version 5: the oil rework. Wood, coal and the can stock are gone (cans refill at the lift); copper is new and starts as a new game's.
 const economySample: Economy = {
   scrap: 57,
-  insight: 4,
   cores: 2,
   copper: 38,
   coal: 9,
@@ -68,15 +66,15 @@ const economySample: Economy = {
   haul: '4242:1760000000000',
 };
 export const economy = persist<Economy>('economy', freshEconomy, {
-  version: 6,
+  version: 7,
   sample: economySample,
   migrate: (old, from) => {
     if (!old || typeof old !== 'object') return old;
     // Before v5 a save held wood, crude-era coal and a can stock: all gone. From v6 coal is a stock again, so only v5 and older drop it (and start at none).
-    const { wood: _w, coal: oldCoal, spare: _s, ...e } = old as Economy & { wood?: number; spare?: number };
+    const { wood: _w, coal: oldCoal, spare: _s, insight: _i, ...e } = old as Economy & { wood?: number; spare?: number; insight?: number };
     return { ...e, coal: from >= 6 && Number.isFinite(oldCoal) ? oldCoal : 0, ...(from < 4 && { cores: Math.max(Number(e.cores) || 0, 6) }) /* a save from before cores kept the old six robots */, ...(from < 5 && { copper: Number.isFinite(e.copper) ? e.copper : COPPER.start }) };
   },
-  valid: (e) => [e.scrap, e.insight, e.cores, e.copper, e.coal].every(isWhole) && !!e.charges && Object.values(e.charges).every(isWhole) && Array.isArray(e.junk),
+  valid: (e) => [e.scrap, e.cores, e.copper, e.coal].every(isWhole) && !!e.charges && Object.values(e.charges).every(isWhole) && Array.isArray(e.junk),
 });
 
 /** What was bought off the Trader's shelf this lift (`trade.ts`). */
@@ -91,12 +89,12 @@ const clean = (n: number | undefined) => (Number.isFinite(n) ? Math.max(0, Math.
 
 // ---- Sources -------------------------------------------------------------------------------------------------------
 
-export { SCRAP, INSIGHT, insightFromRuins };
+export { SCRAP };
 
 export type KillTier = keyof typeof SCRAP.kill;
 export const scrapForKill = (tier: KillTier) => SCRAP.kill[tier];
 
-type Stock = 'scrap' | 'insight' | 'cores' | 'copper' | 'coal';
+type Stock = 'scrap' | 'cores' | 'copper' | 'coal';
 
 /** Add to a stock (kills, quests, the Trader, the Reliquary, dev). A junk amount counts as 0. */
 export const gain = (e: Economy, what: Stock, n: number): Economy => ({ ...e, [what]: e[what] + clean(n) });
@@ -114,7 +112,7 @@ const keptCharges = (c: Haul['charges']): Economy['charges'] =>
   Object.fromEntries((Object.keys(c ?? {}) as SupportId[]).filter((id) => id in SUPPORT).map((id) => [id, Math.min(CHARGES_KEPT(id), clean(c![id]))]).filter(([, n]) => n));
 
 /**
- * The lift docks: the haul's scrap, insight, cores, copper and coal join the stock (`thanks` is the colony's scrap for the NPCs
+ * The lift docks: the haul's scrap, cores, copper and coal join the stock (`thanks` is the colony's scrap for the NPCs
  * this lift freed, `RESCUE_THANKS` each), and the charges it left replace the ones kept (the mission started with those).
  * The same haul id twice changes nothing.
  */
@@ -122,7 +120,7 @@ export function bank(e: Economy, h: Haul, thanks = 0): Economy {
   if (e.haul === h.id) return e;
   // The colony's expedition (`expeditions.ts`) comes home in the same haul: its scrap and its junk join the mission's.
   const ex = h.expedition;
-  return { scrap: e.scrap + clean(h.scrap) + clean(thanks) + clean(ex?.scrap), insight: e.insight + clean(h.insight), cores: e.cores + clean(h.cores), copper: e.copper + clean(h.copper), coal: e.coal + clean(h.coal), junk: [...cleanJunk(e.junk), ...cleanJunk(h.junk), ...cleanJunk(ex?.junk ? [ex.junk] : [])], charges: h.charges ? keptCharges(h.charges) : e.charges, haul: h.id };
+  return { scrap: e.scrap + clean(h.scrap) + clean(thanks) + clean(ex?.scrap), cores: e.cores + clean(h.cores), copper: e.copper + clean(h.copper), coal: e.coal + clean(h.coal), junk: [...cleanJunk(e.junk), ...cleanJunk(h.junk), ...cleanJunk(ex?.junk ? [ex.junk] : [])], charges: h.charges ? keptCharges(h.charges) : e.charges, haul: h.id };
 }
 
 // ---- Cores ---------------------------------------------------------------------------------------------------------

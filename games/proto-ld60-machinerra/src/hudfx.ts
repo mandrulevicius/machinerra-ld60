@@ -14,6 +14,55 @@ import { CLOCK, type SimEvent } from './sim/sim';
 import { BERSERK } from './sim/defs';
 import { menaceNote } from './tips';
 import type { DayPhase } from './sim/clock';
+import type { Size } from '../../../harness/kit/juice';
+
+/**
+ * How loudly each phase change announces itself, in one table: the danger sets the size (design.md: feedback scaled to importance).
+ * Morning to day is a murmur; dusk is strong; midnight is the strongest beat the game has. All of it a first guess (Minos asked for "more prominent" with the danger).
+ * - `banner` text, `ms` its hold, `tone` its look (`style.css` `.mc-banner[data-tone]`: size, colour, entrance).
+ * - `wash` colour, `ms` its length, `a` its peak, `throb` beats it; `shake` camera shakes as `[delay ms, size]`; `flash` and `punch` camera, a size.
+ * - `sounds` as `[key, gain, delay ms]`; `bells` a row of tolls (`bell`, `gap` ms apart, gain rising from `gain` by `rise` a toll); `dial` strikes the clock.
+ */
+interface Beat {
+  banner: string;
+  /** The line under it, smaller: what the phase means for the player, drawn from what it does (`dayplay.ts`, `foes.ts`, `tiers.ts`). A guess in wording. */
+  sub: string;
+  ms: number;
+  tone: string;
+  wash?: { color: string; ms: number; a: number; throb?: boolean };
+  shake?: [number, Size][];
+  flash?: Size;
+  punch?: Size;
+  sounds: [string, number, number][];
+  bells?: { n: number; gap: number; gain: number; rise: number };
+  dial?: 'dusk' | 'midnight';
+}
+export const BEAT: Partial<Record<DayPhase, Beat>> = {
+  day: { banner: 'Day', sub: 'The hives wake and elites begin to appear', ms: 2400, tone: 'day', sounds: [['blip', 0.5, 0]] },
+  evening: {
+    banner: 'Dusk',
+    sub: 'More hives wake and the machines turn twisted',
+    ms: 5200,
+    tone: 'dusk',
+    wash: { color: '#7a40ff', ms: 3400, a: 1 },
+    shake: [[0, 'medium']],
+    sounds: [['dusk', 1, 0], ['bell', 0.55, 500]],
+    dial: 'dusk',
+  },
+  midnight: {
+    banner: 'Midnight',
+    sub: `Every ${BERSERK.every} seconds they come stronger, for good`,
+    ms: 7500,
+    tone: 'midnight',
+    wash: { color: css(DANGER), ms: 5600, a: 1, throb: true },
+    shake: [[0, 'big'], [900, 'medium'], [1800, 'medium'], [2700, 'small'], [3600, 'small']],
+    flash: 'big',
+    punch: 'big',
+    sounds: [['knell', 1, 0], ['warn', 0.5, 300]],
+    bells: { n: 12, gap: 650, gain: 0.5, rise: 0.03 },
+    dial: 'midnight',
+  },
+};
 
 export class HudFx extends ViewBase {
   private ring: Phaser.GameObjects.Graphics;
@@ -122,22 +171,24 @@ export class HudFx extends ViewBase {
     this.k.juice.shake('small');
   }
 
-  /** The clock enters a phase: feedback scales with importance (a quiet banner for the day, a sting for dusk, bells for midnight). */
+  /** The clock enters a phase: the `BEAT` table says how loudly (a murmur for the day, strong for dusk, the strongest for midnight). Nothing here takes input or pauses play. */
   private onDay(phase: DayPhase) {
+    const b = BEAT[phase];
+    if (!b) return;
     const hud = this.hud;
-    if (phase === 'day') {
-      hud.banner('Day', 2400);
-      this.sfx('blip', undefined, undefined, { gain: 0.5, vary: 0 });
-    } else if (phase === 'evening') {
-      hud.banner('Dusk', 3600);
-      hud.wash('#7a40ff');
-      this.sfx('dusk');
-      this.k.juice.shake('small');
-    } else if (phase === 'midnight') {
-      hud.banner('Midnight', 4200);
-      hud.wash(css(DANGER));
-      this.k.juice.shake('medium');
-      for (let i = 0; i < 12; i++) this.scene.time.delayedCall(i * 650, () => this.sfx('bell', undefined, undefined, { gain: 0.5 + i * 0.03, vary: 0 }));
-    }
+    hud.banner(b.banner, b.ms, b.tone, b.sub);
+    if (b.wash) hud.wash(b.wash.color, b.wash);
+    if (b.dial) hud.dialStrike(b.dial);
+    for (const [at, size] of b.shake ?? []) this.later(at, () => this.k.juice.shake(size));
+    if (b.flash) this.k.juice.flash(b.flash, 0xff3048);
+    if (b.punch) this.k.juice.punch(b.punch);
+    for (const [key, gain, at] of b.sounds) this.later(at, () => this.sfx(key, undefined, undefined, { gain, vary: 0 }));
+    const bells = b.bells;
+    if (bells) for (let i = 0; i < bells.n; i++) this.later(i * bells.gap, () => this.sfx('bell', undefined, undefined, { gain: bells.gain + i * bells.rise, vary: 0 }));
+  }
+
+  private later(ms: number, fn: () => void) {
+    if (ms <= 0) fn();
+    else this.scene.time.delayedCall(ms, fn);
   }
 }

@@ -153,7 +153,7 @@ export const commandPanel: StationPanel = (host: HubHost) => {
   const perk = (p: PerkId) => host.s.perks.includes(p);
   const calls = (['barrage', 'drop', 'lance'] as SupportId[]).filter((c) => c === 'barrage' || (c === 'drop' ? perk('callDrop') : perk('callLance')));
   const b = commandBody(host.s, host.lands(), { calls: host.has('calls') ? calls : ['barrage'] });
-  const el = host.hud.open('command', b.title, b.body, b.actions, 'Esc to close');
+  const el = host.hud.open('command', b.title, b.body, b.actions, '{esc} to close');
   el.querySelectorAll('[data-a="call"]').forEach((btn) =>
     btn.addEventListener('click', () => {
       const call = (btn as HTMLElement).dataset.id as SupportId;

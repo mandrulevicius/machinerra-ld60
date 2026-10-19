@@ -15,7 +15,7 @@ export { mountSidebar, addDevTab } from './sidebar';
 export { inputFor, createInput, keyLabel, keyHtml, promptText, promptHtml, livePrompt, type GameInput, type InputConfig } from './input';
 export { onEscape, toGamesList, type EscapeHandler } from './escape';
 export { hint, resetHints, type Hint, type HintOpts } from './hint';
-export { titleLayoutSlot, titleMoodSlot, type Mood } from './title';
+export { titleLayoutSlot, titleSettingsSlot, titleMoodSlot, type Mood } from './title';
 export type { SaveHooks, SysOptions, TitleArt } from './menu-parts';
 export { transition, transitionSlot, transitionBusy, transitionInfo, type TransitionLook, type TransitionOpts } from './transition';
 export { results, resultsLayoutSlot, mmss, type Results, type ResultsOptions, type ResultStat, type ResultAction, type ResultsLayout } from './results';
@@ -28,3 +28,4 @@ export { MATERIALS, materialOptions, type MaterialDef, type MaterialName, type M
 export * from './world';
 export { loadAtlas, warmAtlas, atlas, assetBase, sequences, type Atlas, type AnimOpts } from './assets';
 export { rng, type Rng } from './rng';
+export { perfStart, perfEnd, setPerfMarks, perfMarksOn } from './perf-marks';

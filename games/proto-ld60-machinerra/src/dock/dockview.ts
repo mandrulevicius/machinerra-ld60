@@ -11,6 +11,7 @@
  * Attention (design.md, Minos): one strong signal a state, the picked plate and the drawer's best main button (`bestOf`); after an
  * action the plate rings green and one typed line says what happened; nothing else moves.
  */
+import { promptText } from '../../../../harness/kit';
 import { ROLES, type PartKind } from '../sim/defs';
 import { CHASSIS, CHASSIS_IDS, RANK_MAX, RANK_NAMES } from '../sim/bots';
 import {
@@ -385,7 +386,7 @@ export class DryDock {
     return this.shopDo((s) => sellJunk(s, junk), (r) => `The Trader takes ${esc(the(relicName((r as Shop & { id: string }).id)))}: ${(r as Shop & { scrap: number }).scrap} scrap.`);
   }
   offerRelic(junk: number) {
-    return this.shopDo((s) => offerJunk(s, junk), (r) => `The Oracle accepts ${esc(the(relicName((r as Shop & { id: string }).id)))}: ${JUNK.offer} insight.`);
+    return this.shopDo((s) => offerJunk(s, junk), (r) => `The Oracle accepts ${esc(the(relicName((r as Shop & { id: string }).id)))}: ${JUNK.offer} scrap.`);
   }
 
   private done(html: string, fresh: string | null, sound: 'equip' | 'craft' | 'click' | 'ratchet') {
@@ -531,7 +532,7 @@ export class DryDock {
     const tabs = (['cards', 'stats', 'mats', 'bench'] as const).map((t) => btn({ cards: 'Cards', stats: 'Stats', mats: 'Materials', bench: 'Workbench' }[t], { faint: true, data: { act: 'inv', tab: t }, cls: 'dk-invtab' })).join('');
     const from = FROM_NAMES[this.from] || (this.aboard ? '' : 'on the sands');
     return `<div class="dk-head"><div class="mg-brass dk-head__plate">Dry dock</div><span class="dk-head__from">${esc(from)}</span><nav class="dk-head__inv" aria-label="Inventory">${tabs}</nav>
-      <div class="mg-counters">${counters}</div>${btn(`${keycap('Esc')} Close`, { data: { act: 'close' }, cls: 'dk-close' })}</div>`;
+      <div class="mg-counters">${counters}</div>${btn(`${keycap(promptText('{esc}'))} Close`, { data: { act: 'close' }, cls: 'dk-close' })}</div>`;
   }
 
   private roster() {
@@ -792,7 +793,7 @@ export class DryDock {
       first = false;
       const sell = st.junk.length ? btn(`${glyph(G.sell)}${junkPrice()}`, { faint: true, data: { act: 'sell', junk: st.junk[0] }, tip: t.text(`Sell one to the Trader: ${junkPrice()} scrap`) }) : '';
       const off = st.junk.find((j) => dupes.has(j));
-      const offer = off !== undefined ? btn(`Offer`, { faint: true, data: { act: 'offer', junk: off }, tip: t.text(`A robot already wears one: the Oracle takes this one for ${JUNK.offer} insight`) }) : '';
+      const offer = off !== undefined ? btn(`Offer`, { faint: true, data: { act: 'offer', junk: off }, tip: t.text(`A robot already wears one: the Oracle takes this one for ${JUNK.offer} scrap`) }) : '';
       return this.relicTag(st.id, fit + sell + offer, st.srcs.length, st.srcs[0]);
     }).join('');
     return [`${esc(b.name)}'s relic`, head, worn + group('In the stores', rows, 'No relics in the stores: search dead ruins for old tech.', 'drag one onto a socket')];

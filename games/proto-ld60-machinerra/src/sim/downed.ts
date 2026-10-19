@@ -121,7 +121,7 @@ export function downedNear(sim: Sim, x: number, y: number, r = DOWNED.reach): Bo
   let best: Bot | null = null, bd = r;
   for (const b of sim.bots) {
     const d = dist(x, y, b.x, b.y);
-    if (!b.dead && b.downed && b.downed.by === null && d <= bd) (bd = d), (best = b);
+    if (!b.dead && b.downed && b.downed.by === null && !sim.intro?.holds(b) && d <= bd) (bd = d), (best = b);
   }
   return best;
 }
@@ -255,7 +255,7 @@ export function downStep(sim: Sim, dt: number) {
     sim.setPhase('lost');
   } else if (sim.downT <= 0) {
     const cost = Math.floor(sim.scrap * WINCH.cost);
-    sim.dayT += WINCH.clock; // the night comes closer
+    sim.addClock(WINCH.clock); // the night comes closer
     sim.scrap -= cost;
     c.x = sim.lift.x;
     c.y = sim.lift.y + 6;

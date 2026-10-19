@@ -5,16 +5,28 @@
  */
 import { promptHtml } from '../../../../harness/kit';
 import { Fader } from '../attention';
+import { OracleQueue, isSentence, readMs, type OracleLine } from '../oraclequeue';
 import type { HubState } from './state';
 import { capExtraOf, economy, spareCap } from './economy';
 import { riders, roster } from './workshop';
 
 export const esc = (s: string) => s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]!);
 
+/** A speaker line waiting its turn; `show` puts it up (`HubHud.later`). */
+interface HubLine extends OracleLine {
+  show: () => void;
+}
+
 export class HubHud {
   private q: (k: string) => HTMLElement;
   private typing: { html: string; plain: string; shown: number } | null = null;
   private quietT = 0;
+  /** NPC lines wait here for their turn: each is read before the next replaces it (`oraclequeue.ts`). */
+  private lines = new OracleQueue<HubLine>();
+  /** A sentence banner is up until this time (ms); the banners behind it wait (`banner`). */
+  private bannerUntil = 0;
+  private bannerWaiting: { text: string; ms: number }[] = [];
+  private bannerCur = '';
   /** Attention (P33): the room's name rests and comes forward when the room changes; the stores rest, and come forward for a haul (`storesUp`) or the pointer. */
   private fade = { where: new Fader(), stores: new Fader() };
   panel: HTMLElement | null = null;
@@ -98,14 +110,31 @@ export class HubHud {
     this.quietT = 0;
   }
 
+  /** An NPC's line in the speaker panel, in turn: `show` runs when it comes up (`oraclequeue.ts`: the one before has been read). */
+  later(text: string, show: () => void) {
+    this.lines.push({ text, tone: 'calm', within: Infinity, show });
+  }
+
+  /**
+   * A banner. A sentence (`isSentence`) is never gone before it can be read (`readMs`), and a banner that comes while one is up
+   * waits for it (Minos: nothing the player reads moves on by itself); a short label shows at once.
+   */
   banner(text: string, ms = 3200) {
+    if (Date.now() < this.bannerUntil && isSentence(this.bannerCur)) return void this.bannerWaiting.push({ text, ms });
     const el = this.q('banner');
+    const dur = isSentence(text) ? Math.max(ms, readMs(text)) : ms;
+    this.bannerCur = text;
+    this.bannerUntil = Date.now() + dur;
     el.textContent = text;
     el.classList.remove('is-on');
     void el.offsetWidth;
+    if (dur > ms) el.style.animationDuration = `${dur}ms`;
+    else el.style.removeProperty('animation-duration');
     el.classList.add('is-on');
-    setTimeout(() => el.classList.remove('is-on'), ms);
+    clearTimeout(this.bannerT);
+    this.bannerT = window.setTimeout(() => el.classList.remove('is-on'), dur);
   }
+  private bannerT: number | undefined;
 
   /** A small line under the banner with key prompts (`promptHtml`), e.g. the quest log's "updated" note; a second call restarts it. */
   notice(text: string, ms = 4200) {
@@ -118,7 +147,14 @@ export class HubHud {
 
   private noticeT: ReturnType<typeof setTimeout> | undefined;
 
-  update(dt: number) {
+  /** `paused`: a talk, a panel or a cut scene holds the screen, so no line is being read. */
+  update(dt: number, paused = false) {
+    const next = this.lines.step(dt, { typed: !this.typing, busy: false, at: { x: 0, y: 0 }, paused });
+    if (next) next.show();
+    if (this.bannerWaiting.length && Date.now() >= this.bannerUntil) {
+      const b = this.bannerWaiting.shift()!;
+      this.banner(b.text, b.ms);
+    }
     for (const [k, f] of Object.entries(this.fade)) {
       f.step(dt);
       const el = this.q(k === 'where' ? 'where' : k);
@@ -146,7 +182,7 @@ export class HubHud {
    * Show a panel. A click that redraws the panel one is already looking at (a purchase, a tab, a pick) calls this again: the new
    * copy takes over with no entrance (`is-again`: it must never blink) and the scroll places the player had.
    */
-  open(kind: string, title: string, body: string, actions = '', closeHint = '{use} or Esc to close') {
+  open(kind: string, title: string, body: string, actions = '', closeHint = '{use} or {esc} to close') {
     const again = !!this.panel && this.panelKind === kind;
     const scrolls = again ? this.scrolls(this.panel!) : [];
     this.close();

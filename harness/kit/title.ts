@@ -3,6 +3,7 @@
  * game opts out); menus.ts holds what its buttons do. Slots (dev sidebar, export into `variants`):
  *   titleLayout  left | center | bottom      where the title and the menu sit
  *   titleMood    dust | fireflies | fog      the background: lights, particles, colours from the theme
+ *   titleSettings left | middle               where the volume and quality sit along the bottom (every layout)
  * The background is three lit hill silhouettes drifting slowly (plus a little pointer parallax), a sky gradient, 1 to 5 real
  * lights and one cheap particle emitter. Costs rest on the lab findings (lighting.md, particles.md, performance-gpu.md):
  * lit shader path +0.5 ms, lights capped by quality.lights, ~1.4 ms per 1000 alive particles (this keeps under 60),
@@ -24,6 +25,7 @@ import { TITLE_SCENE, type Menus } from './menus';
 import { onEscape, toGamesList } from './escape';
 
 export const titleLayoutSlot = slot('titleLayout', { left: 'left', center: 'center', bottom: 'bottom' });
+export const titleSettingsSlot = slot('titleSettings', { left: 'left', middle: 'middle' });
 
 interface MoodLight { x: number; y: number; radius: number; intensity: number; hue: number; roam: number }
 export interface Mood {
@@ -134,6 +136,7 @@ export default class KitTitle extends Phaser.Scene {
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => (this.targetPx = p.x / W - 0.5));
     k.onChange((what) => {
       if (what === 'titleLayout') this.root.dataset.layout = titleLayoutSlot.value;
+      else if (what === 'titleSettings') this.root.dataset.settings = titleSettingsSlot.value;
       else if (what === 'titleMood' || what === 'theme' || what === 'quality') this.build();
     });
     this.menu(data?.preview === true);
@@ -267,7 +270,7 @@ export default class KitTitle extends Phaser.Scene {
     if (hasSave) items.splice(items.findIndex(([id]) => id === 'options'), 0, ['load', 'Load']);
     if (credits.length) items.push(['credits', 'Credits']);
 
-    this.root = el(`<div class="ui-titlescreen" data-layout="${titleLayoutSlot.value}">
+    this.root = el(`<div class="ui-titlescreen" data-layout="${titleLayoutSlot.value}" data-settings="${titleSettingsSlot.value}">
       <div class="ui-titlescreen__head"><h1 class="ui-title">${esc(o.title)}</h1></div>
       <div class="ui-titlescreen__main">
         <ul class="ui-menu">${items.map(([id, label], i) => `<li><button class="ui-menu__item${i ? '' : ' ui-menu__item--primary'}" data-id="${id}" ${i ? '' : 'data-first'}>${label}</button></li>`).join('')}</ul>
@@ -279,7 +282,7 @@ export default class KitTitle extends Phaser.Scene {
     navKeys(this.root);
     const status = this.root.querySelector<HTMLElement>('.ui-titlescreen__status')!;
 
-    // master volume centred above quality in the bottom left corner, set before the first press (the same settings as the Audio and Graphics tabs).
+    // master volume centred above quality in the bottom left corner (bottom middle with the titleSettings slot), set before the first press (the same settings as the Audio and Graphics tabs).
     // After the menu in the DOM, so Up/Down from the last button reaches them, as they sit below it.
     const settings = this.root.querySelector<HTMLElement>('.ui-titlescreen__settings')!;
     const drawSettings = () => {

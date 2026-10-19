@@ -15,10 +15,13 @@ import { CREW_COLORS, crewMark } from './hud';
 import { ownPoints } from './sim/command';
 import { NEST_LOOK } from './nestart';
 import { CRUDE_STAIN, ViewBase, kick, type G, type Img, type Light, type PlayHost } from './playhost';
-import { BIOMES, CREWS, LOOT, MULE, PARTS, T, TAP } from './sim/defs';
+import { BIOMES, CARD_SIGN, CREWS, LOOT, MULE, PARTS, T, TAP } from './sim/defs';
 import { huntCue } from './sim/dayplay';
 import type { SimEvent } from './sim/sim';
 import type { Seam } from './sim/types';
+
+/** A centrepiece's size over a loose ruin's (P47 part A, a guess). */
+export const CENTRE_SCALE = 1.3;
 
 export class WorldView extends ViewBase {
   private shots = new Map<number, Img>();
@@ -41,7 +44,8 @@ export class WorldView extends ViewBase {
   constructor(host: PlayHost) {
     super(host);
     const sim = this.sim, w = this.w, scene = this.scene;
-    for (const r of sim.ruins) this.ruins.set(r.id, w.cull.add(host.place(r.kind, r.x, r.y + 0.3 * T)));
+    // A find standing in a building is its centrepiece (P47 part A): the biggest silhouette in it.
+    for (const r of sim.ruins) this.ruins.set(r.id, w.cull.add(host.place(r.kind, r.x, r.y + 0.3 * T, r.building !== undefined ? CENTRE_SCALE : 1)));
     for (const s of sim.seeps) {
       this.seeps.set(s.id, w.cull.add(scene.add.image(s.x, s.y, 'tap').setScale(1 / S).setDepth(s.y - 6)));
       // The tap's crude stain: anyone walking through it leaves oily prints for a few steps.
@@ -283,6 +287,11 @@ export class WorldView extends ViewBase {
         this.floater(e.ruin.x, e.ruin.y - 60, e.text, '#fff3d6', e.ruin.trail !== undefined ? 7600 : 5200, 18);
         this.sfx('heal', e.ruin.x, e.ruin.y, { gain: 0.5, vary: 0 });
         fx.burst(e.ruin.x, e.ruin.y - 20, { color: 0xffd98a, size: 0.8 });
+        break;
+      case 'card':
+        // Minos: one card a stage. The first insight earns it; a later source says so (its other finds stay).
+        this.floater(e.x, e.y - 90, e.first ? CARD_SIGN.first : CARD_SIGN.later, e.first ? '#9ff6ff' : '#c8d4e0', 3400, 18);
+        if (e.first) this.sfx('unlock', e.x, e.y, { gain: 0.6 });
         break;
       case 'drop':
         fx.burst(e.l.x, e.l.y, { color: e.l.kind === 'part' || e.l.kind === 'core' ? 0x3df2ff : 0xffd98a, size: 0.4 });

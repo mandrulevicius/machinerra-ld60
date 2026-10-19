@@ -11,6 +11,7 @@ export interface Came {
   coal: number;
   /** AI cores found. */
   cores: number;
+  /** 0 or 1: the stage's one punch card was earned (`Sim.insight`). */
   insight: number;
   /** Pieces of old tech on the strip. */
   junk: number;
@@ -33,7 +34,7 @@ export function resultRows(c: Came): ResultStat[] {
     ...some(c.cores, 'AI cores found'),
     { label: 'Enemy parts', value: s.parts ?? 0 },
     ...some(c.junk, 'Old tech on the strip'),
-    ...some(c.insight, 'Insight found'),
+    ...some(c.insight, 'Punch card earned'),
     { label: 'Robots saved', value: s.saved ?? 0 },
     { label: 'Robots lost', value: s.lost ?? 0 },
     { label: 'Left on the sands', value: s.left ?? 0 },

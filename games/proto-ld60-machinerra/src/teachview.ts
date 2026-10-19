@@ -36,6 +36,7 @@ export class TeachView extends ViewBase {
 
   constructor(host: PlayHost) {
     super(host);
+    host.hud.paused = () => host.map.open || host.inv.open || host.log.open || host.guide.open;
     host.hud.holds = () => host.fight || host.map.open || host.cmd.on || host.inv.open || host.log.open || host.guide.open || (this.live = this.live.filter((h) => h.state !== 'done')).some((h) => h.state === 'shown');
   }
 
@@ -58,7 +59,7 @@ export class TeachView extends ViewBase {
     const used = this.used;
     const c = sim.controller;
     const near = (r: number) => sim.hornets.some((h) => Math.hypot(h.x - c.x, h.y - c.y) < r);
-    const morning1 = !!sim.land?.guided && sim.day.phase === 'morning'; // level 1 teaches the swing first and the kick when the day wakes the hive
+    const morning1 = !!sim.land?.guided && !used.swung; // level 1 teaches the swing first, the kick once he has swung (its clock is locked to the morning: no day to wait for, `clockhold.ts`)
     const spr = this.bots.get(c.id)!.spr;
     const free = () => !this.fighting || this.fighting.state === 'done';
     const lesson = (id: string, text: string, until: () => boolean, delay?: number) => {
@@ -91,6 +92,8 @@ export class TeachView extends ViewBase {
       const at = hit ? hit.use.at(sim, hit.p) : null;
       this.live.push(hint(this.scene, at ? { x: at.x, y: at.y - 56 } : this.host.liftSpr, `${a.verb} {use}`, { until: () => sim.armed !== a, delay: 0 }));
     }
+    // Standing on the lift is its own prompt (Minos: it had none); the intro's waits until its gate is down.
+    if (sim.atLift(c) && !sim.dungeon && (!sim.intro || sim.intro.lift)) this.teach('lift', this.host.liftSpr, 'Press {use} twice on the lift to rise', () => sim.armed?.key === 'lift' || sim.phase !== 'mission');
     // The lift's ask names every robot that would be left on the sands, alive or downed, with its cost (Minos: costs at the moment of choice; P5).
     this.hud.ask(sim.armed?.key === 'lift' ? leaving(sim) : null);
     const act = this.host.places.prompt();

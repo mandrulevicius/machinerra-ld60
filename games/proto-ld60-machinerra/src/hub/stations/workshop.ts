@@ -11,6 +11,7 @@ import { CREW_ROLES, STATS, type CrewRole } from '../../sim/gear';
 import { RELIC_IDS, isRelic, isUnique } from '../../sim/junk';
 import { BOT_TYPES, SPECS, SPEC_IDS, TYPES, type SpecId } from '../../sim/specs';
 import { BOOST, gaugesOf, profile, type GaugeRow, type Profile } from '../deeds';
+import { texUrl } from '../../gearart';
 import { economy } from '../economy';
 import { esc, tabbed } from '../panels';
 import { fit as fitRelicTo, offerJunk, sellJunk, unfit as unfitRelic } from '../relics';
@@ -175,8 +176,8 @@ export const workshopStation: StationPanel = (host: HubHost) => {
 function drawWorkshop(host: HubHost) {
   const ro = roster.get();
   const art: WorkshopArt = {
-    icon: (k) => host.textures.getBase64(`part-${k}`),
-    face: (r) => host.textures.getBase64('atlas', `crew/${r}`),
+    icon: (k) => texUrl(host, `part-${k}`),
+    face: (r) => texUrl(host, 'atlas', `crew/${r}`),
   };
   const b = workshopBody(host.s, ro, economy.get().scrap, art, host.tabs.workshop, undefined, economy.get().cores);
   // A redraw keeps each tab's scroll, so a button low in the list stays under the pointer.
@@ -245,7 +246,7 @@ function shopDo(host: HubHost, f: (s: Shop) => Shop) {
   roster.set(r.roster);
   host.save(r.hub);
   const bots = r.roster.bots.map(botLine);
-  return JSON.stringify({ scrap: r.eco.scrap, copper: r.eco.copper, coal: r.eco.coal, insight: r.eco.insight, junk: r.eco.junk, bots, chassis: r.roster.chassis });
+  return JSON.stringify({ scrap: r.eco.scrap, copper: r.eco.copper, coal: r.eco.coal, junk: r.eco.junk, bots, chassis: r.roster.chassis });
 }
 
 /** The `workshop` dev command: the workshop's rules as the panel runs them (costs are paid; `gear mats <n>` gives the materials). */

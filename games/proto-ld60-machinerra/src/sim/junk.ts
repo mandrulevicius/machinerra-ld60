@@ -11,7 +11,7 @@
  * Where junk comes from: a dead ruin gives one by chance (`ruinJunk`, `RUIN_JUNK`: each kind of ruin its own finds), onto
  * the carry strip (`JUNK.strip`, more with a Carrier gatherer) that rides home in the haul; at home it is a stock
  * (`Economy.junk`) to fit, to sell to the Trader (`JUNK.sell` scrap) or, when a robot already wears one of its kind, to
- * offer the Oracle for insight (`JUNK.offer`). The two uniques are a boss's own parts, kept in the stores as parts
+ * offer the Oracle for scrap (`JUNK.offer`). The two uniques are a boss's own parts, kept in the stores as parts
  * (`UNIQUE_RELICS`); fitting one takes it from the stores, taking it off puts it back (`hub/relics.ts`).
  *
  * **Add a relic:** a `RelicId`, a `RELICS` row (and a `RELIC_FX` row for what it does in `junkplay.ts`), the kinds of ruin
@@ -198,8 +198,8 @@ export const isUnique = (id: string) => (UNIQUE_RELICS as string[]).includes(id)
 /** The engine source a relic puts on its wearer, or none for an id this build does not know. */
 export const relicSource = (id: string | undefined): Source | null => (isRelic(id) ? RELICS[id].source() : null);
 
-/** What the junk rules use. `chance` a dead ruin gives junk; `strip` the carry strip; `sell` a scrap price at the Trader; `offer` insight for a duplicate. */
-export const JUNK = { chance: 0.65, strip: 6, carrier: 2, sell: 6, offer: 1 };
+/** What the junk rules use. `chance` a dead ruin gives junk; `strip` the carry strip; `sell` a scrap price at the Trader; `offer` the Oracle's scrap for a duplicate of a worn relic (a guess; Minos: no card from it). */
+export const JUNK = { chance: 0.65, strip: 6, carrier: 2, sell: 6, offer: 8 };
 
 /** What each kind of ruin may give (the reading fits the wreck it comes out of; each biome's ruins also give its own relics, D50). */
 export const RUIN_JUNK: Record<RuinKind, RelicId[]> = {
@@ -218,7 +218,7 @@ export function ruinJunk(kind: RuinKind, r: Rng): RelicId | null {
 /** The carry strip's size: six, and `JUNK.carrier` more for each fielded gatherer with the Carrier spec. */
 export const stripSize = (carriers = 0) => JUNK.strip + JUNK.carrier * Math.max(0, Math.floor(carriers));
 
-/** Junk in the stock that a robot already wears one of: the duplicates the Oracle takes for insight (`stock` index list). */
+/** Junk in the stock that a robot already wears one of: the duplicates the Oracle takes for scrap (`stock` index list). */
 export function duplicates(stock: readonly string[], worn: readonly (string | undefined)[]): number[] {
   const on = new Set(worn.filter(Boolean));
   return stock.flatMap((id, i) => (on.has(id) ? [i] : []));

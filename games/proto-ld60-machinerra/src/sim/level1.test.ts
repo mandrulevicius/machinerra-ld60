@@ -20,7 +20,7 @@ describe('level 1: the land', () => {
   it('is sound: every spot on open ground and reachable from the lift', () => {
     const m = loadLand('level1');
     expect(landProblems(m)).toEqual([]);
-    expect(m).toMatchObject({ w: 64, h: 34, rules: { anomaly: 'hurried', morningSwarm: 0, duskBoss: false, guided: true } });
+    expect(m).toMatchObject({ w: 64, h: 34, rules: { anomaly: 'hurried', morningSwarm: 1, duskBoss: false, guided: true } });
     expect(m.seeps).toHaveLength(1);
     expect(m.nests).toHaveLength(1);
     expect(m.places.map((p) => p.id).sort()).toEqual(['mast', 'sprocket', 'wreck']);
@@ -31,7 +31,7 @@ describe('level 1: the land', () => {
     expect(s.seams).toHaveLength(0);
     expect(s.seeps).toHaveLength(1);
     expect(s.crew).toHaveLength(0);
-    expect(s.cfg.morningSwarm).toBe(0);
+    expect(s.cfg.morningSwarm).toBe(1);
     expect(s.anomaly).toBe('hurried');
     expect(s.day.at.midnight).toBeCloseTo(240, 5);
     run(s, 1);

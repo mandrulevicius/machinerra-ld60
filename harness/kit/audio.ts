@@ -12,6 +12,7 @@
  *   a.listener = () => hero; a.hearing = { near: 250, far: 1100 };   // default listener: the camera centre
  *   a.cut('dawn', 'music/title/full', 0, 6);  // a stinger (or sfx) cut from a loaded buffer, with fades
  *   a.set({ music: 0.5 }); a.volume;          // master / music / sfx / muted, saved per game
+ *   ?mute=1                                   // any value but 0: the page stays muted for its life, not saved (`state().urlMute`)
  *   a.song.add('rimti', { key, bpm: 102, segments }); a.song.play('rimti'); a.song.mood(0.8);   // a whole song, re-sequenced
  *
  * Files: `audio.load({ music: { calm: ['base', 'bass', 'drums'] }, sfx: ['hit'] })` fetches
@@ -48,6 +49,12 @@ import { gameId } from './state';
 
 // ---- pure logic (audio.test.ts) ----
 export const clamp01 = (v: number) => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 0);
+
+/** `?mute=` with any value but 0 mutes the page for its life (agents play-testing pass it). */
+export function forcedMute(search: string): boolean {
+  const v = new URLSearchParams(search).get('mute');
+  return v !== null && v !== '0';
+}
 
 /** Gain curve for a fade `from` -> `to` (power-complementary: a rising and a falling fade sum to constant power). */
 export function equalPowerCurve(from: number, to: number, n = 64): Float32Array<ArrayBuffer> {
@@ -976,6 +983,8 @@ export class Audio {
   /** Master scale while nobody is looking: 0.25 while `document.hidden`. `?bgvol=0.25` (any value, 1 = off) also counts an unfocused page as background: the Claude app's browser pane always reports visible, never focused, even when hidden or behind another tab, so an agent play-testing there passes it. */
   private bgvol = 0.25;
   private watchFocus = false;
+  /** `?mute=`: an unsaved override on top of the player's muted setting. */
+  private readonly urlMute = forcedMute(location.search);
 
   constructor(private game: Phaser.Game, id: string) {
     const sm = game.sound as Phaser.Sound.WebAudioSoundManager;
@@ -1050,7 +1059,7 @@ export class Audio {
   private apply(first = false) {
     const sm = this.game.sound;
     sm.volume = this.vol.master * (document.hidden || (this.watchFocus && !document.hasFocus()) ? this.bgvol : 1);
-    sm.mute = this.vol.muted;
+    sm.mute = this.vol.muted || this.urlMute;
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
     const music = this.vol.music * clamp01(musicSlot.value.gain ?? 1);
@@ -1249,6 +1258,8 @@ export class Audio {
     return {
       context: this.ctx?.state ?? 'none',
       volume: this.volume,
+      muted: this.vol.muted || this.urlMute,
+      urlMute: this.urlMute,
       saveBackend: this.save.backend,
       musicSlot: musicSlot.name,
       music: this.music.state(),

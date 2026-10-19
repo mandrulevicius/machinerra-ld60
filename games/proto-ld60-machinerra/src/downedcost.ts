@@ -11,8 +11,8 @@ import type { Sim } from './sim/sim';
 import { rides } from './sim/use';
 
 /** Over a robot lying down: its name and the two costs. A wreck not yet ours (a type wreck, level 1's Bellows) costs nothing to leave: it says how to mend it. */
-export const lyingTip = (name: string, wreck = false) =>
-  wreck ? `${name} lies here\nPress E and stay near to mend it` : `${name} is down\nCarry home: ${REPAIR.carried.scrap} scrap · Leave it: a wreck, ${REBUILD.scrap} scrap`;
+export const lyingTip = (name: string, wreck = false, held = false) =>
+  held ? `${name} lies here` : wreck ? `${name} lies here\nPress E and stay near to mend it` : `${name} is down\nCarry home: ${REPAIR.carried.scrap} scrap · Leave it: a wreck, ${REBUILD.scrap} scrap`;
 
 /** A robot that would stay on the sands if the lift rose now: what leaving it costs (a wreck, rebuilt for `rebuild` scrap) and, if it lies downed, what carrying it up would cost instead. */
 export interface Leaving { name: string; role: Role; down: boolean; rebuild: number; carry: number | null }

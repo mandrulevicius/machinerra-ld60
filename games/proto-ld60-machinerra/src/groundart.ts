@@ -23,8 +23,15 @@ import { LINE } from './house';
 import { wearGround } from './wear';
 import { mesaMask } from './mesashadow';
 
+const { Rock: ROCK, Dune: DUNE, Hardpan: HARDPAN, Sand: SAND } = Ter;
+
 /** The ground's colour steps (a texel's channel is cut to a multiple of this): flat blobs of paint, not a smooth gradient. */
 const BAND = 6;
+/** `v - v % BAND` without the float modulo (slow per texel): the multiple is exact, so the remainder is too; a misfloored quotient falls back to `%`. */
+function cut(v: number) {
+  const rem = v - Math.floor(v / BAND) * BAND;
+  return v - (rem >= 0 && rem < BAND ? rem : v % BAND);
+}
 
 /**
  * Game px per ground texel in the mission and the Ascent (draw the image at this scale). The art is 0.5 (2x, shown at
@@ -61,13 +68,20 @@ const SHADOW: Record<BiomeDef['paint'], [number, number, number]> = {
   snow: [0.72, 0.8, 0.96], demon: [0.58, 0.42, 0.52], ether: [0.52, 0.46, 0.78],
 };
 
+/** The Voronoi seed points of the cells a paint asks for at one `size`: filled on demand (NaN in `h` is not yet), covering the land and the paint's warps. */
+interface CellTab { h: Float64Array; px: Float64Array; py: Float64Array; cx0: number; cy0: number; nx: number; ny: number }
+function cellTab(size: number, gw: number, gh: number): CellTab {
+  const cx0 = -4, cy0 = -4, nx = Math.ceil((gw + 64) / size) + 4 - cx0, ny = Math.ceil((gh * 1.7 + 64) / size) + 4 - cy0;
+  return { h: new Float64Array(nx * ny).fill(NaN), px: new Float64Array(nx * ny), py: new Float64Array(nx * ny), cx0, cy0, nx, ny };
+}
+
 /**
  * Paint the land once into a canvas, `px` game px per texel (draw the image at that scale; the hub's far view keeps the
  * coarse 2); returns its key. At `GROUND_PX` it is in the house style: colour in steps (`BAND`), the soot fringe round
  * every mesa, and the buried tech.
  */
-export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
-  const key = `ground-${m.biome}-${m.seed}${px === 2 ? '' : `@${px}`}`;
+export function paintGround(scene: Phaser.Scene, m: MapData, px = 2, suffix = '') {
+  const key = `ground-${m.biome}-${m.seed}${px === 2 ? '' : `@${px}`}${suffix}`;
   const paint = BIOMES[m.biome].paint;
   if (scene.textures.exists(key)) return key;
   const k = px;
@@ -92,13 +106,34 @@ export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
   // Voronoi cells of a jittered grid `size` px: the nearest seed's id (0..1), the offset to it in cell units (light
   // from the top left falls on the side whose seed lies down-right: vx + vy > 0), and the edge distance in px.
   let vId = 0, vx = 0, vy = 0, vEdge = 0;
+  // A cell's seed point depends only on its integer corner (and the land's seed), so each is hashed once per size, on first use.
+  const tabs: (CellTab | undefined)[] = [];
   const cells = (x: number, y: number, size: number) => {
     const fx = x / size, fy = y / size, ix = Math.floor(fx), iy = Math.floor(fy);
+    const tab = tabs[size] ?? (tabs[size] = cellTab(size, W * k, H * k));
+    const { h: th, px: tpx, py: tpy, cx0, cy0, nx, ny } = tab;
     let f1 = 9, f2 = 9;
     for (let j = -1; j <= 1; j++)
       for (let i = -1; i <= 1; i++) {
-        const cx = ix + i, cy = iy + j, h = hash(cx, cy);
-        const ox = cx + 0.15 + h * 0.7 - fx, oy = cy + 0.15 + hash(cx + 911, cy - 377) * 0.7 - fy;
+        const cx = ix + i, cy = iy + j;
+        let h: number, sx: number, sy: number;
+        const tx = cx - cx0, ty = cy - cy0;
+        if (tx >= 0 && tx < nx && ty >= 0 && ty < ny) {
+          const n = ty * nx + tx;
+          h = th[n];
+          if (h !== h) {
+            h = th[n] = hash(cx, cy);
+            tpx[n] = cx + 0.15 + h * 0.7;
+            tpy[n] = cy + 0.15 + hash(cx + 911, cy - 377) * 0.7;
+          }
+          sx = tpx[n];
+          sy = tpy[n];
+        } else {
+          h = hash(cx, cy);
+          sx = cx + 0.15 + h * 0.7;
+          sy = cy + 0.15 + hash(cx + 911, cy - 377) * 0.7;
+        }
+        const ox = sx - fx, oy = sy - fy;
         const dd = ox * ox + oy * oy;
         if (dd < f1) { f2 = f1; f1 = dd; vId = h; vx = ox; vy = oy; } else if (dd < f2) f2 = dd;
       }
@@ -107,18 +142,19 @@ export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
   // The kind of ground here: each kind's share, blended between tile centres, so outlines are smooth curves, not steps.
   // The tiles sit in a grid with a ring of rock round it (off the map is rock), so a lookup never leaves it.
   const KW = m.w + 2;
-  const kinds = new Uint8Array(KW * (m.h + 2)).fill(Ter.Rock);
+  const kinds = new Uint8Array(KW * (m.h + 2)).fill(ROCK);
   for (let y = 0; y < m.h; y++) kinds.set(m.ter.subarray(y * m.w, (y + 1) * m.w), (y + 1) * KW + 1);
+  const TT = T, lastX = m.w - 1, lastY = m.h - 1;
   const ground = (gx: number, gy: number) => {
-    const fx = gx / T - 0.5, fy = gy / T - 0.5;
+    const fx = gx / TT - 0.5, fy = gy / TT - 0.5;
     const ix = Math.floor(fx), iy = Math.floor(fy);
-    const o = Math.min(m.h - 1, Math.max(-1, iy)) * KW + KW + Math.min(m.w - 1, Math.max(-1, ix)) + 1;
+    const o = (iy > lastY ? lastY : iy < -1 ? -1 : iy) * KW + KW + (ix > lastX ? lastX : ix < -1 ? -1 : ix) + 1;
     const a = kinds[o], b = kinds[o + 1], c = kinds[o + KW], d = kinds[o + KW + 1];
     if (a === b && b === c && c === d) return a;
     const ax = fx - ix, ay = fy - iy;
     const wa = (1 - ax) * (1 - ay), wb = ax * (1 - ay), wc = (1 - ax) * ay, wd = ax * ay;
     const share = (t: number) => (a === t ? wa : 0) + (b === t ? wb : 0) + (c === t ? wc : 0) + (d === t ? wd : 0);
-    return share(Ter.Rock) > 0.5 ? Ter.Rock : share(Ter.Dune) > 0.5 ? Ter.Dune : share(Ter.Hardpan) > 0.5 ? Ter.Hardpan : Ter.Sand;
+    return share(ROCK) > 0.5 ? ROCK : share(DUNE) > 0.5 ? DUNE : share(HARDPAN) > 0.5 ? HARDPAN : SAND;
   };
   const rocky = new Uint8Array(W * H);
   // The smooth fields are made every 2 game px and blended between (as a texel is 1 to 2 game px, it is near enough, and
@@ -139,71 +175,69 @@ export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
   // Where the mesa's material changes: patches of hull, snow caps, glowing seams, puddles (big, slow).
   const fpatch = field((gx, gy) => vnoise(gx / 150 + 3, gy / 150 - 7) * 0.75 + vnoise(gx / 31, gy / 31) * 0.25);
   const [shR, shG, shB] = SHADOW[paint];
-  let o = 0, w00 = 0, w10 = 0, w01 = 0, w11 = 0, r = 0, g = 0, b = 0;
-  const lerp = (f: Float32Array) => f[o] * w00 + f[o + 1] * w10 + f[o + TW] * w01 + f[o + TW + 1] * w11;
-  // Mixes the texel toward a colour (a = 0..1).
-  const mix = (cr: number, cg: number, cb: number, a: number) => {
-    r += (cr - r) * a; g += (cg - g) * a; b += (cb - b) * a;
-  };
+  // r, g and b stay plain locals (no closure holds them); "mix" below is the texel moved toward a colour by a = 0..1.
+  let r = 0, g = 0, b = 0;
+  const lerp = (f: Float32Array, o: number, w00: number, w10: number, w01: number, w11: number) => f[o] * w00 + f[o + 1] * w10 + f[o + TW] * w01 + f[o + TW + 1] * w11;
   for (let py = 0; py < H; py++)
     for (let pxx = 0; pxx < W; pxx++) {
       const gx = pxx * k, gy = py * k;
       const u = gx / 2, v = gy / 2, ti = Math.floor(u), tj = Math.floor(v), fx = u - ti, fy = v - tj;
-      o = tj * TW + ti;
-      w00 = (1 - fx) * (1 - fy); w10 = fx * (1 - fy); w01 = (1 - fx) * fy; w11 = fx * fy;
-      const jx = lerp(fjx), jy = lerp(fjy);
+      const o = tj * TW + ti;
+      const w00 = (1 - fx) * (1 - fy), w10 = fx * (1 - fy), w01 = (1 - fx) * fy, w11 = fx * fy;
+      const jx = lerp(fjx, o, w00, w10, w01, w11), jy = lerp(fjy, o, w00, w10, w01, w11);
       const wx = gx + jx, wy = gy + jy;
       const t = ground(wx, wy);
-      const n = lerp(fn) + (flat ? 0.05 : hash(pxx, py) * 0.1);
-      const st = lerp(fstroke) * 2, pa = lerp(fpatch);
-      const rock = t === Ter.Rock;
-      const cliff = rock && ground(wx, wy + T * 0.55) !== Ter.Rock; // the mesa's south face
-      const rim = rock && !cliff && ground(wx - 3 * k, wy - 3 * k) !== Ter.Rock; // its top's lit edge
+      const n = lerp(fn, o, w00, w10, w01, w11) + (flat ? 0.05 : hash(pxx, py) * 0.1);
+      const st = lerp(fstroke, o, w00, w10, w01, w11) * 2, pa = lerp(fpatch, o, w00, w10, w01, w11);
+      const rock = t === ROCK;
+      const cliff = rock && ground(wx, wy + TT * 0.55) !== ROCK; // the mesa's south face
+      const rim = rock && !cliff && ground(wx - 3 * k, wy - 3 * k) !== ROCK; // its top's lit edge
       switch (paint) {
         case 'desert':
         case 'demon': {
           const demon = paint === 'demon';
           if (cliff) {
             const streak = (vnoise(gx / 3, gy / 38) - 0.5) * 26;
-            [r, g, b] = demon ? [34 + streak * 0.4, 16, 20] : [124 + n * 24 + streak, 70 + n * 16 + streak * 0.6, 44 + n * 10 + streak * 0.4];
-          } else if (rim) [r, g, b] = demon ? [150, 62, 48] : [252, 210, 150];
-          else if (rock) {
+            if (demon) { r = 34 + streak * 0.4; g = 16; b = 20; } else { r = 124 + n * 24 + streak; g = 70 + n * 16 + streak * 0.6; b = 44 + n * 10 + streak * 0.4; }
+          } else if (rim) {
+            if (demon) { r = 150; g = 62; b = 48; } else { r = 252; g = 210; b = 150; }
+          } else if (rock) {
             if (demon) {
               // Obsidian facets; some seams still glow.
               cells(gx, gy, 26);
               const tone = (vId - 0.5) * 26;
-              [r, g, b] = [42 + tone, 22 + tone * 0.6, 28 + tone * 0.7];
-              if (vEdge < 1.2) [r, g, b] = pa > 0.66 ? [255, 80, 34] : [18, 9, 12];
+              r = 42 + tone; g = 22 + tone * 0.6; b = 28 + tone * 0.7;
+              if (vEdge < 1.2) { if (pa > 0.66) { r = 255; g = 80; b = 34; } else { r = 18; g = 9; b = 12; } }
             } else if (pa > 0.7) {
               // Brass hull breaking through the sandstone: riveted plates, verdigris in the seams.
               const row = Math.floor(gy / 26), uu = (gx + (row & 1) * 20) % 40, vv = gy % 26;
-              [r, g, b] = [184 + n * 24 + st * 6, 132 + n * 18 + st * 4, 70 + n * 10];
-              if (vnoise(gx / 22 + 9, gy / 22) > 0.66) mix(86, 150, 136, 0.65);
-              if (uu < 1.4 || vv < 1.4) [r, g, b] = [64, 44, 30];
-              else if (uu < 2.8 || vv < 2.8) mix(246, 214, 150, 0.6);
+              r = 184 + n * 24 + st * 6; g = 132 + n * 18 + st * 4; b = 70 + n * 10;
+              if (vnoise(gx / 22 + 9, gy / 22) > 0.66) { r += (86 - r) * 0.65; g += (150 - g) * 0.65; b += (136 - b) * 0.65; }
+              if (uu < 1.4 || vv < 1.4) { r = 64; g = 44; b = 30; }
+              else if (uu < 2.8 || vv < 2.8) { r += (246 - r) * 0.6; g += (214 - g) * 0.6; b += (150 - b) * 0.6; }
               const rx = Math.abs(uu - 5) < Math.abs(uu - 35) ? uu - 5 : uu - 35, ry = vv - 5;
-              if (rx * rx + ry * ry < 3.2) [r, g, b] = rx + ry < -0.4 ? [250, 226, 170] : [70, 48, 30];
-              if (pa < 0.715) [r, g, b] = [70, 45, 30]; // the hull's broken edge
+              if (rx * rx + ry * ry < 3.2) { if (rx + ry < -0.4) { r = 250; g = 226; b = 170; } else { r = 70; g = 48; b = 30; } }
+              if (pa < 0.715) { r = 70; g = 45; b = 30; } // the hull's broken edge
             } else {
               // Sandstone in layered blocks, lit on the top left.
               const strata = Math.sin((gy + jy * 0.5) / 7) * 0.5 + 0.5;
               cells(gx, gy * 1.7, 34);
               const bev = (vx + vy) * 14;
-              [r, g, b] = [178 + n * 30 - strata * 14 + bev + st * 5, 106 + n * 22 - strata * 9 + bev * 0.7 + st * 3, 64 + n * 14 - strata * 5 + bev * 0.4];
-              if (vEdge < 1.3) [r, g, b] = [128, 72, 44];
+              r = 178 + n * 30 - strata * 14 + bev + st * 5; g = 106 + n * 22 - strata * 9 + bev * 0.7 + st * 3; b = 64 + n * 14 - strata * 5 + bev * 0.4;
+              if (vEdge < 1.3) { r = 128; g = 72; b = 44; }
             }
-          } else if (t === Ter.Dune) {
-            const ripple = Math.sin((gx * 0.35 + gy * 0.9 + lerp(fdune) * 40) / 3.2);
-            [r, g, b] = demon ? [112 + ripple * 6 + n * 14, 70 + ripple * 4, 70 + ripple * 3] : [236 + n * 14 + ripple * 7, 198 + n * 12 + ripple * 6, 142 + n * 10 + ripple * 4];
-          } else if (t === Ter.Hardpan) {
+          } else if (t === DUNE) {
+            const ripple = Math.sin((gx * 0.35 + gy * 0.9 + lerp(fdune, o, w00, w10, w01, w11) * 40) / 3.2);
+            if (demon) { r = 112 + ripple * 6 + n * 14; g = 70 + ripple * 4; b = 70 + ripple * 3; } else { r = 236 + n * 14 + ripple * 7; g = 198 + n * 12 + ripple * 6; b = 142 + n * 10 + ripple * 4; }
+          } else if (t === HARDPAN) {
             // Cracked clay (or ash) plates, each curled a little toward the light.
             cells(wx * 0.6 + gx * 0.4, wy * 0.6 + gy * 0.4, 22);
             const bev = (vx + vy) * 12, tone = (vId - 0.5) * 14;
-            [r, g, b] = demon ? [86 + tone + bev * 0.6, 50 + tone * 0.6 + bev * 0.3, 52 + tone * 0.6 + bev * 0.3] : [208 + n * 12 + tone + bev, 170 + n * 10 + tone + bev * 0.8, 122 + n * 8 + tone * 0.8 + bev * 0.5];
-            if (vEdge < 1.4) [r, g, b] = demon ? (vnoise(gx / 90 + 7, gy / 90) > 0.7 ? [255, 120, 50] : [40, 20, 22]) : [150, 110, 80];
-          } else {
-            [r, g, b] = demon ? [92 + n * 16 + st * 4, 56 + n * 8, 58 + n * 8] : [224 + n * 16 + st * 7, 184 + n * 13 + st * 6, 130 + n * 10 + st * 4];
-          }
+            if (demon) { r = 86 + tone + bev * 0.6; g = 50 + tone * 0.6 + bev * 0.3; b = 52 + tone * 0.6 + bev * 0.3; } else { r = 208 + n * 12 + tone + bev; g = 170 + n * 10 + tone + bev * 0.8; b = 122 + n * 8 + tone * 0.8 + bev * 0.5; }
+            if (vEdge < 1.4) {
+              if (!demon) { r = 150; g = 110; b = 80; } else if (vnoise(gx / 90 + 7, gy / 90) > 0.7) { r = 255; g = 120; b = 50; } else { r = 40; g = 20; b = 22; }
+            }
+          } else if (demon) { r = 92 + n * 16 + st * 4; g = 56 + n * 8; b = 58 + n * 8; } else { r = 224 + n * 16 + st * 7; g = 184 + n * 13 + st * 6; b = 130 + n * 10 + st * 4; }
           break;
         }
         case 'jungle': {
@@ -217,7 +251,7 @@ export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
             const lit = Math.max(0, Math.min(1, big * 0.65 + (0.45 + (vx + vy) * 0.8) * 0.35)), tone = (id - 0.5) * 30 + (pa - 0.5) * 44 + (hash(gx >> 1, gy >> 1) - 0.5) * 10;
             [r, g, b] = [20 + lit * 96 + tone * 0.6, 54 + lit * 110 + tone, 36 + lit * 24];
             if (edge < 1.6 && big < 0.5) [r, g, b] = [12, 34, 30];
-          } else if (t === Ter.Dune) {
+          } else if (t === DUNE) {
             // Ferns and undergrowth: small clumps.
             cells(gx, gy, 22);
             const big = 0.45 + (vx + vy) * 0.8, edge = vEdge;
@@ -225,7 +259,7 @@ export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
             const lit = Math.max(0, Math.min(1, big * 0.6 + (0.45 + (vx + vy) * 0.8) * 0.4));
             [r, g, b] = [34 + lit * 56 + n * 10, 66 + lit * 66 + n * 14, 34 + lit * 16];
             if (edge < 1.4 && big < 0.5) [r, g, b] = [22, 46, 30];
-          } else if (t === Ter.Hardpan) {
+          } else if (t === HARDPAN) {
             // Mud, and puddles of rain with a sky glint on their far edge.
             [r, g, b] = [96 + n * 16 + st * 6, 72 + n * 12 + st * 4, 46 + n * 8];
             const pool = vnoise(gx / 46 + 21, gy / 46);
@@ -253,26 +287,26 @@ export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
             const iy = Math.floor(gy / 72), sx = gx + hash(iy, 77) * 110, ix = Math.floor(sx / 110), uu = sx - ix * 110, vv = gy - iy * 72, id = hash(ix, iy + 500);
             const tone = (id - 0.5) * 34, warm = id > 0.6 ? 10 : 0;
             [r, g, b] = [116 + tone + warm + n * 12 + st * 4, 118 + tone + n * 12 + st * 4, 126 + tone - warm + n * 12 + st * 4];
-            if (hash(gx >> 1, gy >> 1) > 0.95) mix(70, 70, 76, 0.35); // gravel
+            if (hash(gx >> 1, gy >> 1) > 0.95) { r += (70 - r) * 0.35; g += (70 - g) * 0.35; b += (76 - b) * 0.35; } // gravel
             const ax = uu - 30 - id * 40, ay = vv - 20 - id * 20;
             if (id > 0.45 && ax > 0 && ax < 18 && ay > 0 && ay < 13) {
               [r, g, b] = ax < 2 || ay < 2 ? [184, 186, 194] : ax > 16 || ay > 11 ? [46, 48, 56] : [92, 94, 102];
               if (ax > 5 && ax < 13 && ay > 3 && ay < 10 && (ax + ay) % 3 < 1) [r, g, b] = [52, 54, 62]; // the fan's grille
             } else if (id < 0.2 && uu > 14 && uu < 90 && vv > 26 && vv < 44) {
               [r, g, b] = (uu % 12) < 1.2 ? [60, 64, 74] : [74, 108, 132];
-              if (Math.abs((uu % 12) - (vv - 26) * 0.5) < 1.5) mix(200, 230, 245, 0.55);
+              if (Math.abs((uu % 12) - (vv - 26) * 0.5) < 1.5) { r += (200 - r) * 0.55; g += (230 - g) * 0.55; b += (245 - b) * 0.55; }
             }
             if (uu < 1.6 || vv < 1.6) [r, g, b] = [50, 50, 58];
             else if (uu < 4 || vv < 4) [r, g, b] = [170 + tone * 0.4, 170 + tone * 0.4, 178 + tone * 0.4]; // the parapet, lit
-            else if (uu > 106 || vv > 68) mix(60, 62, 72, 0.5);
-          } else if (t === Ter.Hardpan) {
+            else if (uu > 106 || vv > 68) { r += (60 - r) * 0.5; g += (62 - g) * 0.5; b += (72 - b) * 0.5; }
+          } else if (t === HARDPAN) {
             // Paving slabs, a few cracked.
             const ix = Math.floor(gx / 32), iy = Math.floor(gy / 32), uu = gx - ix * 32, vv = gy - iy * 32, id = hash(ix, iy);
             [r, g, b] = [138 + (id - 0.5) * 18 + n * 10, 136 + (id - 0.5) * 18 + n * 10, 132 + (id - 0.5) * 16 + n * 8];
             if (uu < 1.2 || vv < 1.2) [r, g, b] = [96, 94, 92];
-            else if (uu < 2.4 || vv < 2.4) mix(196, 192, 182, 0.5);
+            else if (uu < 2.4 || vv < 2.4) { r += (196 - r) * 0.5; g += (192 - g) * 0.5; b += (182 - b) * 0.5; }
             if (id > 0.86 && Math.abs(uu - vv * (0.5 + id) - 2) < 0.8) [r, g, b] = [100, 96, 92];
-          } else if (t === Ter.Dune) {
+          } else if (t === DUNE) {
             // Rubble: broken stones.
             cells(gx, gy, 7);
             const lit = Math.max(0, Math.min(1, 0.45 + (vx + vy) * 0.8));
@@ -281,7 +315,7 @@ export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
           } else {
             // Asphalt.
             [r, g, b] = [66 + n * 14 + st * 3, 66 + n * 14 + st * 3, 74 + n * 14 + st * 3];
-            if (hash(gx >> 1, gy >> 1) > 0.97) mix(120, 120, 126, 0.6);
+            if (hash(gx >> 1, gy >> 1) > 0.97) { r += (120 - r) * 0.6; g += (120 - g) * 0.6; b += (126 - b) * 0.6; }
           }
           break;
         }
@@ -295,10 +329,10 @@ export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
             [r, g, b] = [98 + tone, 104 + tone, 118 + tone];
             if (vEdge < 1.2) [r, g, b] = [50, 54, 68];
             if (pa - (vx + vy) * 0.12 > 0.52) [r, g, b] = vx + vy < -0.15 ? [188, 204, 232] : [232, 238, 250];
-          } else if (t === Ter.Dune) {
-            const ripple = Math.sin((gx * 0.35 + gy * 0.9 + lerp(fdune) * 40) / 3.6);
+          } else if (t === DUNE) {
+            const ripple = Math.sin((gx * 0.35 + gy * 0.9 + lerp(fdune, o, w00, w10, w01, w11) * 40) / 3.6);
             [r, g, b] = [222 + ripple * 8 + n * 8, 230 + ripple * 7 + n * 8, 246 + ripple * 4];
-          } else if (t === Ter.Hardpan) {
+          } else if (t === HARDPAN) {
             // Ice: blue, cracked white, glossy streaks.
             cells(gx, gy, 34);
             [r, g, b] = [146 + n * 16 + st * 14, 194 + n * 12 + st * 12, 226 + n * 8 + st * 8];
@@ -315,8 +349,8 @@ export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
             const lit = Math.max(0, Math.min(1, 0.4 + (vx + vy) * 0.7));
             [r, g, b] = [36 + vId * 40 + lit * 30, 26 + vId * 30 + lit * 20, 78 + vId * 60 + lit * 40];
             if (vEdge < 1.3) [r, g, b] = pa > 0.6 ? [176, 186, 240] : [58, 46, 104];
-          } else if (t === Ter.Dune) [r, g, b] = [146 + n * 30 + st * 8, 136 + n * 28 + st * 8, 200 + n * 30 + st * 8];
-          else if (t === Ter.Hardpan) {
+          } else if (t === DUNE) [r, g, b] = [146 + n * 30 + st * 8, 136 + n * 28 + st * 8, 200 + n * 30 + st * 8];
+          else if (t === HARDPAN) {
             // Veins of cold light.
             cells(gx, gy, 40);
             [r, g, b] = [56 + n * 18 + (vId - 0.5) * 18, 50 + n * 16, 112 + n * 26 + (vId - 0.5) * 20];
@@ -329,13 +363,13 @@ export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
         }
       }
       // The coarse far views keep a mesa's shadow baked, toward the south-east, cool; the house-style ground has the live layer (`mesashadow.ts`).
-      if (!flat && !rock && ground(wx - T * 0.5, wy - T * 0.6) === Ter.Rock) {
+      if (!flat && !rock && ground(wx - TT * 0.5, wy - TT * 0.6) === ROCK) {
         r *= shR; g *= shG; b *= shB;
       }
       const i = (py * W + pxx) * 4;
       if (flat) {
         r = Math.max(0, Math.min(255, r)); g = Math.max(0, Math.min(255, g)); b = Math.max(0, Math.min(255, b));
-        r -= r % BAND; g -= g % BAND; b -= b % BAND;
+        r = cut(r); g = cut(g); b = cut(b);
         rocky[py * W + pxx] = +rock;
       }
       d[i] = r;
@@ -350,6 +384,11 @@ export function paintGround(scene: Phaser.Scene, m: MapData, px = 2) {
   if (flat) mesaMask(scene, key, rocky, W, H, k);
   tex.refresh();
   return key;
+}
+
+/** Drop a painted land's texture (its mesa mask goes with it). */
+export function freeGround(scene: Phaser.Scene, key: string) {
+  if (key && scene.textures.exists(key)) scene.textures.remove(key);
 }
 
 /** What each land's buried things are made of: metal, its light edge, its rust or patina. */

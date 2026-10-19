@@ -72,7 +72,7 @@ export class DungeonLink extends ViewBase {
     const party = sim.crew.map((b) => ({ id: b.id, role: b.role as PartyBot['role'], name: b.name, hp: b.hp, uid: b.uid, rank: b.rank, spec: b.spec, relic: b.relic, stoked: b.stoked }));
     const pil = sim.pilgrim?.state === 'follow' ? [{ id: sim.pilgrim.npc.id, name: sim.pilgrim.npc.name }] : [];
     const followers = [...pil, ...sim.followers.map((f) => ({ id: f.id, name: f.name, ...(f.ghost && { ghost: true }) }))];
-    const dungeon: DungeonCarry = { spec: sim.dungeonSpec(), dayT: sim.dayT, hp: c.hp, steam: c.steam, reserve: sim.reserve, scrap: sim.scrap, hands: handsOf(sim), party, followers };
+    const dungeon: DungeonCarry = { spec: sim.dungeonSpec(), dayT: sim.dayT, hp: c.hp, steam: c.steam, reserve: sim.reserve, scrap: sim.scrap, card: sim.cardEarned, hands: handsOf(sim), party, followers };
     this.sfx('lift', undefined, undefined, { gain: 0.7 });
     const cam = this.scene.cameras.main;
     cam.fadeOut(400, 0, 0, 0);

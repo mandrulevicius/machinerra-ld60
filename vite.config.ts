@@ -5,12 +5,13 @@ import { editorPlugin } from './harness/editor/vite-plugin';
 import { capturePlugin } from './harness/capture/vite-plugin';
 import { hotPlugin } from './harness/hot/vite-plugin';
 import { assetsPlugin } from './harness/hot/assets-plugin';
+import { mirrorPlugin } from './harness/mirror/vite-plugin';
 
 // Dev serves the repo root: games at /games/<name>/, UI components at /harness/ui/.
 export default defineConfig(({ mode }) => ({
   // Agents' worktrees hold whole copies of the repo; watching them full-reloads every open page on their edits.
   server: { port: 5173, host: true, watch: { ignored: ['**/.claude/worktrees/**'] } },
-  plugins: [editorPlugin(), capturePlugin(), hotPlugin(), assetsPlugin()],
+  plugins: [editorPlugin(), capturePlugin(), hotPlugin(), assetsPlugin(), mirrorPlugin(process.env.OPTIMIZER_MIRROR)],
   test: {
     // One vitest project per game folder (`games/*`, not `_template`) plus `harness`, so a game's tests run alone:
     // `npm run test:game -- <name>` runs that game and the harness; `npm test` runs all of them.

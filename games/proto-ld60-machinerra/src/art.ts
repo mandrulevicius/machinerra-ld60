@@ -20,7 +20,7 @@ import { makePropArt } from './propart';
 import { makeRelicArt } from './relicart';
 import { makeNestArt } from './nestart';
 
-export { GROUND_PX, paintGround } from './groundart';
+export { GROUND_PX, freeGround, paintGround } from './groundart';
 
 export const S = 2;
 

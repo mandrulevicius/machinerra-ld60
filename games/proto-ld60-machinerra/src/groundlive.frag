@@ -26,6 +26,7 @@ uniform vec2 uMoteVis;   // day, night visibility
 uniform float uCanopy;   // dappled shade and sun spots swaying (the jungle)
 uniform vec4 uPulse;     // strength, scale px, speed, 0
 uniform vec3 uPulseCol;
+uniform float uDetail;   // 2 every pass (the default), 1 two octaves and one mote layer, 0 also no motes and no breathing glow (tier.ts)
 
 varying vec2 outTexCoord;
 
@@ -35,7 +36,11 @@ float noise(vec2 p) {
     vec2 u = f * f * (3.0 - 2.0 * f);
     return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), u.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), u.x), u.y);
 }
-float fbm(vec2 p) { return noise(p) * 0.55 + noise(p * 2.03 + 17.0) * 0.3 + noise(p * 4.1 + 41.0) * 0.15; }
+float fbm(vec2 p) {
+    float v = noise(p) * 0.55 + noise(p * 2.03 + 17.0) * 0.3;
+    if (uDetail > 1.5) return v + noise(p * 4.1 + 41.0) * 0.15;
+    return v / 0.85; // fewer octaves on a slow machine: the same range, less fine grain
+}
 
 // The Wanderer seen from below: hull, gondola and four fins, soft at the edge (1 inside .. 0 outside).
 float zeppelin(vec2 p) {
@@ -98,10 +103,11 @@ void main() {
     }
 
     // Motes: things that glow and float (fireflies, embers, wisps, dust in a lamp's beam), one per lucky cell, rising.
-    if (uMote.y > 0.0) {
+    if (uMote.y > 0.0 && uDetail > 0.5) {
         float vis = mix(uMoteVis.y, uMoteVis.x, uDay);
         for (int k = 0; k < 2; k++) {
             float fk = float(k);
+            if (fk + 0.5 > uDetail) break;
             vec2 g = (p + vec2(0.0, uTime * uMote.z * (1.0 + fk * 0.6))) / uMote.x + fk * 19.0;
             vec2 id = floor(g), f = fract(g);
             float h = hash(id);
@@ -117,7 +123,7 @@ void main() {
     }
 
     // The breathing land: slow patches of glow that swell and fade (embers under the ash, the Ether's light).
-    if (uPulse.x > 0.0) {
+    if (uPulse.x > 0.0 && uDetail > 0.5) {
         float a = fbm(p / uPulse.y + vec2(uTime * uPulse.z * 0.05, 0.0));
         float beat = 0.5 + 0.5 * sin(uTime * uPulse.z + a * 9.0);
         light += uPulseCol * smoothstep(0.55, 0.8, a) * beat * uPulse.x;

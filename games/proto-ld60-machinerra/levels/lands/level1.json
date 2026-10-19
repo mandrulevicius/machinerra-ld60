@@ -27,7 +27,7 @@
   "################################"
  ],
  "anomaly": "hurried",
- "morningSwarm": 0,
+ "morningSwarm": 1,
  "duskBoss": false,
  "guided": true,
  "entities": [

@@ -6,18 +6,22 @@
  *   (tests, the bench). A closed tool's HUD piece is held back (`gates`), its key does nothing (`Play`, `commandmode.ts`) and
  *   `callSupport` refuses.
  * - **Pauses.** `Lessons.hush`: the world waits (`Sim.step` does nothing else) while the Oracle says a line or two. A pause ends
- *   when its lines are read (`readTime`) or when the player does the thing (`did`, called by `Play` for the map and command mode,
- *   by `callSupport` for the call).
- * - **Mission 2, level 1:** the clock's pause at landing (the dial shows with it), the lines its pause stands in for, the world
- *   cues (the tap, the mast, Sprocket's cables). **Mission 3:** the map's pause at landing, command mode's a little later.
- *   **Mission 4:** the call's pause when a hive is first in sight.
+ *   only when the player says so: a press once the lines are read (`press`, called by `Play` after `Hud.advance` has no more to
+ *   show; Minos: nobody is rushed through a line) or when the player does the thing (`did`, called by `Play` for the map and
+ *   command mode, by `callSupport` for the call).
+ * - **Mission 1, the intro:** the boss's warning is a pause (`intro.ts` calls `pause`); nothing else of these runs there.
+ * - **Mission 2, level 1:** the lift's pause at landing (Minos: the lift line belongs in her cutscene), no dial (its clock is
+ *   locked, `clockhold.ts`), the lines it skips, the world cues (the tap, the mast,
+ *   Sprocket's cables). **Mission 3:** the clock's pause at landing (the first mission whose day comes; the dial shows with it),
+ *   then the map's, command mode's a little later. **Mission 4:** the call's pause when a hive is first in sight.
+ * A pause never starts while another holds.
  * Every line and number is a guess at Minos's plan. Dev: `onboard lessons [flown]`.
  */
-import { SUPPORT, T, TAP } from './defs';
+import { CLOCK_HOLD } from './clockhold';
+import { T, TAP } from './defs';
 import { dist } from './geom';
 import type { HudId } from './onboard';
 import type { Sim } from './sim';
-import { QUEUE } from '../oraclequeue';
 import { placeWanderers } from './spawntiers';
 
 /** Missions flown before each tool opens (mission 1 is the intro: 0 flown). */
@@ -25,25 +29,17 @@ export const TAUGHT = { map: 2, command: 2, barrage: 3 } as const;
 export type Taught = keyof typeof TAUGHT;
 
 /**
- * Guesses. `type`: the HUD types a line at this many letters a second (`hud.ts`). `commandAfter`: seconds after the map's pause
+ * Guesses. `commandAfter`: seconds after the map's pause
  * before command mode's. `calm`: tiles no foe may be within for that pause. `hive`: tiles a hive is in sight for the call's.
  * `near`, `far`: tiles at which a level 1 cue is placed, and past which an untaken one is let go (it engraves).
  */
-export const LESSON = { type: 55, commandAfter: 20, calm: 10, hive: 12, near: 6, far: 14 };
+export const LESSON = { commandAfter: 20, calm: 10, hive: 12, near: 6, far: 14 };
 
-/** What the Oracle's pause waits for: its lines read, or the tool used. */
+/** What the Oracle's pause waits for: a press once her lines are read, or the tool used. */
 export interface Hush {
   id: string;
-  until: 'read' | Taught;
-  /** Seconds left, for a pause that waits for reading. */
-  left: number;
+  until: 'press' | Taught;
 }
-
-/** Seconds the HUD takes to type a line and let it be read (`oraclequeue.ts`). */
-export const readTime = (text: string) => {
-  const n = text.replace(/\{\w+\}/g, 'K').length;
-  return n / LESSON.type + QUEUE.read.base + QUEUE.read.perChar * n;
-};
 
 export class Lessons {
   hush: Hush | null = null;
@@ -70,14 +66,19 @@ export class Lessons {
   did(t: Taught) {
     if (this.hush?.until === t) this.hush = null;
   }
+  /** The player pressed with nothing left to read: a pause waiting for that ends. */
+  press() {
+    if (this.hush?.until === 'press') this.hush = null;
+  }
 
   summary() {
     return { flown: this.flown, open: (Object.keys(TAUGHT) as Taught[]).filter((t) => this.open(t)), hush: this.hush && { id: this.hush.id, until: this.hush.until }, given: [...this.given] };
   }
 }
 
-/** Level 1's clock lesson runs on mission 2 only (a dev replay of the land skips it). */
-const clockLesson = (sim: Sim) => sim.land?.id === 'level1' && sim.lessons.flown === 1;
+/** The clock's lesson runs on the first mission whose day comes (`CLOCK_HOLD` 'day': mission 3); a locked clock hides the dial. */
+const clockLesson = (sim: Sim) => CLOCK_HOLD[sim.lessons.flown] === 'day';
+const clockLocked = (sim: Sim) => CLOCK_HOLD[sim.lessons.flown] === 'lock';
 
 /** Hold back the HUD pieces not taught yet (called as the Sim is made, and by the dev command; it never reveals: an empty HUD stays empty). */
 export function gates(sim: Sim) {
@@ -85,30 +86,29 @@ export function gates(sim: Sim) {
   const held: HudId[] = [];
   if (!L.open('map')) held.push('map');
   if (!L.open('barrage')) held.push('support');
-  if (clockLesson(sim) && !L.given.has('clock')) held.push('clock');
+  if (clockLocked(sim) || (clockLesson(sim) && !L.given.has('clock'))) held.push('clock');
   ob.hide(...held);
 }
 
 /** A pause: the lines are said now (each once), and the world waits until `until`. */
-function pause(sim: Sim, id: string, until: Hush['until'], lines: { id: string; text: string; icon?: string }[]) {
+export function pause(sim: Sim, id: string, until: Hush['until'], lines: { id: string; text: string; icon?: string }[]) {
   const L = sim.lessons;
-  if (L.given.has(id)) return;
+  if (L.given.has(id) || L.hush) return;
   L.given.add(id);
-  for (const l of lines) sim.say(l.id, l.text, 'warn', { hold: until !== 'read', ...(l.icon && { icon: l.icon }) });
-  L.hush = { id, until, left: lines.reduce((s, l) => s + readTime(l.text), 0) };
+  for (const l of lines) sim.say(l.id, l.text, 'warn', { hold: until !== 'press', ...(l.icon && { icon: l.icon }) });
+  L.hush = { id, until };
 }
 
 /** Every step, before the world moves: starts a pause when its moment comes. True while one holds (the world waits). */
-export function lessonStep(sim: Sim, dt: number): boolean {
+export function lessonStep(sim: Sim): boolean {
   const L = sim.lessons;
-  if (sim.phase !== 'mission' || sim.dungeon || sim.intro) return (L.hush = null), false;
+  if (sim.phase !== 'mission' || sim.dungeon) return (L.hush = null), false;
+  if (sim.intro) return !!L.hush; // the intro starts its own (`intro.ts`)
   if (!L.wandered) (L.wandered = true), placeWanderers(sim);
+  if (clockLesson(sim)) clockStep(sim);
   if (sim.land?.id === 'level1') level1Step(sim);
   if (L.teaches('map')) mission3(sim);
   if (L.teaches('barrage')) mission4(sim);
-  const h = L.hush;
-  if (!h) return false;
-  if (h.until === 'read' && (h.left -= dt) <= 0) L.hush = null;
   return !!L.hush;
 }
 
@@ -124,12 +124,12 @@ function mission3(sim: Sim) {
   sim.said.add('crews'); // the generic crews line names the map and crews at once: the two pauses stand in for it
   if (!L.given.has('map') && sim.time > 1.2) {
     sim.onboard.reveal('map');
-    pause(sim, 'map', 'map', [{ id: 'lesson-map', text: 'I can share my map with you now ({map}): the land as I see it. Open it.', icon: 'key:map' }]);
+    pause(sim, 'map', 'map', [{ id: 'lesson-map', text: 'Open my map with {map}.', icon: 'key:map' }]);
   }
   if (L.given.has('map') && L.mapAt < 0 && L.hush?.id !== 'map') L.mapAt = sim.time;
   const robots = sim.crew.some((b) => !b.dead && !b.downed);
   if (!L.given.has('command') && L.mapAt >= 0 && sim.time > L.mapAt + LESSON.commandAfter && robots && calm(sim))
-    pause(sim, 'command', 'command', [{ id: 'lesson-command', text: 'Your robots take orders. Press {command}, click one, then right click where it should go.', icon: 'key:command' }]);
+    pause(sim, 'command', 'command', [{ id: 'lesson-command', text: 'Press {command}, click a robot, then right click where it goes.', icon: 'key:command' }]);
 }
 
 /** Mission 4: the D-city call, asked for on the first hive in sight. */
@@ -139,27 +139,33 @@ function mission4(sim: Sim) {
   const hive = sim.nests.find((n) => !n.dead && dist(n.x, n.y, c.x, c.y) < LESSON.hive * T);
   if (!hive) return;
   sim.onboard.reveal('support');
-  pause(sim, 'barrage', 'barrage', [{ id: 'lesson-barrage', text: `The Wanderer hangs overhead with a ${SUPPORT[sim.call].name.toLowerCase()}. Put your cursor on that ${sim.biome.talk.hive} and press {support}.`, icon: 'key:support' }]);
+  pause(sim, 'barrage', 'barrage', [{ id: 'lesson-barrage', text: `Point at that ${sim.biome.talk.hive} and press {support}.`, icon: 'key:support' }]);
+}
+
+/** Mission 3: the clock's pause at landing (it stands in for her hello); the day comes, then the clock holds (`clockhold.ts`). */
+function clockStep(sim: Sim) {
+  if (sim.lessons.given.has('clock')) return;
+  sim.said.add('hello');
+  sim.onboard.reveal('clock');
+  pause(sim, 'clock', 'press', [
+    { id: 'clock-day', text: 'Mind the dial: the day wakes the machines.' },
+    { id: 'clock-hold', text: 'This time it stops before dusk.' },
+  ]);
 }
 
 /**
- * Level 1 (mission 2): the clock's pause at landing; the lines it stands in for are marked said (the Oracle's hello, the
- * anomaly's word, the spare can's, the mast's sight line, which names the map); the tap's short word; the cues, each placed as he comes near its thing and engraved once
+ * Level 1 (mission 2): the lift's pause at landing, no dial and fewer words: lines marked said (the Oracle's hello, the anomaly's word, the spare can's,
+ * the mast's sight line, which names the map); the tap's short word; the cues, each placed as he comes near its thing and engraved once
  * done or left behind.
  */
 function level1Step(sim: Sim) {
-  const L = sim.lessons, c = sim.controller, ob = sim.onboard;
+  const c = sim.controller;
   for (const id of ['hello', `anomaly-${sim.anomaly}`, 'spare', 'mast-sight']) sim.said.add(id);
-  if (clockLesson(sim) && !L.given.has('clock')) {
-    ob.reveal('clock');
-    pause(sim, 'clock', 'read', [
-      { id: 'l1-clock', text: 'Mind the dial, Communicator: the sun runs fast over this patch.' },
-      { id: 'l1-dusk', text: 'At dusk the machines turn worse. The lift is yours whenever you like.' },
-    ]);
-  }
+  // The lift's word at landing, on mission 2 only (a dev replay of the land skips it); Minos's wording, in her voice (guess).
+  if (sim.lessons.flown === 1) pause(sim, 'lift', 'press', [{ id: 'l1-lift', text: 'Should it all get too lively, the lift is right where you left it.' }]);
   const tap = sim.seeps.find((q) => q.kind === 'crude' && q.amount > 0);
   // A tile before the generic line's reach (`oracle.ts` `tapSight` speaks after he moves, this before), so the short one wins.
-  if (tap && dist(c.x, c.y, tap.x, tap.y) < (TAP.sight + 1) * T) sim.say('tap', 'Crude. Stand in its steam and it mends you. One a land.', 'calm');
+  if (tap && dist(c.x, c.y, tap.x, tap.y) < (TAP.sight + 1) * T) sim.say('tap', 'Crude. Stand in its steam to mend.', 'calm');
   const mast = sim.places.find((p) => p.id === 'mast'), sp = sim.places.find((p) => p.id === 'sprocket');
   cue(sim, 'tap', tap, { icon: 'oilcan' }, !!tap && dist(c.x, c.y, tap.x, tap.y) <= TAP.reach);
   cue(sim, 'mast', mast, { icon: '', key: 'use' }, mast?.state !== 'dark');

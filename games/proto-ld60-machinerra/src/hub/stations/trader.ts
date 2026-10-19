@@ -5,7 +5,7 @@
 import { PARTS, type PartKind } from '../../sim/defs';
 import { ITEMS, QUALITIES, STATS, scaled } from '../../sim/gear';
 import { RELICS, JUNK, type RelicId } from '../../sim/junk';
-import { iconUrl } from '../../gearart';
+import { iconUrl, texUrl } from '../../gearart';
 import { relicTex } from '../../relicart';
 import { gear } from '../carry';
 import { economy, tradeSave } from '../economy';
@@ -179,10 +179,10 @@ export const traderOffer: OfferPanel = {
       ...stall(host),
       wares: shelf(host.s.missions, traderTier(host), host.s.perks.includes('backRoom')),
       left: shelfLeft(host),
-      partIcon: (k) => host.textures.getBase64(`part-${k}`),
+      partIcon: (k) => texUrl(host, `part-${k}`),
       junk: economy.get().junk,
       junkPay: junkPrice(titleSave.get()),
-      relicIcon: (r) => host.textures.getBase64(relicTex(r)),
+      relicIcon: (r) => texUrl(host, relicTex(r)),
     }),
     ...specialsTab(host),
   ],

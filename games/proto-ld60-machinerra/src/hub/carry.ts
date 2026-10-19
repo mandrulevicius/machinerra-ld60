@@ -208,7 +208,7 @@ export function landed(s: HubState, h0: Haul): { state: HubState; unlocked: Spec
     economy.set(bank(economy.get(), h, freedBy(s, h) * RESCUE_THANKS));
     if (catHome(next)) economy.set(gain(economy.get(), 'scrap', catHome(next))); // the cat at home leaves scrap with every return, this one too if it just came home (P42)
     if (cores) economy.set(gain(economy.get(), 'cores', cores));
-    researchSave.set(bankPick(researchSave.get(), h.id)); // the Oracle's free pick for this return, kept until spent (research.ts)
+    researchSave.set(bankPick(researchSave.get(), h.id, (h.insight ?? 0) > 0)); // the stage's card, if it found insight; kept until spent (research.ts)
     // Robots that went down and did not ride back up are wrecks in the workshop.
     roster.set(fetchRobots(landRoster(roster.get(), h), h.fetched));
     if (h.fetched?.length) economy.set({ ...economy.get(), cores: Math.max(economy.get().cores, roster.get().bots.length) });

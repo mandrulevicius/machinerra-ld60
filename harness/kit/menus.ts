@@ -10,7 +10,7 @@ import type Phaser from 'phaser';
 import { createSaveStore, type SaveStore } from './savefiles';
 import { audioFor } from './audio';
 import { transition } from './transition';
-import { runEscape } from './escape';
+import { enableEscAlt, escAltWorks, escapeOnFullscreenExit, ESC_ALT, runEscape, sendEscape } from './escape';
 import {
   audioTab, controlsTab, el, focusFirst, gameInput, graphicsTab, navKeys, panelShell, savesView, sysLayer, tabs, typing, type SysOptions,
 } from './menu-parts';
@@ -169,7 +169,7 @@ export function createMenus(game: Phaser.Game, opts: SysOptions, cfg: MenuConfig
   function showHint() {
     if (hinted || !cfg.gameMenu) return;
     hinted = true;
-    const h = el('<div class="ui-anchor ui-anchor--tr" style="transition: opacity var(--ui-t-med) linear"><span class="ui-hint"><kbd class="ui-key">Esc</kbd> Menu</span></div>');
+    const h = el('<div class="ui-anchor ui-anchor--tr" style="transition: opacity var(--ui-t-med) linear"><span class="ui-hint"><kbd class="ui-key">Esc</kbd> / <kbd class="ui-key">P</kbd> Menu</span></div>');
     layer.append(h);
     setTimeout(() => {
       h.style.opacity = '0';
@@ -177,6 +177,10 @@ export function createMenus(game: Phaser.Game, opts: SysOptions, cfg: MenuConfig
     }, 4000);
   }
 
+  if (cfg.gameMenu) {
+    enableEscAlt();
+    escapeOnFullscreenExit(); // before the Esc listener below: it drops an Esc that comes with the exit it already sent
+  }
   // The one Esc listener of the kit (escape.ts): an open menu first, then game handlers, then the menu opens (when the game has one).
   addEventListener(
     'keydown',
@@ -190,5 +194,20 @@ export function createMenus(game: Phaser.Game, opts: SysOptions, cfg: MenuConfig
     },
     true,
   );
+  // P is Esc too (the browser keeps Esc while it leaves fullscreen); a leave of fullscreen counts as one Esc (escape.ts).
+  // Both are sent as an Esc keydown, so the listener above and every game listener see one Esc.
+  if (cfg.gameMenu) {
+    addEventListener(
+      'keydown',
+      (e) => {
+        if (e.code !== ESC_ALT || e.ctrlKey || e.altKey || e.metaKey || e.shiftKey || editorOn() || typing()) return;
+        if (!escAltWorks(!!gameInput(game)?.bound(ESC_ALT))) return;
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        if (!e.repeat) sendEscape();
+      },
+      true, // after input.ts's rebinding listener, which comes first and takes the key while a binding waits
+    );
+  }
   return m;
 }

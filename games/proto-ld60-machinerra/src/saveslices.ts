@@ -41,7 +41,7 @@ export const slotFile = {
 /** Run the audit on the live save: the problems, empty when every slice survives a save and a reload. */
 export const auditSave = () => audit(auditSlices(), registeredKeys(), slotFile);
 
-const STOCKS = ['scrap', 'insight', 'cores', 'copper', 'coal'] as const;
+const STOCKS = ['scrap', 'cores', 'copper', 'coal'] as const;
 
 /** Dev commands that work in every scene (the save belongs to none of them). */
 export function registerSaveCommands() {
@@ -63,6 +63,6 @@ export function registerSaveCommands() {
     if (!(STOCKS as readonly string[]).includes(what) || n === undefined || !Number.isFinite(Number(n)) || Number(n) < 0) return `error: stock [${STOCKS.join('|')}] <n>, or stock charges <call> <n>`;
     economy.set({ ...e, [what]: Math.floor(Number(n)) });
     return `${what}: ${Math.floor(Number(n))} (was ${e[what as (typeof STOCKS)[number]]})`;
-  }, 'stock [scrap|insight|cores|copper|coal <n> | charges <call> <n>]: the economy\'s stocks at home (no argument: show them)', { group: 'save', args: () => [...STOCKS, 'charges'] });
+  }, 'stock [scrap|cores|copper|coal <n> | charges <call> <n>]: the economy\'s stocks at home (no argument: show them)', { group: 'save', args: () => [...STOCKS, 'charges'] });
   command('discovered', () => discovered.get(), 'discovered: the kinds of place found on any land so far (saved)', { group: 'save' });
 }

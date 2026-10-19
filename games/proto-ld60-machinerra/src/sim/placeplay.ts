@@ -408,7 +408,7 @@ export const BEHAVE: Record<PlaceId, Behaviour> = {
       ready: (_s, p) => p.state === 'dark',
       fire(sim, p) {
         p.state = 'lit';
-        sim.addInsight(INSIGHT.mast);
+        sim.addInsight(INSIGHT.mast, part(p, 'mast'));
         const m = part(p, 'mast');
         if (sim.land?.id === 'level1') return void level1Reveal(sim, p, m);
         const n = nearestSleeper(sim, m);

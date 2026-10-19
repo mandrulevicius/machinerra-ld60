@@ -7,6 +7,7 @@ import { command, commands, helpText } from './commands';
 import { quality } from '../kit/state';
 import { getTune, setTune, syncTunesToUrl, tunes } from '../kit/tune';
 import { LEVELS, type QualityTier } from '../kit/quality';
+import { perfMarksOn, setPerfMarks } from '../kit/perf-marks';
 
 export const paused = (game: Phaser.Game) => !game.loop.running;
 export function setPaused(game: Phaser.Game, on: boolean) {
@@ -73,6 +74,18 @@ export function registerBuiltins(game: Phaser.Game, bridge: { step(n?: number): 
   );
 
   command(
+    'audio',
+    () => {
+      const a = (window as any).__game?.kit?.audio;
+      if (!a) throw new Error('audio is not ready');
+      const s = a.state();
+      return `mute ${s.muted} url ${s.urlMute} saved ${s.volume.muted} context ${s.context}`;
+    },
+    'audio: the mute the kit applies (saved muted or ?mute=), whether ?mute= forces it, the saved muted setting, the audio context state',
+    { group: 'kit' },
+  );
+
+  command(
     'step',
     ([n]) => {
       const count = n === undefined ? 1 : Number(n);
@@ -82,6 +95,19 @@ export function registerBuiltins(game: Phaser.Game, bridge: { step(n?: number): 
     },
     'step [n]: advance n frames (default 1); with the game paused it moves frame by frame',
     { group: 'dev' },
+  );
+
+  command(
+    'marks',
+    ([state]) => {
+      if (state !== undefined) {
+        if (state !== 'on' && state !== 'off') throw new Error('marks [on|off]');
+        setPerfMarks(state === 'on');
+      }
+      return `marks ${perfMarksOn() ? 'on' : 'off'}`;
+    },
+    'marks [on|off]: emit perf:<name> measures for the kit\'s perfStart/perfEnd sections; no argument shows the state',
+    { group: 'dev', args: () => ['on', 'off'] },
   );
 
   command('pause', () => (setPaused(game, true), 'paused'), 'pause: stop the game loop (step still advances it)', dev);

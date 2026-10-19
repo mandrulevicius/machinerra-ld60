@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { Bag, Music, VoicePool, pickSegment, clamp01, defaultThreshold, densityGain, equalPowerCurve, hearingGain, lowpassFor, nextBoundary, softClipCurve } from './audio';
+import { Bag, Music, VoicePool, pickSegment, clamp01, defaultThreshold, densityGain, equalPowerCurve, forcedMute, hearingGain, lowpassFor, nextBoundary, softClipCurve } from './audio';
+
+describe('forcedMute', () => {
+  it('any ?mute= value but 0 mutes', () => {
+    expect(['?mute=1', '?mute=', '?a=1&mute=yes'].map(forcedMute)).toEqual([true, true, true]);
+    expect(['', '?mute=0', '?q=1'].map(forcedMute)).toEqual([false, false, false]);
+  });
+});
 
 describe('equalPowerCurve', () => {
   it('runs from -> to, monotonic', () => {

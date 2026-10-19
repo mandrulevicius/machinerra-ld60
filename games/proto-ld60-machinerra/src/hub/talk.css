@@ -120,8 +120,8 @@
  * out is the quietest. Everything else is the plain plate above.
  */
 .tk-lever[data-w="story"] .tk-lever__plate { font-size: 19px; padding-top: 9px; padding-bottom: 10px; background: radial-gradient(circle at 7px 50%, var(--soot) 0 1.8px, transparent 2.6px), linear-gradient(#ffe08a, #f0b84a 55%, #c8903a); box-shadow: 0 0 0 2px var(--soot), 0 3px 0 2px var(--soot), 0 0 18px rgb(255 190 70 / 0.55), inset 0 1px 0 rgb(255 250 210 / 0.7); }
-.tk-lever[data-w="story"] .tk-lever__arm u { animation: tk-knob 1.6s ease-in-out infinite; }
-@keyframes tk-knob { 50% { box-shadow: 0 0 0 2px var(--soot), 0 0 14px 3px rgb(255 190 70 / 0.85); } }
+.tk-lever[data-w="story"] .tk-lever__arm u::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; opacity: 0; box-shadow: 0 0 14px 3px rgb(255 190 70 / 0.85); will-change: opacity; animation: tk-knob 1.6s ease-in-out infinite; }
+@keyframes tk-knob { 50% { opacity: 1; } }
 .tk-lever[data-w="heard"] > * { opacity: 0.62; }
 .tk-lever[data-w="heard"] .tk-lever__plate { background: radial-gradient(circle at 7px 50%, var(--soot) 0 1.8px, transparent 2.6px), linear-gradient(#8a7248, #6c5a38 55%, #50421f); color: #3a2c16; font-weight: 600; text-shadow: none; }
 .tk-lever[data-w="heard"] .tk-lever__arm u { background: radial-gradient(circle at 33% 28%, #b0a090, #6a5a4a 52%, #2a2018); }
@@ -129,7 +129,7 @@
 .tk-lever[data-w="leave"] .tk-lever__plate { background: radial-gradient(circle at 7px 50%, var(--brass) 0 1.8px, transparent 2.6px), linear-gradient(#2e261c, #231c14); color: var(--ui-c-text-dim); font-weight: 600; font-size: 17px; text-shadow: none; box-shadow: 0 0 0 2px var(--tk-brass-lo), 0 3px 0 2px var(--soot); }
 .tk-lever[data-w="leave"] .tk-lever__arm u { background: radial-gradient(circle at 33% 28%, #c9ab62, #7a5a22 52%, #3a2a12); }
 .tk-lever[data-w="heard"].is-sel > *, .tk-lever[data-w="leave"].is-sel > * { opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .tk-lever[data-w="story"] .tk-lever__arm u { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .tk-lever[data-w="story"] .tk-lever__arm u::after { animation: none; } }
 
 /*
  * Kind (derived in dialog.ts `kindOf`): a glyph chip and a word on each plate, coloured by what the reply does. Quest is amber, an

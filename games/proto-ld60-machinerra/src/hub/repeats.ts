@@ -15,7 +15,7 @@ import { clampTier } from '../sim/dungeon';
 
 /** How a stat is read: summed over the mission, or under a limit (the stat must exist: leaving before dusk is no clean day). */
 export type JobGoal = { stat: string; mode: 'atLeast' | 'under'; n: number };
-export type JobReward = 'stripe' | 'weapon' | 'mod' | 'body' | 'tuneUp' | 'magnet' | 'copper' | 'kickCard' | 'biscuits' | 'pick' | 'sweepings';
+export type JobReward = 'stripe' | 'weapon' | 'mod' | 'body' | 'tuneUp' | 'magnet' | 'copper' | 'kickCard' | 'biscuits' | 'scrap' | 'sweepings';
 
 export interface Job {
   id: string;
@@ -41,11 +41,13 @@ export const REWARD_NAMES: Record<JobReward, string> = {
   copper: 'a little copper',
   kickCard: 'a research pick, Boot Polish first',
   biscuits: 'a free batch of biscuits',
-  pick: 'one more research pick',
+  scrap: 'a little scrap',
   sweepings: 'her sweepings doubled next time',
 };
 /** The copper the Planner's "rush order" pays (a guess). */
 export const RUSH_COPPER = 30;
+/** The scrap the Oracle's tap job pays, where a card pick used to be (Minos: one card a stage, earned; the amount is a guess). */
+export const TAP_SCRAP = 40;
 
 interface Ctx { biome: BiomeId; tier: number; foes: Enemy[]; r: ReturnType<typeof rng>; /** The lands of the last trips home (the Princess's: a land she has not mapped this week). */ recent: readonly BiomeId[] }
 interface Template {
@@ -99,7 +101,7 @@ export const REPEATS: Template[] = [
     make: (c) => { const id = c.r.pick([...new Set(Object.values(RUIN_JUNK).flat())].filter((x) => !isUnique(x))); return { task: `Bring home a ${RELICS[id].item.toLowerCase()}`, goal: { stat: `junk.${id}`, mode: 'atLeast', n: 1 } }; },
   },
   {
-    id: 'rep.oracle.tap', giver: 'highPriest', line: 'The well is warm and clean. Be hurt first, then be mended.', reward: 'pick', n: [80, 120, 160],
+    id: 'rep.oracle.tap', giver: 'highPriest', line: 'The well is warm and clean. Be hurt first, then be mended.', reward: 'scrap', n: [80, 120, 160],
     make: (_c, n) => ({ task: `Be mended ${n} oil at the tap`, goal: { stat: 'tapped', mode: 'atLeast', n } }),
   },
   {

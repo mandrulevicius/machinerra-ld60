@@ -161,6 +161,7 @@ describe('the intro boss fight', () => {
         if (g.mode === 'lunge' && g.t > bossNow('caterpillar').charge.time - 1 / 30) lunges++;
       }
       const hp = c.hp;
+      s.lessons.press(); // the boss's warning pause (the intro's one)
       s.step(1 / 30, input);
       s.events.length = 0;
       if (boss?.grub?.mode === 'lunge' && c.hp < hp) hitByLunge++;

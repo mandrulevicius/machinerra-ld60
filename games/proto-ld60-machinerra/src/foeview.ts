@@ -13,6 +13,7 @@ import { DANGER, DANGER_TWISTED, LINE } from './house';
 import { VIOLET, ViewBase, kick, ring, spring, type G, type HornetView, type Light } from './playhost';
 import { BEAST_MODS, BIOMES, COUNTERS, ELITE_TRAITS, FOES, FOE_TIERS, HORNET, STAGE, TIER, TWISTED, bossNow, bossOf, countersOf, type Enemy } from './sim/defs';
 import { drawCounter } from './counters';
+import { FadePool, GlowBands } from './fxpool';
 import type { Hornet, SimEvent } from './sim/sim';
 import { foeDash, hasAbility } from './sim/tiers';
 import type { PlayHost } from './playhost';
@@ -41,6 +42,8 @@ const RAD = Math.PI / 180;
 
 export class FoeView extends ViewBase {
   private auraLights: Light[] = [];
+  private fades = new FadePool(this.scene);
+  private glows = new GlowBands(this.scene);
   private motive: Motive = { hop: 0, rock: 0, late: 0 };
   /** The ids of the foes the sim has this frame (so the views of those gone are found in one pass). */
   private alive = new Set<number>();
@@ -62,6 +65,7 @@ export class FoeView extends ViewBase {
   }
 
   update(dt: number, g: G) {
+    this.fades.update(dt);
     this.drawHornets(dt, g);
     this.drawMarks(g);
   }
@@ -186,10 +190,9 @@ export class FoeView extends ViewBase {
         this.k.juice.shake('small');
         break;
       case 'reel': {
-        const g = this.scene.add.graphics().setDepth(71000);
+        const g = this.fades.spawn({ depth: 71000, ms: 260 });
         g.lineStyle(LINE.effect, 0x2a2622, 1).lineBetween(e.by.x, e.by.y - 14, e.h.x, e.h.y - 14);
         g.lineStyle(LINE.detail, 0xc8963c, 1).lineBetween(e.by.x, e.by.y - 14, e.h.x, e.h.y - 14);
-        this.scene.tweens.add({ targets: g, alpha: 0, duration: 260, onComplete: () => g.destroy() });
         break;
       }
       default:
@@ -343,21 +346,21 @@ export class FoeView extends ViewBase {
       const a = sim.auraOf(h);
       if (a) {
         const col = DANGER; // an aura is a hazard: red, whatever the enemy's own colour
-        if (!v.aura) v.aura = this.scene.add.image(h.x, h.y, 'glow').setBlendMode(Phaser.BlendModes.ADD).setTint(col);
+        if (!v.aura) v.aura = this.glows.glow(this.scene, 'under', col, h.x, h.y);
         const pulse = 0.5 + 0.5 * Math.sin(now / (B ? 380 : 260) + h.id);
         // A menacing enemy (past midnight, P46's refined curve) wears the menace: a bigger, brighter halo and more eyes; the rest stay as twisted ones (first cut, P7 draws the full look).
         const mn = h.menacing ? 1 : 0, bf = mn * buff;
-        v.aura.setVisible(onView).setPosition(h.x, h.y + 4).setDepth(h.y - 6).setScale(((2 * a.radius) / 128) * (1 + 0.15 * mn), ((2 * a.radius) / 128) * 0.62 * (1 + 0.15 * mn)).setAlpha((B ? 0.34 : 0.2) + 0.08 * pulse + 0.05 * Math.min(bf, 4) + 0.06 * mn);
+        v.aura.setVisible(onView).setPosition(h.x, h.y + 4).setScale(((2 * a.radius) / 128) * (1 + 0.15 * mn), ((2 * a.radius) / 128) * 0.62 * (1 + 0.15 * mn)).setAlpha((B ? 0.34 : 0.2) + 0.08 * pulse + 0.05 * Math.min(bf, 4) + 0.06 * mn);
         if (onView) ring(g, h.x, h.y + 4, a.radius, col, 0.3 + 0.2 * pulse, now + h.id * 300);
         // Eyes: one pair of red-violet pinpricks; each menace level past midnight opens another.
         const n = v.painted && h.kind !== 'hornet' ? 0 : (B ? 3 : 1) + mn + Math.min(4, Math.floor(bf)); // painted foes have their own eyes; a menacing hornet opens more
-        while (v.eyes.length < n) v.eyes.push(this.scene.add.image(0, 0, 'glow').setBlendMode(Phaser.BlendModes.ADD).setTint(0xff2858));
+        while (v.eyes.length < n) v.eyes.push(this.glows.glow(this.scene, 'over', 0xff2858));
         v.eyes.forEach((e, i) => {
           e.setVisible(onView && i < n);
           if (!e.visible) return;
           const side = flip ? -1 : 1;
           const row = i - (n - 1) / 2;
-          e.setPosition(x + side * (10.5 - Math.abs(row) * 0.9) * k, y + (0.5 + row * 3.2) * k).setDepth(h.y + 41);
+          e.setPosition(x + side * (10.5 - Math.abs(row) * 0.9) * k, y + (0.5 + row * 3.2) * k);
           e.setScale((0.2 + 0.03 * Math.min(bf, 5)) * (k / 1.3) * (tell ? 1.8 : 1) * (B ? 0.8 : 1));
           e.setAlpha(0.75 + 0.25 * Math.sin(now / 140 + i * 2 + h.id));
         });
@@ -418,13 +421,13 @@ export class FoeView extends ViewBase {
     const S = (v.stage ??= {});
     const spr = v.spr;
     const glow = stage && !!h.menacing && onView;
-    if (glow && !S.glow) S.glow = this.scene.add.image(h.x, h.y, 'glow').setBlendMode(Phaser.BlendModes.ADD).setTint(DANGER_TWISTED);
+    if (glow && !S.glow) S.glow = this.glows.glow(this.scene, 'over', DANGER_TWISTED, h.x, h.y);
     if (S.glow) {
       S.glow.setVisible(glow && spr.visible);
       if (glow) {
         const pulse = 0.5 + 0.5 * Math.sin((now / 1000) * Math.PI * 2 * STAGE.glow.hz + h.id);
         const size = Math.max(spr.displayWidth, spr.displayHeight) * 1.25 / 128;
-        S.glow.setPosition(spr.x, spr.y - (v.ground ? spr.displayHeight * 0.4 : 0)).setDepth(spr.depth + 0.5).setScale(size).setAlpha(spr.alpha * STAGE.glow.alpha * (0.55 + 0.45 * pulse));
+        S.glow.setPosition(spr.x, spr.y - (v.ground ? spr.displayHeight * 0.4 : 0)).setScale(size).setAlpha(spr.alpha * STAGE.glow.alpha * (0.55 + 0.45 * pulse));
       }
     }
     if (stage && onView && !v.chain && spr.texture.key === 'atlas') this.rimCand.push({ v, d: Math.hypot(h.x - view.centerX, h.y - view.centerY) });

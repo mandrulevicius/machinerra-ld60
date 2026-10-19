@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { runLine } from './dev/commands';
+import { stepFixed } from './stepfixed';
 
 export type LogLevel = 'log' | 'warn' | 'error';
 /** One console line. `cmd` marks the dev console's own input echo and command output. */
@@ -13,10 +14,12 @@ export interface LogEntry {
 /**
  * Debug bridge for agents: `window.__game` in the browser.
  *   __game.scenes()          active scene keys
- *   __game.state()           each active scene's debugState(), if it defines one
+ *   __game.state()           each active scene's debugState() (every scene defines one: skills.test.ts)
  *   __game.scene(key)        the scene instance, to call its debug methods
- *   __game.goto(key, data)   stop active scenes, start `key`
+ *   __game.step(n, {render:false})  n fixed 1/60 s steps, as fast as the CPU runs them; render:false skips drawing
+ *   __game.goto(key, data)  stop active scenes, start `key`
  *   __game.perf()            fps and display-object count per active scene
+ *   __game.onStep(before?, after?)  hooks(i, n) run around frame i of each step(n), capture's included; returns an unsubscribe
  *   __game.errors            uncaught errors since load, with stacks
  *   __game.console           the last 30 console warnings and errors
  *   __game.logs              the dev console's log: entries (last 500: log, warn, error, uncaught errors with stacks), on(fn), clear()
@@ -59,6 +62,9 @@ export function installBridge(game: Phaser.Game) {
   }
   const active = () => game.scene.getScenes(true);
   let lastStep = 0;
+  type StepHook = (i: number, n: number) => void;
+  const stepBefore: StepHook[] = [];
+  const stepAfter: StepHook[] = [];
   // The dev modules load a moment after boot; cmd() waits for them.
   let ready: Promise<unknown> = Promise.resolve();
   const bridge = {
@@ -74,11 +80,31 @@ export function installBridge(game: Phaser.Game) {
       fps: Math.round(game.loop.actualFps),
       objects: Object.fromEntries(active().map((s) => [s.scene.key, s.children.length])),
     }),
-    step: (n = 1) => {
+    step: (n = 1, o: { render?: boolean } = {}) => {
       // Monotonic: a later call must not restart behind where the previous one ended.
-      let t = Math.max(performance.now(), lastStep);
-      for (let i = 0; i < n; i++) game.step((t += 1000 / 60), 1000 / 60);
+      const from = Math.max(performance.now(), lastStep);
+      const render = o.render !== false;
+      if (!stepBefore.length && !stepAfter.length) {
+        lastStep = stepFixed(game, n, from, render);
+        return;
+      }
+      let t = from;
+      for (let i = 0; i < n; i++) {
+        for (let k = 0; k < stepBefore.length; k++) stepBefore[k](i, n);
+        t = stepFixed(game, 1, t, render);
+        for (let k = 0; k < stepAfter.length; k++) stepAfter[k](i, n);
+      }
       lastStep = t;
+    },
+    onStep: (before?: StepHook, after?: StepHook) => {
+      if (before) stepBefore.push(before);
+      if (after) stepAfter.push(after);
+      return () => {
+        for (const [list, f] of [[stepBefore, before], [stepAfter, after]] as const) {
+          const at = f ? list.indexOf(f) : -1;
+          if (at >= 0) list.splice(at, 1);
+        }
+      };
     },
     goto: (key: string, data?: object) => {
       // start() restarts a running scene itself; stopping it first as well leaves it stopped.

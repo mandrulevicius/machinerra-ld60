@@ -1,6 +1,7 @@
 /**
  * Mission 1's opening (`games/ludum-dare-60/docs/onboarding.md`): on the Zeppelin Wanderer's lift, under its belly, the Oracle
- * speaks while he cannot act (`OPENING`, `sim/introlines.ts`), one line at a time (Use or a click for the next); one gives the quest
+ * speaks while he cannot act (`OPENING`, `sim/introlines.ts`), one line at a time: no line moves on by itself (Minos), a press (Use, Space
+ * or a click) finishes the typing, the next brings the next line, and the press after the last one starts the turbulence; one gives the quest
  * to rescue Sprocket and her last signal pulses on the sands to the east. They show on the game's own Oracle panel (`.mc-oracle`,
  * `hud.ts`: her face, the name, the text typed out, a picture beside it, a blip and the antenna's light with each line). Then turbulence: the airship lurches, the lift swings,
  * and he falls, into the old works (`Play` on the land `intro`). The cheapest view that reads: the Ascent's zeppelin and lift over a
@@ -21,8 +22,8 @@ import { hub } from './hub/save';
 import { installSounds } from './sound';
 import './hub/hub.css';
 
-/** Seconds: a line stays at least `line`, plus `perChar` a character; the turbulence; the fall; the fade into the old works. */
-const TIME = { line: 3.2, perChar: 0.045, shake: 1.6, fall: 1.3, fade: 500, ping: 1.6, type: 55 };
+/** Seconds: the turbulence; the fall; the fade into the old works; the antenna's light; letters a second typed. */
+const TIME = { shake: 1.6, fall: 1.3, fade: 500, ping: 1.6, type: 55 };
 /** Where things stand on the 1280 x 720 view: the airship, the lift under its belly, her signal on the sands. */
 const AT = { zep: { x: 560, y: 210, k: 0.5 }, lift: { x: 600, y: 470 }, signal: { x: 1080, y: 520 } };
 
@@ -82,11 +83,11 @@ export class Opening extends Phaser.Scene {
     const ui: HTMLElement = this.registry.get('ui');
     const el = document.createElement('div');
     el.className = 'hb-cut';
-    el.innerHTML = `<div class="hb-cut__bar hb-cut__bar--top"></div><div class="hb-cut__bar hb-cut__bar--bottom"></div><div class="mc-oracle is-on" data-tone="calm"><div class="mc-oracle__eye"><i></i></div><div class="mc-oracle__col"><div class="mc-oracle__name">The Oracle</div><div class="mc-oracle__text"></div><div class="mc-oracle__more">${promptHtml('{use} next')}</div></div><div class="mc-oracle__icon"></div></div>`;
+    el.innerHTML = `<div class="hb-cut__bar hb-cut__bar--top"></div><div class="hb-cut__bar hb-cut__bar--bottom"></div><div class="mc-oracle is-on" data-tone="calm"><div class="mc-oracle__eye"><i></i></div><div class="mc-oracle__col"><div class="mc-oracle__name">The Oracle</div><div class="mc-oracle__text"></div><div class="mc-oracle__more">${promptHtml('{use} to go on')}</div></div><div class="mc-oracle__icon"></div></div>`;
     ui.appendChild(el);
     this.cap = el;
     requestAnimationFrame(() => el.classList.add('is-on'));
-    el.addEventListener('pointerdown', () => this.next());
+    el.addEventListener('pointerdown', () => this.press());
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => el.remove());
     this.show();
   }
@@ -103,7 +104,15 @@ export class Opening extends Phaser.Scene {
     this.k.audio.sfx.play('blip', { gain: 0.6 });
   }
 
-  /** Use or a click: the next line now (the last one runs into the turbulence by itself). */
+  /** A press: finishes the line's typing, else brings the next line (after the last, the turbulence). */
+  private press() {
+    const t = this.typing, text = this.cap?.querySelector('.mc-oracle__text');
+    if (t && text && this.phase === 'talk') {
+      text.textContent = t.text;
+      this.typing = null;
+    } else this.next();
+  }
+
   private next() {
     if (this.phase !== 'talk') return;
     this.t = 0;
@@ -117,13 +126,9 @@ export class Opening extends Phaser.Scene {
     if (this.done) return;
     const dt = Math.min(0.05, ms / 1000);
     this.t += dt;
-    const line = OPENING[this.i];
     this.type(dt);
-    if (this.phase === 'talk') {
-      if (inputFor(this).pressed('use')) this.next();
-      // The last line is cut off by the lurch, sooner than the others.
-      else if (this.t >= (this.i === OPENING.length - 1 ? 1.4 : TIME.line + TIME.perChar * line.text.length)) this.next();
-    }
+    const input = inputFor(this);
+    if (this.phase === 'talk' && (input.pressed('use') || input.pressed('dash'))) this.press();
     // Her signal: a pulsing ring on the sands once the Oracle names it, and from then on.
     const cueOn = OPENING.findIndex((l) => l.cue) <= this.i;
     this.ring.clear();

@@ -192,10 +192,6 @@ export class DungeonView {
         this.exitLift = api.place('dungeon-shaft', e.x!, e.y! + liftFoot('dungeon-shaft'), LIFT_SCALE).setDepth(-4);
         break;
       }
-      case 'insight':
-        api.floater(e.x!, e.y! - 40, '+1 insight', '#9ff6ff', 3200, 20);
-        api.sfx('unlock', e.x, e.y, { gain: 0.6 });
-        break;
     }
   }
 

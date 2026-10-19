@@ -144,6 +144,9 @@ export function installSounds(a: Audio) {
   // The day's beats. Dusk: a low swell of sines in a minor shade, beating slowly. Midnight: a bell (inharmonic partials).
   // A twisting hornet: a falling, wobbling whine. The queen: a sub-bass roar through a growl of noise.
   a.addBuffer('dusk', make(3, (t) => (Math.sin(2 * Math.PI * 55 * t) * 0.5 + Math.sin(2 * Math.PI * 55.7 * t) * 0.4 + Math.sin(2 * Math.PI * 65.4 * t) * 0.3 + Math.sin(2 * Math.PI * 82.4 * t) * 0.3 + Math.sin(2 * Math.PI * 110 * t) * 0.12) * Math.min(1, t / 1.2) * Math.min(1, (3 - t) / 1.4) * 0.55));
+  const lp5r = lowpass(0.04);
+  // Midnight's knell: a great bell struck once, deep and long (inharmonic partials an octave and a half under the toll, slow to die) over a sub-bass boom with a rumble of noise at the blow.
+  a.addBuffer('knell', make(5, (t) => (Math.sin(2 * Math.PI * 82 * t) * 0.6 + Math.sin(2 * Math.PI * 82 * 2.76 * t) * 0.35 + Math.sin(2 * Math.PI * 82 * 5.4 * t) * 0.18 + Math.sin(2 * Math.PI * 82 * 8.9 * t) * 0.08) * env(t, 0.004, 1.6) * 0.45 + (Math.sin(2 * Math.PI * (48 - 14 * Math.min(1, t / 0.8)) * t) * 0.9 + lp5r(noise()) * 0.5) * env(t, 0.003, 0.5) * 0.45));
   a.addBuffer('bell', make(2.6, (t) => (Math.sin(2 * Math.PI * 196 * t) * 0.6 + Math.sin(2 * Math.PI * 196 * 2.76 * t) * 0.3 + Math.sin(2 * Math.PI * 196 * 5.4 * t) * 0.15) * env(t, 0.003, 0.7) * 0.5));
   a.addBuffer('twist', make(0.5, (t) => Math.sin(2 * Math.PI * (420 - 330 * t + Math.sin(t * 90) * 25) * t) * env(t, 0.01, 0.16) * 0.45 + lp4(noise()) * env(t, 0.002, 0.04) * 0.25));
   const lp5 = lowpass(0.08);
@@ -190,6 +193,7 @@ export function installSounds(a: Audio) {
   s.group('thump', ['thump'], { max: 4, priority: 5, vary: 0.1, reverb: 0.3, gain: 0.9 });
   s.group('shell', ['collapse', 'denDown'], { pitch: 0.8, vary: 0.1, max: 4, priority: 5, reverb: 0.5, gain: 0.8 });
   s.group('dusk', ['dusk'], { max: 1, priority: 7, reverb: 0.5, gain: 0.8, duck: 0.5, duckTime: 2 });
+  s.group('knell', ['knell'], { max: 1, priority: 9, reverb: 0.7, gain: 0.95, duck: 0.75, duckTime: 3.5 });
   s.group('bell', ['bell'], { max: 3, priority: 7, reverb: 0.6, gain: 0.7 });
   s.group('twist', ['twist'], { max: 3, priority: 3, vary: 0.12, gain: 0.5 });
   s.group('queen', ['queen'], { max: 1, priority: 8, reverb: 0.4, gain: 0.9, duck: 0.6, duckTime: 1.5 });

@@ -638,7 +638,7 @@ export function trapPhase(h: Hazard, t: number): 'idle' | 'warn' | 'burst' {
 // ---------------------------------------------------------------- the run
 
 /** What the dungeon's rules tell the scene. */
-export type DungeonEvent = { e: 'dungeon'; what: 'ambush' | 'trapWarn' | 'trapBurst' | 'lever' | 'denEnter' | 'echo' | 'insight' | 'cracked' | 'wallHit' | 'wallBreak'; x?: number; y?: number; room?: number; /** Blows on the wall so far. */ blows?: number; /** The foes an echo reached. */ heard?: Hornet[] };
+export type DungeonEvent = { e: 'dungeon'; what: 'ambush' | 'trapWarn' | 'trapBurst' | 'lever' | 'denEnter' | 'echo' | 'cracked' | 'wallHit' | 'wallBreak'; x?: number; y?: number; room?: number; /** Blows on the wall so far. */ blows?: number; /** The foes an echo reached. */ heard?: Hornet[] };
 
 /**
  * A dungeon's rules while it runs (the Sim holds one down a dungeon: `Sim.run`). It spawns the dungeon's people
@@ -756,9 +756,8 @@ export class DungeonRun {
     if (b?.dead && !this.cleared) {
       this.cleared = true;
       this.insight = 1;
-      sim.addInsight(1);
+      sim.addInsight(1, b);
       if (!b.boss) for (let i = 0; i < DEN_ELITE.material; i++) sim.drop(b.x + (i - 0.5) * 20, b.y + 8, 'part', this.d.def.material);
-      this.emit({ what: 'insight', x: b.x, y: b.y });
       this.wall = 'cracked';
       const w = this.wallAt();
       this.emit({ what: 'cracked', x: w.x, y: w.y });

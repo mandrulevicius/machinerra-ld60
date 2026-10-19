@@ -7,6 +7,7 @@
  */
 import Phaser from 'phaser';
 import { LINE } from './house';
+import { FadePool } from './fxpool';
 import { ViewBase } from './playhost';
 import { RELICS } from './sim/junk';
 import { RELIC_FX, lightAt } from './sim/junkplay';
@@ -20,6 +21,8 @@ function wedge(g: Phaser.GameObjects.Graphics, x: number, y: number, a: number, 
 }
 
 export class JunkView extends ViewBase {
+  private fades = new FadePool(this.scene);
+
   /** Level 1's find: a card with the old thing's name that flips to its reading (the colony's misread), then fades. */
   private card(item: string, reading: string, x: number, y: number) {
     const el = document.createElement('div');
@@ -36,7 +39,6 @@ export class JunkView extends ViewBase {
 
   event(e: SimEvent) {
     if (e.e !== 'relic' && e.e !== 'junk') return;
-    const { scene } = this;
     if (e.e === 'relic') {
       const r = RELICS[e.id];
       if (this.sim.land?.guided && e.kept) return void this.card(r.item, r.reading, e.x, e.y);
@@ -62,10 +64,9 @@ export class JunkView extends ViewBase {
       case 'cone':
       case 'gust': {
         const fire = e.what === 'cone';
-        const g = scene.add.graphics().setDepth(71000).setBlendMode(Phaser.BlendModes.ADD);
+        const g = this.fades.spawn({ depth: 71000, add: true, ms: fire ? 320 : 400 });
         wedge(g, e.x, e.y - 14, e.a!, e.w!, e.r!);
         g.fillStyle(fire ? 0xffb640 : 0xcfeeff, fire ? 0.55 : 0.4).fillPath();
-        scene.tweens.add({ targets: g, alpha: 0, duration: fire ? 320 : 400, onComplete: () => g.destroy() });
         this.flash(e.x + Math.cos(e.a!) * 60, e.y + Math.sin(e.a!) * 60, fire ? 0xffb640 : 0xcfeeff, 1.4);
         this.sfx(fire ? 'zap' : 'swish', e.x, e.y, { gain: fire ? 0.4 : 0.6, vary: 0.2 });
         break;
@@ -76,13 +77,12 @@ export class JunkView extends ViewBase {
       case 'swat': {
         // The zapper's crackle, the selfie stick's long jab: a short bright line from the bot to the foe.
         const zap = e.by?.relic === 'zapper';
-        const g = scene.add.graphics().setDepth(71000).setBlendMode(Phaser.BlendModes.ADD);
+        const g = this.fades.spawn({ depth: 71000, add: true, ms: 160 });
         g.lineStyle(zap ? 3 : 4, zap ? 0xffe15a : 0xeaf6ff, 1);
         if (zap) {
           const mx = (e.x + e.tx!) / 2 + (Math.random() - 0.5) * 14, my = (e.y + e.ty!) / 2 - 14 + (Math.random() - 0.5) * 14;
           g.beginPath().moveTo(e.x, e.y - 14).lineTo(mx, my).lineTo(e.tx!, e.ty! - 10).strokePath();
         } else g.beginPath().moveTo(e.x, e.y - 14).lineTo(e.tx!, e.ty! - 10).strokePath();
-        scene.tweens.add({ targets: g, alpha: 0, duration: 160, onComplete: () => g.destroy() });
         this.flash(e.tx!, e.ty! - 10, zap ? 0xffe15a : 0xeaf6ff, 0.9);
         this.sfx(zap ? 'zap' : 'swish', e.x, e.y, { gain: 0.3, vary: 0.2 });
         break;
@@ -92,18 +92,16 @@ export class JunkView extends ViewBase {
         this.sfx('warn', e.x, e.y, { gain: 0.2 });
         break;
       case 'flash': {
-        const g = scene.add.graphics().setDepth(71000).setBlendMode(Phaser.BlendModes.ADD);
+        const g = this.fades.spawn({ depth: 71000, add: true, ms: 300 });
         g.fillStyle(0xffffff, 0.55).fillCircle(e.x, e.y - 14, e.r!);
-        scene.tweens.add({ targets: g, alpha: 0, duration: 300, onComplete: () => g.destroy() });
         this.flash(e.x, e.y - 14, 0xffffff, 2.2);
         this.sfx('zap', e.x, e.y, { gain: 0.35, vary: 0.1 });
         break;
       }
       case 'sprinkle': {
-        const g = scene.add.graphics().setDepth(71000).setBlendMode(Phaser.BlendModes.ADD);
+        const g = this.fades.spawn({ depth: 71000, add: true, ms: 600 });
         g.lineStyle(LINE.effect, 0x6fc8ee, 0.9).strokeCircle(e.x, e.y, e.r!);
         g.fillStyle(0x6fc8ee, 0.12).fillCircle(e.x, e.y, e.r!);
-        scene.tweens.add({ targets: g, alpha: 0, duration: 600, onComplete: () => g.destroy() });
         this.k.fx.burst(e.x, e.y - 16, { color: 0x6fc8ee, size: 0.6 });
         this.sfx('swish', e.x, e.y, { gain: 0.3, vary: 0.3 });
         break;
@@ -112,7 +110,8 @@ export class JunkView extends ViewBase {
   }
 
   /** Slugs in the air, a humming cone's warning, and the rings round marked loot. */
-  update(_dt: number, g: Phaser.GameObjects.Graphics) {
+  update(dt: number, g: Phaser.GameObjects.Graphics) {
+    this.fades.update(dt);
     const time = this.scene.time.now;
     const J = this.sim.junkw;
     for (const s of J.slugs) {

@@ -46,7 +46,8 @@ export class CommView extends ViewBase {
     const hat = this.scene.add.image(b.x, b.y, 'worn-hornetHead').setVisible(false), pack = this.scene.add.image(b.x, b.y, 'worn-supportAntenna').setVisible(false);
     return { dir: 'front', px: b.x, py: b.y, pingT: 0, tip: L.add(b.x, b.y - 60, { color: 0xffc070, radius: 70, intensity: 0 }), glow: this.scene.add.image(b.x, b.y, 'glow').setBlendMode(Phaser.BlendModes.ADD).setVisible(false), bead: this.scene.add.circle(b.x, b.y, 3.2, 0x4a7fd0).setStrokeStyle(1.5, 0x1a1008).setVisible(false), warm: 0, shovel, hat, pack, worn: '', swing: null, lookT: 0, turn: 1, kneelT: 0, spill: null,
       // Spare oil hangs on the pack, one can each: hooked by the top, swaying as it walks.
-      cans: Array.from({ length: REVIVE.cans }, () => this.scene.add.image(b.x, b.y, 'oilcan').setOrigin(0.5, 0.12).setScale(0.3).setVisible(false)) };
+      cans: Array.from({ length: REVIVE.cans }, () => this.scene.add.image(b.x, b.y, 'oilcan').setOrigin(0.5, 0.12).setScale(0.3).setVisible(false)),
+      antenna: this.scene.add.graphics().setDepth(90000) };
   }
 
   /** Put on what the gear says he wears (`worn-<id>` textures, `src/gearart.ts`): the head piece over his box head, the pack piece on his back. */
@@ -248,8 +249,9 @@ export class CommView extends ViewBase {
     stepAntenna(ant, bx0, by0, dt, v.spr.x, v.spr.y);
     antennaPoints(ant, bx0, by0, pts);
     const tx = pts.x[ANTENNA.n + 1], ty = pts.y[ANTENNA.n + 1];
+    this.comm.antenna.clear();
     if (v.spr.visible && this.sim.downT <= 0 && !(b.state === 'gather' && !b.moving)) {
-      const g = this.gfx;
+      const g = this.comm.antenna;
       for (let i = 0; i <= ANTENNA.n; i++) g.lineStyle(LINE.effect + 0.4, 0x1d1a17, 1).lineBetween(pts.x[i], pts.y[i], pts.x[i + 1], pts.y[i + 1]);
       for (let i = 0; i <= ANTENNA.n; i++) g.lineStyle(LINE.detail * 0.8, 0xb8b0a0, 1).lineBetween(pts.x[i], pts.y[i], pts.x[i + 1], pts.y[i + 1]);
     }

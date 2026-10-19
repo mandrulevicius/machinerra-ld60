@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { settleJob } from './carry';
 import { freshBook } from './questbook';
-import { REPEATS, jobDone, jobFor, jobProgress, jobText, type Job } from './repeats';
+import { REPEATS, TAP_SCRAP, jobDone, jobFor, jobProgress, jobText, type Job } from './repeats';
 import { economy } from './economy';
 import { questBook } from './talkslice';
 import { researchSave } from './researchslice';
@@ -41,16 +41,18 @@ describe('the repeatable jobs (P38)', () => {
 
   it('a job done pays its reward and clears either way; the hub says how it ended', () => {
     const job: Job = jobFor({ ...land, foes: [...land.foes] }, ['highPriest'])!;
-    expect(job.reward).toBe('pick');
+    expect(job.reward).toBe('scrap'); // Minos: one card a stage, so the tap job pays scrap
     const before = researchSave.get().credit;
+    const scrap = economy.get().scrap;
     const done = settleJob({ ...freshBook(), job }, { tapped: 80 }, 'h1');
     expect(done.job).toBeNull();
     expect(done.lastJob).toMatchObject({ done: true });
-    expect(researchSave.get().credit).toBe(before + 1);
+    expect(researchSave.get().credit).toBe(before);
+    expect(economy.get().scrap).toBe(scrap + TAP_SCRAP);
     expect(done.repeatsDone.highPriest).toBe(1);
     const missed = settleJob({ ...freshBook(), job }, { tapped: 10 }, 'h2');
     expect(missed.lastJob).toMatchObject({ done: false });
-    expect(researchSave.get().credit).toBe(before + 1);
+    expect(economy.get().scrap).toBe(scrap + TAP_SCRAP);
     expect(settleJob(freshBook(), {}, 'h3')).toEqual(freshBook());
   });
 

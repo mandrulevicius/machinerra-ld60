@@ -4,21 +4,12 @@
  * painted atlas; relics `relicart.ts`'s; parts and the scrap and copper gobs the code-drawn textures.
  */
 import type Phaser from 'phaser';
-import { iconUrl } from '../gearart';
+import { iconUrl, texUrl } from '../gearart';
 import { relicTex } from '../relicart';
 import type { DockArt } from './dockview';
 
 export function sceneArt(scene: Phaser.Scene): DockArt {
-  const kept = new Map<string, string>();
-  const tex = (key: string, frame?: string) => {
-    const k = frame ? `${key}#${frame}` : key;
-    let url = kept.get(k);
-    if (url === undefined) {
-      url = scene.textures.exists(key) ? scene.textures.getBase64(key, frame) : '';
-      kept.set(k, url);
-    }
-    return url;
-  };
+  const tex = (key: string, frame?: string) => (scene.textures.exists(key) ? texUrl(scene, key, frame) : '');
   return {
     item: iconUrl,
     crew: (role) => tex('atlas', `crew/${role}`),

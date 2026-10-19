@@ -4,11 +4,12 @@
  * the Communicator and each robot type play. Cards are rules: a card's effect reads a stat that gear gives, never a bare number.
  *
  * **State** (`Research`): the collection (`owned`), where each card is fitted (`fit`, by slot key), the picks waiting (`credit`),
- * the last haul whose free pick is banked (`seen`: a haul gives one), and the three on offer (`offer`, kept so reopening the
+ * the last haul whose pick is banked (`seen`: a haul gives one), and the three on offer (`offer`, kept so reopening the
  * panel shows the same three). Every rule takes a `Research` and returns the next; nothing here writes.
  *
- * **Picks:** one free pick each return, banked when the lift docks (`bankPick`, called by `carry.ts` `land`: skipping the church
- * keeps it; opening the church adds none), one more per insight spent (`buyPick`). `credit` is what waits; `prepare` draws the offer.
+ * **Picks (Minos: not more than one a stage):** a stage that found insight earns one pick, banked when the lift docks (`bankPick`, called by
+ * `carry.ts` `land`; the stage's first insight earns it, later ones add nothing, `Sim.cardEarned`). A stage that decoded nothing gives none. Skipping the
+ * church keeps the pick, but the next stage's does not stack on it. `credit` is what waits (quest rewards add to it); `prepare` draws the offer.
  *
  * **Offer rule** (`offerFor`): three cards you do not own: one from a pool you already hold a card of, one from a pool you
  * can use but hold none of, one wildcard (any card of a pool you can use). A pool with no cards left is skipped. Keystones
@@ -45,8 +46,6 @@ export const RESEARCH = {
   keystonesAfter: 4,
   /** The Communicator's card slots (decided: 3). */
   commSlots: 3,
-  /** One insight buys one more pick (decided). */
-  insightPerPick: 1,
   /** Cards on offer (decided: one of three). */
   offered: 3,
 };
@@ -331,8 +330,12 @@ export function offerFor(r: Research, ctx: Ctx, seed: string): CardId[] {
 /** Picks you can take now. */
 export const waiting = (r: Research): number => r.credit;
 
-/** The lift docks: the haul's free pick joins the picks waiting, kept until spent. The same haul twice banks one. */
-export const bankPick = (r: Research, haul: string): Research => (haul === r.seen ? r : { ...r, credit: r.credit + 1, seen: haul });
+/**
+ * The lift docks: a stage that earned its card (`earned`: it found insight) leaves one pick waiting, kept until spent, but never more than
+ * one from stages (a pick still unspent is that pick: no surplus carries over). The same haul twice banks one.
+ */
+export const bankPick = (r: Research, haul: string, earned: boolean): Research =>
+  haul === r.seen ? r : { ...r, credit: earned ? Math.max(r.credit, 1) : r.credit, seen: haul };
 
 /** Draw the offer if a pick is waiting and none is on offer. */
 export function prepare(r: Research, ctx: Ctx): Research {
@@ -354,12 +357,6 @@ export function pick(r: Research, id: CardId, ctx: Ctx): { r: Research; slot: Sl
   const slot = autoFit(next, id);
   if (slot) next = fit(next, id, slot);
   return { r: prepare(next, ctx), slot };
-}
-
-/** Spend insight for one more pick. Throws when there is not enough. */
-export function buyPick(r: Research, insight: number, ctx: Ctx): { r: Research; insight: number } {
-  if (insight < RESEARCH.insightPerPick) throw new Error('No insight to spend: decode live ruins, read the masts, and bring it home.');
-  return { r: prepare({ ...r, credit: r.credit + 1 }, ctx), insight: insight - RESEARCH.insightPerPick };
 }
 
 // ---- in a mission ----

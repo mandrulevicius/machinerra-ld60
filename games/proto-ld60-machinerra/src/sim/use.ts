@@ -25,6 +25,7 @@ import {
   rollCall,
   startFix,
 } from './downed';
+import { intactness, tierOf } from './buildings';
 import { fire } from './combat';
 import {
   ACTION,
@@ -40,6 +41,7 @@ import {
   RUIN_FINDS,
   SCAVENGER,
   T,
+  TIER_FIND,
   TRAIL,
   trailLine,
 } from './defs';
@@ -50,6 +52,7 @@ import {
 import { dist } from './geom';
 import { graftLift, graftNear, graftOn } from './graft';
 import {
+  RUIN_JUNK,
   type RelicId,
   stripSize as junkStrip,
   ruinJunk,
@@ -80,8 +83,12 @@ export type UseEvent =
   | { e: 'ruin'; ruin: Ruin; text: string }
   /** A live ruin's decode (P30): the hold begins, it is done, or the ruin is broken and goes dead. */
   | { e: 'decode'; what: 'start' | 'done'; ruin: Ruin }
+  /** An insight was found: the stage's card is earned (`first`) or already was (Minos: one card a stage). */
+  | { e: 'card'; x: number; y: number; first: boolean }
   /** A relic found in a ruin (`id`), or a full strip that left it. */
-  | { e: 'relic'; id: RelicId; x: number; y: number; kept: boolean };
+  | { e: 'relic'; id: RelicId; x: number; y: number; kept: boolean }
+  /** P47: a find in a building paid by the building's intactness (`tier` 0 scrap, 1 a part, 2 its era's special find). */
+  | { e: 'remnant'; ruin: Ruin; tier: number; intact: number };
 
 /** Is `key` (the lift, or a place) still in reach of him to confirm? */
 export function armable(sim: Sim, c: Bot, key: 'lift' | 'starOil' | PlaceId) {
@@ -297,6 +304,7 @@ export function decoded(sim: Sim, ruin: Ruin) {
   ruin.searched = true;
   ruin.decoded = true;
   if (sim.action?.ruin === ruin) sim.action = null;
+  sim.addInsight(INSIGHT.liveRuin, ruin); // the first of a stage earns its card
   sim.ruinsFound.live++;
   sim.stats.ruins++;
   sim.stats.decoded = (sim.stats.decoded ?? 0) + 1;
@@ -322,7 +330,7 @@ export function search(sim: Sim, ruin: Ruin, by?: Bot) {
   sim.ruinsFound.dead++;
   sim.stats.ruins++;
   if (RUIN_FINDS[ruin.kind].pry) sim.stats.docks = (sim.stats.docks ?? 0) + 1; // the contacts come home with the lift (P58 H)
-  if (ruin.trail !== undefined && ruin.verse === 2) sim.addInsight(INSIGHT.parable); // the whole Parable read
+  if (ruin.trail !== undefined && ruin.verse === 2) sim.addInsight(INSIGHT.parable, ruin); // the whole Parable read
   sim.events.push({ e: 'ruin', ruin, text: ruin.line ?? sim.r.pick(RUIN_FINDS[ruin.kind].lines) });
   dropFind(sim, ruin, COPPER.dead);
   // Quick hands (the Expeditioner): the old world gives back your steam; a ruin is a pit stop mid-fight. Not oil: oil is a life.
@@ -348,12 +356,30 @@ export function salvage(sim: Sim, ruin: Ruin) {
  * second find with Ruin sense (another pile of wiring where there is no find). Never scrap: scrap comes from kills.
  */
 function dropFind(sim: Sim, ruin: Ruin, copper: number) {
+  tierFind(sim, ruin);
   const kind = RUIN_FINDS[ruin.kind].loot;
   if (kind) drop(sim, ruin.x, ruin.y + 30, kind);
   if (sim.perks.has('ruinSense')) {
     if (kind) drop(sim, ruin.x + 24, ruin.y + 34, kind);
     else dropCopper(sim, ruin, copper);
   }
+}
+
+/**
+ * P47 part C (Minos: the more intact a ruin, the more special its find): a find standing in a building gives one more thing, by the
+ * building's intactness now (`tierOf`): a scrap pile, a part, or its era's special find (Minos, by era: a modern building's is a
+ * relic, a steampunk one's a punch card's insight; lead's guess for the steps). It replaces `ruinPay`'s multiplier there (a housed
+ * ruin has no size). The Core Vault's core stays its own.
+ */
+function tierFind(sim: Sim, ruin: Ruin) {
+  if (ruin.building === undefined) return;
+  const b = sim.map.buildings?.[ruin.building], intact = intactness(sim, ruin.building), tier = tierOf(intact);
+  if (!b) return;
+  sim.events.push({ e: 'remnant', ruin, tier, intact });
+  if (tier === 0) return void drop(sim, ruin.x + 22, ruin.y + 30, 'scrap', null, TIER_FIND.scrap);
+  if (tier === 1 || (b.era === 'modern' && !RUIN_JUNK[ruin.kind].length)) return void drop(sim, ruin.x + 22, ruin.y + 30, 'part');
+  if (b.era === 'steam') return sim.addInsight(TIER_FIND.insight, ruin);
+  keepRelic(sim, sim.r.pick(RUIN_JUNK[ruin.kind]), ruin.x, ruin.y);
 }
 
 /** A ruin's wiring comes off as copper: a pile beside it (the Hollow City's walls hold half again as much; a Trader's wire order, too; its size and health, `ruinPay`). */
@@ -371,10 +397,14 @@ export function stripSize(sim: Sim) {
 /** A dead ruin may give junk (`junk.ts`): onto the strip if there is room, else it is left where it lay. Under D9 a live ruin gives insight instead (`decode`). */
 function findJunk(sim: Sim, ruin: Ruin) {
   const id = (ruin.junk as RelicId | undefined) ?? ruinJunk(ruin.kind, (sim.junkR ??= sim.r.fork('junk'))); // its own stream: the land's stays as it was
-  if (!id) return;
+  if (id) keepRelic(sim, id, ruin.x, ruin.y);
+}
+
+/** A relic found: onto the strip if there is room, else left where it lay. */
+function keepRelic(sim: Sim, id: RelicId, x: number, y: number) {
   const kept = sim.junk.length < stripSize(sim);
   if (kept) sim.junk.push(id);
-  sim.events.push({ e: 'relic', id, x: ruin.x, y: ruin.y, kept });
+  sim.events.push({ e: 'relic', id, x, y, kept });
   sim.stats.junk = (sim.stats.junk ?? 0) + (kept ? 1 : 0);
   if (kept) sim.stats[`junk.${id}`] = (sim.stats[`junk.${id}`] ?? 0) + 1; // quests (P38): the relic kind the Trader asked for
 }

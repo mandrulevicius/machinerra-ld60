@@ -126,7 +126,7 @@ export type FoeEvent =
   | { e: 'dash'; h: Hornet }
   /** A hive woke (`by`: who or what woke it). */
   | { e: 'wake'; n: Nest; by: string }
-  /** A twisted halo drained a robot of oil (a Dark hit that draws no hit of its own): the view shows it. */
+  /** A twisted halo drained a robot one oil (a Dark hit that draws no hit of its own): the view shows it. */
   | { e: 'halo'; bot: Bot; dmg: number };
 
 export function wake(sim: Sim, n: Nest, by: string) {

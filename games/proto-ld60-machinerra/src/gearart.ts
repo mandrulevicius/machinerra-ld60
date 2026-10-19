@@ -1484,6 +1484,17 @@ const urls = new Map<ItemId, string>();
 /** The icon as a data URL, for the inventory's DOM. */
 export const iconUrl = (id: ItemId) => urls.get(id) ?? (urls.set(id, iconCanvas(id, 96).toDataURL()), urls.get(id)!);
 
+const texUrls = new Map<string, string>();
+/** A texture (or atlas frame) as a data URL, made once per boot: `getBase64` draws a canvas. A missing texture is not kept. */
+export function texUrl(scene: Phaser.Scene, key: string, frame?: string) {
+  const id = frame ? `${key}#${frame}` : key;
+  const kept = texUrls.get(id);
+  if (kept !== undefined) return kept;
+  const url = scene.textures.getBase64(key, frame);
+  if (scene.textures.exists(key)) texUrls.set(id, url);
+  return url;
+}
+
 /**
  * Every icon as a Phaser texture `gear-<id>` (128 px: a weapon's swing, about 0.5 game px a texel like everything else),
  * and as `worn-<id>`: the same icon as worn on a body, in the house style (a piece is about 32 game px, so its 64 units

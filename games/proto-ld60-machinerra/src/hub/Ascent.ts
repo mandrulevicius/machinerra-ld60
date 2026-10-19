@@ -2,7 +2,8 @@
  * Mission end to hub: it picks up where the mission's rise ended (`Play.ascentData`: the view the lift left the land in; the
  * lift is just above that view's top edge, still climbing), the view zooms out to the whole land under the zeppelin's shadow
  * (all a mission ever sees of it) and the Zeppelin Wanderer comes into view above it, the lift docks, then a kit transition
- * cuts into the hub. Use or a click skips. A first version: the land is the mission's own (same seed), the zeppelin
+ * cuts into the hub. The Wanderer's view holds, and its caption stays, until the player presses (Use, Space or a click; a press during
+ * the pull-back skips it): nothing the player reads moves on by itself (Minos). A first version: the land is the mission's own (same seed), the zeppelin
  * drawn in code. The timeline runs on the frame delta, so `__game.step(n)` plays it too.
  */
 import Phaser from 'phaser';
@@ -36,7 +37,7 @@ export function makeZeppelinNear(scene: Phaser.Scene) {
   t.refresh();
 }
 
-/** The view's pull-back, then the hold on the zeppelin (its last `fade` is the cover coming down, so the cut falls as the hold ends). */
+/** The view's pull-back, the zeppelin's drift while it holds (it then rests until a press), the cover coming down for the cut. */
 const MS = { zoom: 4300, hold: 2200, fade: 450 };
 /** The zeppelin hangs this far north-west of its shadow (the mission's sun casts shadows to the south-east). */
 const UP = { x: 260, y: 220 };
@@ -101,14 +102,15 @@ export class Ascent extends Phaser.Scene {
 
     const ui: HTMLElement = this.registry.get('ui');
     const h = data?.haul;
-    ui.innerHTML = `<div class="hb-ascent">The Zeppelin Wanderer<small>${h ? `The lift docks with ${h.scrap ?? 0} scrap and ${h.robots.length} robots aboard.` : 'The lift rises.'} ${promptHtml('{use} skip')}</small></div>`;
+    ui.innerHTML = `<div class="hb-ascent">The Zeppelin Wanderer<small>${h ? `The lift docks with ${h.scrap ?? 0} scrap and ${h.robots.length} robots aboard.` : 'The lift rises.'} ${promptHtml('{use} to go on')}</small></div>`;
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => (ui.innerHTML = ''));
     this.v = { lift, from, zx, zy, liftImg, zep, shadow, cap: ui.querySelector('.hb-ascent') as HTMLElement, z1: Math.max(1280 / W, 720 / H) * 1.02, puffs: 0 };
     this.input.once('pointerdown', () => this.toHub());
   }
 
   update(_t: number, ms: number) {
-    if (inputFor(this).pressed('use')) this.toHub();
+    const input = inputFor(this);
+    if (input.pressed('use') || input.pressed('dash')) this.toHub();
     const v = this.v;
     if (!v) return;
     const e = (this.e += Math.min(ms, 50));
@@ -134,8 +136,8 @@ export class Ascent extends Phaser.Scene {
     v.zep.setAlpha(zk).setScale((ZEP_SHOW - 1.4 * zk) / ZEP_PX);
     v.shadow.setAlpha(0.5 - 0.08 * k);
     if (z > 0.6) v.cap.classList.add('is-on');
-    // Hold: the Wanderer drifts on, its chimneys smoking; then the cut.
-    const hold = Math.max(0, e - MS.zoom);
+    // Hold: the Wanderer drifts on, its chimneys smoking, and comes to rest; the cut waits for a press.
+    const hold = Math.min(MS.hold + 800, Math.max(0, e - MS.zoom));
     const drift = 140 * (hold / (MS.hold + 800)) ** 2;
     v.zep.x = v.zx + drift;
     v.shadow.x = v.zx + UP.x + drift;
@@ -143,7 +145,6 @@ export class Ascent extends Phaser.Scene {
       v.puffs++;
       this.k.fx.burst(v.zep.x - 560, v.zep.y + (v.puffs % 2 ? -100 : 100) * Math.random(), { color: 0xf4efe6, size: 2 });
     }
-    if (hold >= MS.hold - MS.fade) this.toHub();
   }
 
   private toHub() {

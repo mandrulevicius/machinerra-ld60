@@ -132,7 +132,7 @@ export function openPlanner(host: HubHost, pick: string | null = null) {
   const titles = titleSave.get();
   const b = plannerBody(host.s, { pick, have: economy.get()[PRICE_STOCK], titles, all: host.allRescued });
   const wasOpen = !!host.hud.panel;
-  const el = host.hud.open('planner', b.title, b.body, b.actions, 'Esc to close');
+  const el = host.hud.open('planner', b.title, b.body, b.actions, '{esc} to close');
   el.querySelectorAll<HTMLElement>('[data-a="bp"]').forEach((c) =>
     c.addEventListener('click', () => {
       host.k.audio.sfx.play('click', { gain: 0.4 });
@@ -173,7 +173,7 @@ export function openTear(host: HubHost, id: string) {
   if (!isBuildingId(id)) return;
   const wasOpen = !!host.hud.panel;
   const b = tearBody(host.s, id);
-  const el = host.hud.open('planner-tear', b.title, b.body, b.actions, 'Esc to close');
+  const el = host.hud.open('planner-tear', b.title, b.body, b.actions, '{esc} to close');
   el.querySelector('[data-a="keep"]')?.addEventListener('click', () => openPlanner(host));
   el.querySelector('[data-a="tear"]')?.addEventListener('click', () => {
     try {
@@ -201,7 +201,7 @@ export function openRedraw(host: HubHost, sel: string | null = null) {
   // Once the main quest opens building (the house), a free lot is a building site: your house, the Wanderer's improvements.
   const build = !from && host.has('house') ? openLots(Object.values(host.s.stations)).map((l) => l.id) : [];
   const b = redrawBody(host.s, sel, open, host.me, build);
-  const el = host.hud.open('redraw', b.title, b.body, '', 'Esc to close');
+  const el = host.hud.open('redraw', b.title, b.body, '', '{esc} to close');
   el.querySelectorAll('[data-a="lot"]').forEach((g) =>
     g.addEventListener('click', () => {
       const lot = (g as HTMLElement).dataset.id!;
@@ -233,7 +233,7 @@ export function openLot(host: HubHost, lot: string, pick: string | null = null) 
   const wasOpen = !!host.hud.panel;
   const choices = LOT_BUILDINGS.filter((b) => !host.s.stations[b.id]);
   const b = lotBody(host.s, lotOf(lot), choices, pick ?? (choices.length === 1 ? choices[0].id : null), host.me);
-  const el = host.hud.open('lot', b.title, b.body, b.actions, 'Esc to close');
+  const el = host.hud.open('lot', b.title, b.body, b.actions, '{esc} to close');
   el.querySelectorAll<HTMLElement>('[data-a="choose"]').forEach((c) =>
     c.addEventListener('click', () => {
       host.k.audio.sfx.play('click', { gain: 0.4 });

@@ -46,6 +46,9 @@ const MIX: Record<Paint, { crack: number; rut: number; stain: number; junk: numb
   ether: { crack: 1, rut: 0.3, stain: 0.5, junk: 0.6, patch: 0.8, blotch: 1, haze: 0.75, ink: 1.2 },
 };
 
+/** The share of the open's loose junk, spills and stains a land with buildings keeps (P47 part A: the open must not compete with locations; a guess). */
+export const OPEN_QUIET = 0.45;
+
 /** Base density per million game px of ground (or of rock, for the rock pass); a guess, tuned by eye. */
 const PER_M = { blotch: 24, crack: 16, rut: 5, drag: 3, stain: 16, patch: 9, spill: 3.5, junk: 110, pothole: 5, manhole: 2, lane: 4, rockBlotch: 55, rockCrack: 30, fleck: 400, streak: 40 };
 
@@ -79,6 +82,8 @@ export function wearGround(c: CanvasRenderingContext2D, m: MapData, k: number, r
   /** A city dungeon's floor is tiles: its cracks turn at right angles. */
   const tiled = dungeon && paint === 'city';
   const look = WEAR[paint], mix = MIX[paint];
+  // P47 part A: on a land with buildings the open goes quiet, so its loose junk and stains thin out and the locations lead.
+  const quiet = m.buildings ? OPEN_QUIET : 1;
   const rnd = stream(seed);
   const GW = W * k, GH = H * k;
   const rockAt = (x: number, y: number) => {
@@ -423,7 +428,7 @@ export function wearGround(c: CanvasRenderingContext2D, m: MapData, k: number, r
   // Cracks: cracked tiles in a dungeon, fissures elsewhere.
   cracks(nGround(PER_M.crack, mix.crack * (dungeon ? 3 : 1)), true, tiled, look.crack, look.bleach, dungeon ? 1.5 : 1);
   // Stains (a dungeon has its water stains above).
-  if (!dungeon) for (let i = 0, n = nGround(PER_M.stain, mix.stain); i < n; i++) {
+  if (!dungeon) for (let i = 0, n = nGround(PER_M.stain, mix.stain * quiet); i < n; i++) {
     const p = spot(true);
     if (p) stain(p[0], p[1], rnd());
   }
@@ -483,7 +488,7 @@ export function wearGround(c: CanvasRenderingContext2D, m: MapData, k: number, r
     }
   }
   // Small debris: spills (a crate came apart) and lone pieces.
-  for (let i = 0, n = nGround(PER_M.spill, mix.junk * (dungeon ? 2 : 1)); i < n; i++) {
+  for (let i = 0, n = nGround(PER_M.spill, mix.junk * (dungeon ? 2 : 1) * quiet); i < n; i++) {
     const p = spot(true);
     if (!p) continue;
     const r = 24 + rnd() * 36;
@@ -492,7 +497,7 @@ export function wearGround(c: CanvasRenderingContext2D, m: MapData, k: number, r
       if (!rockAt(p[0] + Math.cos(a) * q, p[1] + Math.sin(a) * q)) junk(p[0] + Math.cos(a) * q, p[1] + Math.sin(a) * q);
     }
   }
-  for (let i = 0, n = nGround(PER_M.junk, mix.junk * (dungeon ? 2 : 1)); i < n; i++) {
+  for (let i = 0, n = nGround(PER_M.junk, mix.junk * (dungeon ? 2 : 1) * quiet); i < n; i++) {
     const p = spot(true);
     if (p) junk(p[0], p[1]);
   }

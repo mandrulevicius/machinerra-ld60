@@ -1,0 +1,9 @@
+{"url":"/games/proto-ld60-machinerra/?mute=1&seed=42&biome=city&t.allRescued=1&flown=3","checks":[
+ {"id":"T1","note":"V1 title ground","do":[{"goto":"KitTitle"},{"step":180},{"shot":"title"}],"expect":["$errors.length == 0"]},
+ {"id":"P1","note":"HUD at rest","do":[{"goto":"Play","data":{"seed":42,"biome":"city"}},{"step":240},{"shot":"hud"}],"expect":["$errors.length == 0"]},
+ {"id":"P2","note":"V2 pulses: low oil, alarm, boss bar","do":[{"goto":"Play","data":{"seed":42,"biome":"city"}},{"step":120},{"cmd":"god"},{"cmd":"hurt Communicator 90"},{"cmd":"queen"},{"step":90},{"shot":"alarm"}],"expect":["$errors.length == 0"]},
+ {"id":"P3","note":"V4 foe glows and hit fx","do":[{"goto":"Play","data":{"seed":42,"biome":"city"}},{"step":120},{"cmd":"god"},{"cmd":"twisted 8"},{"step":90},{"shot":"swarm"}],"expect":["$errors.length == 0"]},
+ {"id":"P4","note":"V3 map open","do":[{"goto":"Play","data":{"seed":42,"biome":"city"}},{"step":120},{"press":"KeyM"},{"step":30},{"shot":"map"}],"expect":["$errors.length == 0"]},
+ {"id":"P5","note":"evening lights","do":[{"goto":"Play","data":{"seed":42,"biome":"city"}},{"step":60},{"cmd":"time evening"},{"step":120},{"shot":"evening"}],"expect":["$errors.length == 0"]},
+ {"id":"P6","note":"V5 forced low tier, compare with P5","do":[{"goto":"Play","data":{"seed":42,"biome":"city"}},{"step":60},{"cmd":"render low"},{"cmd":"time evening"},{"step":120},{"shot":"evening-low"}],"expect":["$errors.length == 0","Play.live.detail == 0"]}
+]}

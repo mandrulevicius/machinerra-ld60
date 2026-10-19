@@ -6,7 +6,7 @@
 import { promptHtml } from '../../../../../harness/kit';
 import { economy } from '../economy';
 import { esc } from '../panels';
-import { POOL_NAMES, RESEARCH, buyPick, cardOf, dreamAgain, fittedAt, pick, prepare, slotName, waiting, type Card, type Research } from '../research';
+import { POOL_NAMES, cardOf, dreamAgain, fittedAt, pick, prepare, slotName, waiting, type Card, type Research } from '../research';
 import { STOCK, holesSvg, pcClass, pcStyle } from '../punchcard';
 import '../../punchcard.css';
 import { questBook } from '../talkslice';
@@ -25,17 +25,17 @@ const row = (r: Research, id: string) => {
 };
 
 /** The panel's body from the state (pure: the tests and the dev tools read it too). */
-export function churchBody(r: Research, picks: number, insight: number, canFit: boolean, again = false) {
+export function churchBody(r: Research, picks: number, canFit: boolean, again = false) {
   const offer = r.offer.map(cardOf).filter((c): c is Card => !!c);
   const intro = offer.length
     ? `<p class="hb-note">Old research, Communicator: one rule out of three, punched into a card. It is yours for good; slot it, swap it, never lose it. <b>${picks}</b> pick${picks === 1 ? '' : 's'} waiting.</p><div class="hb-cards">${offer.map(card).join('')}</div>`
-    : `<p class="hb-note">${r.owned.length ? 'No pick waiting.' : 'Nothing to pick yet.'} Every return from the sands brings one, and each insight you spend buys another. Live ruins, masts and the Parable give insight.</p>`;
+    : `<p class="hb-note">${r.owned.length ? 'No pick waiting.' : 'Nothing to pick yet.'} A stage that decodes something old brings one.</p>`;
   const cards = r.owned.length ? `<h3 class="hb-note hb-note--dim">Your cards</h3><div class="hb-offers">${r.owned.map((id) => row(r, id)).join('')}</div>` : '';
   const fit = canFit ? '' : `<p class="hb-note hb-note--dim">A new card fits itself into a free slot. Fitting them by hand opens with the satchel, after my first blessing.</p>`;
   return {
     title: 'The Oracle: old research',
     body: `${intro}${cards}${fit}`,
-    actions: `${again ? '<button class="ui-btn" data-a="again">Dream again <small>once a visit</small></button>' : ''}<button class="ui-btn" data-a="buy"${insight >= RESEARCH.insightPerPick ? '' : ' disabled'}>One more pick <small>${RESEARCH.insightPerPick} insight (you have ${insight})</small></button>${
+    actions: `${again ? '<button class="ui-btn" data-a="again">Dream again <small>once a visit</small></button>' : ''}${
       canFit && r.owned.length ? `<button class="ui-btn ui-btn--primary" data-a="cards">Fit your cards ${promptHtml('{inventory}')}</button>` : ''
     }`,
   };
@@ -49,7 +49,7 @@ export function openChurch(host: HubHost) {
   if (r !== saved) researchSave.set(r);
   const wasOpen = !!host.hud.panel;
   const again = host.s.perks.includes('dreamAgain') && r.offer.length > 0 && questBook.get().dreamed !== eco.haul;
-  const b = churchBody(r, waiting(r), eco.insight, host.has('inventory'), again);
+  const b = churchBody(r, waiting(r), host.has('inventory'), again);
   const el = host.hud.open('church', b.title, b.body, b.actions);
   el.querySelectorAll<HTMLElement>('[data-a="pick"]').forEach((t) =>
     t.addEventListener('click', () => {
@@ -70,19 +70,6 @@ export function openChurch(host: HubHost) {
     host.k.audio.sfx.play('bell', { gain: 0.35 });
     host.speak('highPriest', 'Then I dream again. Do not make a habit of it.');
     openChurch(host);
-  });
-  el.querySelector('[data-a="buy"]')?.addEventListener('click', () => {
-    try {
-      const got = buyPick(researchSave.get(), economy.get().insight, researchCtx());
-      researchSave.set(got.r);
-      economy.set({ ...economy.get(), insight: got.insight });
-      host.k.audio.sfx.play('bell', { gain: 0.35 });
-      host.refresh();
-      openChurch(host);
-    } catch (e) {
-      host.hud.say('The Oracle', (e as Error).message);
-      host.k.audio.sfx.play('click');
-    }
   });
   el.querySelector('[data-a="cards"]')?.addEventListener('click', () => {
     host.closePanel();

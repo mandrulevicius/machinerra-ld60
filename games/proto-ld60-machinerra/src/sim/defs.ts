@@ -8,6 +8,7 @@ export * from './defs/base';
 export * from './defs/beasts';
 export * from './defs/biomes';
 export * from './defs/bosses';
+export * from './defs/buildings';
 export * from './defs/comm';
 export * from './defs/companions';
 export * from './defs/crew';

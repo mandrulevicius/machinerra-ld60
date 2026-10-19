@@ -133,7 +133,7 @@ export function hubEntries(s: Pick<HubState, 'stations'>): GuideEntry[] {
 
 /** Pieces of a covered element (a bar's fill, the dial's hands): the HUD's `data-k`s that are part of another entry. */
 export const PARTS: Record<string, string> = {
-  bossName: 'boss', bossHp: 'boss', hpText: 'hp', hpBar: 'hp', where: 'room', steam: 'steam', steamText: 'steam', otext: 'oracle', oicon: 'oracle', htext: 'her',
+  bossName: 'boss', bossHp: 'boss', hpText: 'hp', hpBar: 'hp', where: 'room', steam: 'steam', steamText: 'steam', otext: 'oracle', omore: 'oracle', oicon: 'oracle', htext: 'her',
   supportName: 'support', supportKey: 'support', supportState: 'support', bells: 'clock', ctime: 'clock', cphase: 'clock', cnext: 'clock', weather: 'clock', wname: 'clock', wfill: 'clock', orb: 'clock', sun: 'clock', moon: 'clock',
   who: 'say', text: 'say', fee: 'reserve',
 };

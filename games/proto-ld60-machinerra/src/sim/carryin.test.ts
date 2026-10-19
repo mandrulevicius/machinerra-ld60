@@ -26,11 +26,11 @@ describe('what the haul carries home', () => {
     s.cores = 2;
     s.scrap = 14;
     s.copper = 21.8;
-    s.addInsight(3);
+    s.addInsight(3); // three finds, one card (Minos: not more than one a stage)
     for (const p of s.places) p.visited = p.id === 'graveyard' || p.id === 'mast';
     s.finish();
     const h = haulFrom(s, 'a');
-    expect(h).toMatchObject({ insight: 3, cores: 2, scrap: 14, copper: 21 });
+    expect(h).toMatchObject({ insight: 1, cores: 2, scrap: 14, copper: 21 });
     expect([...h.discovered!].sort()).toEqual(['graveyard', 'mast'].filter((id) => s.places.some((p) => p.id === id)));
   });
 

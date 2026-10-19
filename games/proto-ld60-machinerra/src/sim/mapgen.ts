@@ -11,6 +11,7 @@ import { rasterise, type Ground } from './shapes';
 import { gatherCluster } from './fog';
 import { scatterProps, type PropSpec } from './propgen';
 import type { AnomalyId, RuinSize } from './defs';
+import type { BuildingSpec } from './buildings';
 
 export const Ter = { Sand: 0, Dune: 1, Hardpan: 2, Rock: 3 } as const;
 export type Ter = (typeof Ter)[keyof typeof Ter];
@@ -44,6 +45,8 @@ export interface MapData {
   /** What breaks (`props.ts`): ruin pieces and a scatter, and each ruin's size class (none for a Parable Trail ruin). A land with none has none. */
   props?: PropSpec[];
   ruinSizes?: (RuinSize | undefined)[];
+  /** P47's buildings (`buildings.ts`): on a land from mission 4 (`GenOpts.remnants`); their pieces are props with `bld`. */
+  buildings?: BuildingSpec[];
   /** A handcrafted land's rules (`LandRules`). */
   rules?: LandRules;
 }
@@ -101,8 +104,18 @@ export function clearRock(ter: Uint8Array, w: number, h: number, c: Spot, rad: n
       if (x > 0 && y > 0 && x < w - 1 && y < h - 1 && (x - c.x) ** 2 + (y - c.y) ** 2 <= rad * rad + 1 && ter[y * w + x] === Ter.Rock) ter[y * w + x] = Ter.Sand;
 }
 
+/**
+ * What else a land is generated with. `remnants` (P47, from mission 4: `REMNANTS`): ruins in buildings, hive villages, the faded
+ * city, a quieter open land; `tier` the land's rank (a village's size). Only the props differ: the ground, ruins and places are the same.
+ */
+export interface GenOpts { remnants?: boolean; tier?: number }
+
+/** P47's land changes come with the fourth mission (Minos): missions 1-3 are the tutorial and keep today's lands. `from` is missions flown. */
+export const REMNANTS = { from: 3 };
+export const remnantsOn = (flown: number | undefined) => flown !== undefined && flown >= REMNANTS.from;
+
 /** `present`: the checks behind the places' presence rules (default: the injected ones, `presence` in places.ts). */
-export function generate(seed: number | string, w = 100, h = 75, biome: BiomeId = 'desert', present?: PresenceChecks): MapData {
+export function generate(seed: number | string, w = 100, h = 75, biome: BiomeId = 'desert', present?: PresenceChecks, gen: GenOpts = {}): MapData {
   // The desert keeps its old stream, so its lands replay as they always did.
   const r = rng(`${biome}/${seed}`);
   const B = BIOMES[biome];
@@ -207,8 +220,9 @@ export function generate(seed: number | string, w = 100, h = 75, biome: BiomeId 
   }
 
   // Props last, on their own stream: the land above is the same with or without them.
-  const pm = scatterProps({ w, h, open: (i) => passable(ter[i]), lift, keep: [...seeps, ...nests, ...placed], ruins, biome, r: r.fork('props') });
-  return { w, h, seed, biome, ter, lift, seeps, nests, ruins, places, props: pm.props, ruinSizes: pm.sizes };
+  const remnants = gen.remnants ? { tier: gen.tier ?? 1, seeps, nests, parts: placed } : undefined;
+  const pm = scatterProps({ w, h, open: (i) => passable(ter[i]), lift, keep: [...seeps, ...nests, ...placed], ruins, biome, r: r.fork('props'), remnants });
+  return { w, h, seed, biome, ter, lift, seeps, nests, ruins, places, props: pm.props, ruinSizes: pm.sizes, ...(pm.buildings && { buildings: pm.buildings }) };
 }
 
 /**

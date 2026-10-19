@@ -1,4 +1,6 @@
-import { addDevTab, audioFor, bootGame, resetHints, themeSlot, transition, warmAtlas } from '../../../harness/kit';
+import { LEVELS, addDevTab, audioFor, bootGame, quality, resetHints, themeSlot, transition, warmAtlas } from '../../../harness/kit';
+import { installTier } from './tier';
+import { tierCommands } from './dev/tier';
 import { command } from '../../../harness/dev/commands';
 import { TITLE_SCENE } from '../../../harness/kit/menus';
 import { Dungeon, Play } from './Play';
@@ -41,7 +43,7 @@ bootGame({
   titleArt,
   // One slot, saved by the hub itself on arrival (no mid-mission save): Continue goes to the hub, New game erases the slot after a confirm (the deeds' profile stays: `persist` with `keep`).
   save: { store: menuSlot, count: 1, auto: true, save: () => snapshot(), load: (_data, game) => transition(game, 'Hub'), wipe: () => hub.reset() },
-  variants: { theme: 'machinerra', lights: 'dusk', particles: 'clean' },
+  variants: { theme: 'machinerra', lights: 'dusk', particles: 'clean', titleSettings: 'middle' }, // the title's volume and quality along the bottom middle (Minos)
   // Input actions, not keys: players rebind them in the game menu's Controls tab and use a gamepad.
   actions: {
     up: ['W', 'UP', 'PAD_LS_UP'],
@@ -108,4 +110,7 @@ registerPlaceCommands();
 // `classes`: the class overlay in a mission or the bench (classcmd.ts).
 registerClassCommand();
 registerDeedCommands();
+// The render tier (tier.ts): the player's quality is the ceiling, a slow machine is lowered below it; `?render=low` or dev `render low` holds one.
+installTier(() => quality().get(), (level) => LEVELS[level].lights);
+tierCommands();
 command('hints', ([sub]) => (sub === 'reset' ? (resetHints(), 'hints forgotten: each shows again when its moment comes') : 'hints reset: a hint shows until done once, then never again (saved per game, across New game)'), 'hints reset: show the control hints again', { group: 'save', args: () => ['reset'] });

@@ -120,6 +120,8 @@ export class CommandMode {
   private tickN = 0;
   private cursor: CursorKind | '' = '';
   private selSig = '';
+  /** The last `draw` left marks on the graphics (so one more clears them). */
+  private inked = false;
 
   constructor(private api: CommandApi) {
     const { scene, ui } = api;
@@ -168,7 +170,7 @@ export class CommandMode {
     this.boxEl.classList.remove('is-on');
     this.tickT = TICK * 0.5;
     this.el.classList.toggle('is-on', on);
-    (this.el.querySelector('[data-k=exit]') as HTMLElement).innerHTML = on ? promptHtml('{command} or Esc to resume') : '';
+    (this.el.querySelector('[data-k=exit]') as HTMLElement).innerHTML = on ? promptHtml('{command} or {esc} to resume') : '';
     this.help();
     audio.sfx.play(on ? 'cmdOn' : 'cmdOff');
     this.api.wash(on ? '#56B4E9' : '#ffb640');
@@ -332,6 +334,7 @@ export class CommandMode {
   draw() {
     const { sim, pick } = this.api;
     const g = this.g;
+    if (!pick.ids.size && !this.pings.length && !this.inked && this.selSig === '') return;
     g.clear();
     const t = performance.now();
     const pulse = 0.5 + 0.5 * Math.sin(t / 220);
@@ -355,6 +358,7 @@ export class CommandMode {
       g.lineStyle(LINE.effect, 0xfff0c0, 0.9 * (1 - u)).strokeEllipse(p.x, p.y, 10 + 40 * u, (10 + 40 * u) * 0.6);
       g.fillStyle(p.color, 0.85 * (1 - u)).fillCircle(p.x, p.y, 4);
     }
+    this.inked = pick.ids.size > 0 || this.pings.length > 0;
     // Who is picked, bottom of the screen.
     const names = [...pick.ids].map((id) => sim.bot(id)).filter(Boolean).map((b) => `<i style="--crew:${CREW_COLORS[Math.max(0, b!.crew)]}">${crewMark(b!)}</i>${b!.name}`);
     const sig = names.join('|');

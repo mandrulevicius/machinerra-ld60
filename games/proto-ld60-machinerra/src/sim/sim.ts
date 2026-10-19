@@ -110,7 +110,6 @@ import {
   WEAPONS,
   type WeaponId,
   bossOf,
-  insightFromRuins,
 } from './defs';
 import {
   type DungeonDef,
@@ -197,6 +196,7 @@ import {
   type Spot,
   Ter,
   generate,
+  remnantsOn,
   passable,
 } from './mapgen';
 import {
@@ -222,6 +222,8 @@ import {
 import { PERK_FX } from './perks';
 import { crashStep } from './crash';
 import { type MissionMods, carryPropStep, freshMods, wakeNear } from './placeparts';
+import { cueStep, landCues } from './buildings';
+import { type Turret, turretStep } from './turrets';
 import { type PropWorld, addProp, flatten, propStep, propSummary, propWorld } from './props';
 import {
   type Pilgrim,
@@ -230,6 +232,7 @@ import {
 } from './placeplay';
 import type { PlaceId } from './places';
 import { Onboard } from './onboard';
+import { held, holdAt } from './clockhold';
 import { Lessons, gates, lessonStep } from './lessons';
 import { tapOf } from './sites';
 import { makeIntro, type IntroRun } from './intro';
@@ -322,6 +325,8 @@ export class Sim {
     ...dayCfg(),
   };
   ruins: Ruin[] = [];
+  /** P47: a hive village's turrets' minds, by prop id (`turrets.ts`). */
+  turrets = new Map<number, Turret>();
   /** Everything that breaks (`props.ts`): walls, debris, crates, the effect props, and the zones and drinks they leave. */
   props!: PropWorld;
   /** The carry strip (`junk.ts`): relics found this mission, banked at home in the haul. */
@@ -359,12 +364,23 @@ export class Sim {
   get canCap() {
     return REVIVE.cap + Math.max(0, Math.floor(this.capExtra)) * REVIVE.cost;
   }
-  /** Old research found this mission (`INSIGHT`): banked at home through the haul. */
-  get insight() {
-    return insightFromRuins(this.ruinsFound.live) + this.insightMore;
+  /**
+   * The stage's one punch card (Minos: not more than one a stage): the first insight found earns it, a later source pays nothing
+   * toward a card (its other finds stay). `cardHeld` is a card earned outside this Sim (the land, when this one is its dungeon).
+   */
+  get cardEarned() {
+    return this.cardHeld || this.insightMore > 0;
   }
-  addInsight(n: number) {
-    this.insightMore += Math.max(0, Math.floor(n));
+  /** Old research found this mission, 0 or 1 (the card newly earned here): banked at home through the haul as a pick. */
+  get insight() {
+    return !this.cardHeld && this.cardEarned ? 1 : 0;
+  }
+  /** An insight found (`at`: where, for the sign). The first of a stage earns the card; the sign says so, or that it is already earned. */
+  addInsight(n = 1, at?: { x: number; y: number }) {
+    if (n < 1) return;
+    const first = !this.cardEarned;
+    this.insightMore += Math.floor(n);
+    if (at) this.events.push({ e: 'card', x: at.x, y: at.y, first });
   }
   /** Scrap comes aboard: from a kill's gob (a mule squeezes more out of it). */
   gainScrap(n: number) {
@@ -593,6 +609,8 @@ export class Sim {
   /** Seconds to the next pull of foes while a live ruin is decoded. */
   decodeT = 0;
   private insightMore = 0;
+  /** A card earned elsewhere this stage (a dungeon's land): nothing here earns another. */
+  cardHeld = false;
   /** Where the Communicator aims (world px): a mannequin it points at stands still (`FoeDef.shy`). */
   look = { x: 0, y: 0 };
   /** Cooldowns of the dash and the pack's skill; the dash in flight. */
@@ -658,6 +676,7 @@ export class Sim {
     if (this.perks.has('extraShells')) for (const id of Object.keys(this.support) as SupportId[]) this.support[id]! += 1;
     if (this.perks.has('snacks')) this.cfg.steamRegen *= PERK_FX.snacks;
     if (opts.tier) this.tier = clampTier(opts.tier);
+    this.cardHeld = !!opts.cardHeld;
     this.pilgrimId = opts.pilgrim;
     const forcedAnomaly = opts.land?.rules?.anomaly;
     if ((forcedAnomaly ?? opts.anomaly) && !opts.dungeon) this.anomaly = forcedAnomaly ?? opts.anomaly!;
@@ -669,8 +688,9 @@ export class Sim {
     this.twists = twistWorld(seed, biomeId, this.day.at, !!opts.dungeon);
     if (!opts.dungeon && TWISTS[biomeId]?.commute) this.rush = rushHours(this.day.at);
     this.refreshFx();
-    this.map = dg ? dg.map : opts.land ?? generate(seed, undefined, undefined, biomeId);
-    if (this.map.rules?.morningSwarm !== undefined) this.cfg.morningSwarm = this.map.rules.morningSwarm; // level 1's morning is quiet (P46's tune)
+    // P47's buildings come with the fourth mission (`REMNANTS`; dev `?remnants=1`).
+    this.map = dg ? dg.map : opts.land ?? generate(seed, undefined, undefined, biomeId, undefined, { remnants: opts.remnants ?? remnantsOn(opts.flown), tier: this.tier });
+    if (this.map.rules?.morningSwarm !== undefined) this.cfg.morningSwarm = this.map.rules.morningSwarm; // a land's own morning trickle (P46's tune)
     this.W = this.map.w;
     this.H = this.map.h;
     this.onboard = new Onboard({ empty: opts.onboard?.empty || this.map.rules?.emptyHud, shown: opts.onboard?.shown }, (e) => this.events.push(e));
@@ -715,6 +735,8 @@ export class Sim {
     });
     oldMap(this); // the Expeditioner's gift (P52): the biggest ruin is on the map from the start
     for (const sp of this.map.props ?? []) addProp(this, sp, sp.ruin !== undefined ? this.ruins[sp.ruin]?.id : undefined);
+    this.map.buildings?.forEach((b, i) => b.ruins.forEach((k) => this.ruins[k] && (this.ruins[k].building = i))); // P47: the finds inside a building
+    landCues(this); // P47 part A: the interactables' lit cues
     for (const n of this.map.nests) this.addNest((n.x + 0.5) * T, (n.y + 0.5) * T);
     for (const pl of this.map.places) this.places.push(makePlace(this, pl.id, pl.x, pl.y, pl.parts));
     this.controller = this.addBot('controller', 'Communicator', this.lift.x, this.lift.y + 6, -1);
@@ -1052,11 +1074,19 @@ export class Sim {
   setClock(spec: string | number) {
     const t = typeof spec === 'number' ? spec : timeOf(spec, this.dayCfg);
     if (t === null) return false;
-    this.dayT = Math.max(0, t);
+    this.dayT = held(Math.max(0, t), this.holdAt);
     if (this.dayT < this.day.at.boss) this.bossSpawned = false;
     this.day = dayState(this.dayT, this.dayCfg);
     this.refreshFx();
     return true;
+  }
+  /** The second the first missions' clock stops at (`clockhold.ts`), or null when it runs on: midnight never comes then, so nothing may count down to it. */
+  get holdAt() {
+    return holdAt(this.lessons.flown, this.dayCfg);
+  }
+  /** Move the clock on (a step, the winch's fee): never past the hold. */
+  addClock(s: number) {
+    this.dayT = held(this.dayT + s, this.holdAt);
   }
   /** What the anomaly does at the clock's second (`anomalyFx`, with the weather's gusts). */
   refreshFx() {
@@ -1265,12 +1295,12 @@ export class Sim {
   /** One tick: the systems in order (the order is the rules: who acts, who is hit, what falls, what the Oracle says). */
   step(dt: number, input: Input) {
     if (this.phase === 'done' || this.phase === 'lost') return;
-    if (lessonStep(this, dt)) return; // the Oracle's pause: the world waits (lessons.ts)
+    if (lessonStep(this)) return; // the Oracle's pause: the world waits (lessons.ts)
     dt = slowStep(this, dt);
     this.time += dt;
     // A dungeon has no sky: the clock stands still down there (and the land's waits above).
     if (!this.dungeon && !this.intro && this.oilT <= 0) {
-      this.dayT += dt;
+      this.addClock(dt);
       clockStep(this, dt);
       weatherStep(this, dt);
       twistStep(this, dt);
@@ -1300,6 +1330,8 @@ export class Sim {
     skillStep(this, dt);
     patchStep(this, dt);
     propStep(this, dt);
+    turretStep(this, dt);
+    cueStep(this);
     crashStep(this, dt);
     graftStep(this, dt);
     fire(this, dt);
@@ -1579,6 +1611,7 @@ export class Sim {
         phase: this.day.phase,
         clock: clockText(this.day.hour),
         t: Math.round(this.dayT),
+        hold: this.holdAt === null ? null : Math.round(this.holdAt),
         twist: +this.day.twist.toFixed(2),
         twisted: `${this.twistedAlive}/${this.hornets.filter((h) => !h.boss).length}`,
         buff: +this.day.buff.toFixed(2),

@@ -18,16 +18,16 @@ describe('sources', () => {
 
   it('gain adds to any stock and ignores junk amounts', () => {
     let e = eco();
-    for (const k of ['scrap', 'insight', 'cores', 'copper'] as const) e = gain(e, k, 2.9);
-    expect(e).toMatchObject({ scrap: 2, insight: 2, cores: 2, copper: 2 });
+    for (const k of ['scrap', 'cores', 'copper'] as const) e = gain(e, k, 2.9);
+    expect(e).toMatchObject({ scrap: 2, cores: 2, copper: 2 });
     expect(gain(e, 'scrap', -5)).toEqual(e);
     expect(gain(e, 'scrap', NaN)).toEqual(e);
   });
 
-  it('a haul banks scrap, insight, cores, copper and coal once; no oil comes home', () => {
-    const h = haul({ scrap: 30, insight: 2, cores: 1, copper: 12, coal: 6 });
+  it('a haul banks scrap, cores, copper and coal once; no oil comes home, and no insight stock (it is a pick, research.ts)', () => {
+    const h = haul({ scrap: 30, insight: 1, cores: 1, copper: 12, coal: 6 });
     const once = bank(eco({ scrap: 5, copper: 3 }), h);
-    expect(once).toEqual({ scrap: 35, insight: 2, cores: 1, copper: 15, coal: 6, junk: [], charges: {}, haul: 'h1' });
+    expect(once).toEqual({ scrap: 35, cores: 1, copper: 15, coal: 6, junk: [], charges: {}, haul: 'h1' });
     expect(bank(once, h)).toBe(once);
     expect(bank(eco(), haul({ id: 'old' }))).toMatchObject({ scrap: 0, haul: 'old' }); // a haul from before the economy
     expect(bank(eco(), haul({ scrap: -9, copper: NaN }))).toMatchObject({ scrap: 0, copper: 0 });
@@ -48,7 +48,7 @@ describe('paying', () => {
     expect(pay(e, 'scrap', 4).scrap).toBe(6);
     expect(() => pay(e, 'scrap', 11)).toThrow(/you have 10/);
     expect(() => pay(e, 'scrap', -1)).toThrow(/cannot/);
-    expect(() => pay(e, 'insight', 1.5)).toThrow(/cannot/);
+    expect(() => pay(e, 'cores', 1.5)).toThrow(/cannot/);
     expect(e.scrap).toBe(10);
   });
 
@@ -133,13 +133,13 @@ describe('copper builds (buildStation)', () => {
 
 describe('the economy slice', () => {
 
-  it('round-trips through the save: scrap, insight, cores, copper and the last haul', () => {
-    const e = bank(eco(), haul({ id: 'm3', scrap: 40, insight: 3, cores: 2, copper: 25 }));
+  it('round-trips through the save: scrap, cores, copper and the last haul', () => {
+    const e = bank(eco(), haul({ id: 'm3', scrap: 40, cores: 2, copper: 25 }));
     commit({ eco: e, hub: home({ city: 100 }) });
     expect(slot.latest()).toBe(0);
     // "Reload": nothing is cached, the next read comes from the file.
     const back = load();
-    expect(back.eco).toEqual({ scrap: 40, insight: 3, cores: 2, copper: 25, coal: 0, junk: [], charges: {}, haul: 'm3' });
+    expect(back.eco).toEqual({ scrap: 40, cores: 2, copper: 25, coal: 0, junk: [], charges: {}, haul: 'm3' });
     expect(back.hub).toMatchObject({ city: 100 });
     expect(bank(back.eco, haul({ id: 'm3', scrap: 40 }))).toEqual(back.eco);
   });
@@ -147,13 +147,19 @@ describe('the economy slice', () => {
   it('v5: a save from before the rework loses wood, coal and its can stock, and gets a new game\'s copper, once', () => {
     slot.put(0, { slices: { economy: { v: 4, d: { scrap: 7, insight: 1, cores: 2, wood: 30, spare: 2, charges: {}, junk: [], haul: null } } } });
     const e = economy.get();
-    expect(e).toMatchObject({ scrap: 7, insight: 1, cores: 2, copper: COPPER.start });
+    expect(e).toMatchObject({ scrap: 7, cores: 2, copper: COPPER.start });
     expect(e).not.toHaveProperty('wood');
     expect(e).not.toHaveProperty('spare');
     economy.set({ ...e, copper: 5 });
     expect(economy.get().copper).toBe(5);
   });
 
+
+  it('v7: insight is no stock any more: an old save loses it', () => {
+    slot.put(0, { slices: { economy: { v: 6, d: { scrap: 7, insight: 4, cores: 2, copper: 9, coal: 3, charges: {}, junk: [], haul: null } } } });
+    expect(economy.get()).toMatchObject({ scrap: 7, copper: 9, coal: 3 });
+    expect(economy.get()).not.toHaveProperty('insight');
+  });
 
   it('v6: coal is a stock again, the fuel for expeditions: an older save has none, a current one keeps its coal', () => {
     slot.put(0, { slices: { economy: { v: 5, d: { scrap: 7, insight: 1, cores: 2, copper: 9, charges: {}, junk: [], haul: null } } } });

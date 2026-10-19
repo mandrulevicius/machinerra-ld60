@@ -41,14 +41,14 @@ const ROLE_NAMES: Record<CrewRole, string> = { gatherer: 'Gatherers', guard: 'Gu
 /** The land filter's chips: the land an item's weapon or parts come from (`landsOf`). */
 const LAND_NAMES: Record<BiomeId, string> = { desert: 'Desert', jungle: 'Rustwood', city: 'Hollow City', mountains: 'Frostspine', demon: 'Wastes', ether: 'Ether' };
 
-/** The stores: crafting spends `scrap` and `parts` (the Wallet); the rest is shown (copper, insight, cores). */
-export interface Stores extends Wallet { insight: number; cores: number; copper: number }
+/** The stores: crafting spends `scrap` and `parts` (the Wallet); the rest is shown (copper, cores). */
+export interface Stores extends Wallet { cores: number; copper: number }
 /** What the Communicator carries on a mission. */
 export interface Carried extends Wallet { copper: number }
 export interface InvHost {
   /** Crafting and salvage work only aboard (the workbench is in the hub). */
   where: 'hub' | 'mission';
-  /** What the stores hold (scrap, parts, copper, insight, cores). */
+  /** What the stores hold (scrap, parts, copper, cores). */
   stores(): Stores;
   /** What the Communicator carries this mission (a mission only). */
   carried?(): Carried;
@@ -578,7 +578,7 @@ export class Inventory {
       `<button class="inv-ctile ${c.pool === 'keystone' ? 'is-key' : ''} ${this.cardId === c.id ? 'is-selected' : ''} ${pcClass(c, 'sm')}" ${pcStyle(c)} data-a="cpick" data-v="${c.id}" title="${esc(c.text)}"${aboard ? ` draggable="true" data-drag="card|${c.id}"` : ''}>${STOCK}<span class="pc__head"><b class="pc__name">${esc(c.name)}</b><em class="pc__tag">${POOL_NAMES[c.pool]}</em></span>${holesSvg(c.id)}</button>`;
     const list = shown.length
       ? `<div class="inv__ctiles">${shown.map(tile).join('')}</div>`
-      : `<p class="inv__empty">${!owned.length ? 'No cards yet. The Oracle offers one pick of three each time you return from the sands, and one more for every insight you spend.' : !loose.length ? 'All your cards are fitted.' : `No loose card of yours fits ${this.cardSlot ? slotName(this.cardSlot).toLowerCase() : 'here'}.`}</p>`;
+      : `<p class="inv__empty">${!owned.length ? 'No cards yet. The Oracle offers one pick of three after a stage that decoded something old.' : !loose.length ? 'All your cards are fitted.' : `No loose card of yours fits ${this.cardSlot ? slotName(this.cardSlot).toLowerCase() : 'here'}.`}</p>`;
     return `
       <div class="inv__col inv__doll">
         <h3 class="inv__h">You</h3>
@@ -625,7 +625,6 @@ export class Inventory {
         <ul class="inv-mats">
           ${row('&#9881;', 'Scrap', st.scrap, 'the main currency, from kills; repairs, robots and crafting spend it')}
           ${row('&#9650;', 'Copper', st.copper, 'building and one-time upgrades: stations, ranks, the city')}
-          ${row('&#10070;', 'Insight', st.insight, 'old research')}
           ${row('&#9673;', 'AI cores', st.cores, 'one per fielded bot')}
           ${parts(st.parts)}
         </ul>

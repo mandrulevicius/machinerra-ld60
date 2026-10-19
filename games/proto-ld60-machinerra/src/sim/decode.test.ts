@@ -117,8 +117,8 @@ describe('live and dead ruins (P30, D9 row 1)', () => {
       stand(s, r);
       hold(s, DECODE.time + 0.5);
     }
-    expect(s.insight).toBe(2 * INSIGHT.liveRuin);
+    expect(s.insight).toBe(INSIGHT.liveRuin); // two decoded, one card
     s.step(1 / 30, NO_INPUT);
-    expect(haulFrom(s, 'd1').insight).toBe(2);
+    expect(haulFrom(s, 'd1').insight).toBe(1);
   });
 });

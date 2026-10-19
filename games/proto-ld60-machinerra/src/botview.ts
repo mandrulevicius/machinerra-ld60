@@ -21,6 +21,7 @@ import { lyingTip } from './downedcost';
 import { DECK, smooth } from './liftrise';
 import { npcImage } from './hub/art';
 import { gear } from './hub/carry';
+import { FadePool, quadOut } from './fxpool';
 import { ViewBase, kick, spring, type BotView, type G, type Img } from './playhost';
 import type { Shadow } from '../../../harness/kit';
 import { groundShadow } from './shadowview';
@@ -47,6 +48,7 @@ const CAST_LOOK: Record<string, { word: string; r: number }> = {
 };
 
 export class BotsView extends ViewBase {
+  private fades = new FadePool(this.scene);
   /** What each crew role wears that shows: head and back pieces (from the gear). */
   private crewKit: Record<string, { head?: ItemId; back?: ItemId }> = {};
   /** Followers (the Princess after the knight, the Esteemed Ghost once freed): her sprite rolls after you; he floats, see-through. */
@@ -103,6 +105,7 @@ export class BotsView extends ViewBase {
   }
 
   update(dt: number, g: G) {
+    this.fades.update(dt);
     const sim = this.sim, down = this.host.down;
     const rise = this.host.rise();
     const rising = sim.phase === 'rising' || sim.phase === 'done';
@@ -295,7 +298,7 @@ export class BotsView extends ViewBase {
     }
     if (!near) return void this.tip?.setVisible(false);
     this.tip ??= this.k.text(0, 0, '', { size: 12, font: 'body' }).setOrigin(0.5, 1).setDepth(96000).setStroke('#1d1a17', 5).setColor('#fff3d6').setAlpha(0.9);
-    const text = lyingTip(near.name, !!near.downed?.wreck);
+    const text = lyingTip(near.name, !!near.downed?.wreck, !!sim.intro?.holds(near));
     if (this.tip.text !== text) this.tip.setText(text);
     this.tip.setPosition(near.x, near.y - 34).setVisible(true);
   }
@@ -514,10 +517,8 @@ export class BotsView extends ViewBase {
 
   /** A ring on the ground that widens and fades. */
   private aiRing(x: number, y: number, r: number, color: number, ms: number) {
-    const g = this.scene.add.graphics().setDepth(y - 1);
+    const g = this.fades.spawn({ depth: y - 1, ms, x, y, grow: 1.5, ease: quadOut });
     g.lineStyle(LINE.effect, color, 0.9).strokeEllipse(0, 0, r * 2, r * 2 * 0.62);
-    g.setPosition(x, y);
-    this.scene.tweens.add({ targets: g, scale: 1.5, alpha: 0, duration: ms, ease: 'Quad.easeOut', onComplete: () => g.destroy() });
   }
 
   /** A robot speaks: a speech line over its head, in the colony's faith. */

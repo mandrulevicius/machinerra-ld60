@@ -11,7 +11,7 @@ import { pipColor, statusName, HIDDEN } from './statusview';
 import { esc } from './manage/manage';
 import { glyph, typeGlyph } from './manage/glyphs';
 import type { Tip } from './manage/tooltip';
-import { ANOMALIES, BEAST_MODS, BERSERK, COUNTERS, DECODE, ELITE_TRAITS, FOES, MENACE, NEST, REVIVE, ROLES, T, WINCH, bossOf, countersOf, type Role } from './sim/defs';
+import { ANOMALIES, BEAST_MODS, BERSERK, CARD_SIGN, COUNTERS, DECODE, ELITE_TRAITS, FOES, MENACE, NEST, REVIVE, ROLES, T, WINCH, bossOf, countersOf, type Role } from './sim/defs';
 import { STATUSES, type Mod, type StatusId, type Unit } from './sim/effects';
 import { auraOf } from './sim/foes';
 import { PLACES } from './sim/places';
@@ -118,13 +118,16 @@ export function nestTip(sim: Sim, n: Nest): Tip {
   };
 }
 
+/** What a source of insight says of the stage's one punch card (Minos: not more than one a stage). */
+const cardWords = (sim: Sim) => (sim.cardEarned ? CARD_SIGN.tipLater : CARD_SIGN.tipFirst);
+
 /** A place: its name, where it stands in its work, and what Use does there. */
 export function placeTip(sim: Sim, pl: PlaceRT): Tip {
   const B = BEHAVE[pl.id];
   const verb = B.use?.ready(sim, pl) ? B.use.verb(sim, pl) : '';
   const status = B.status?.(sim, pl);
   return {
-    more: `${head('gears', PLACES[pl.id].name)}${verb ? p(`Use: ${esc(verb)}`) : ''}${status ? p(dim(esc(status))) : ''}`,
+    more: `${head('gears', PLACES[pl.id].name)}${verb ? p(`Use: ${esc(verb)}`) : ''}${status ? p(dim(esc(status))) : ''}${pl.id === 'mast' && pl.state === 'dark' ? p(esc(cardWords(sim))) : ''}`,
   };
 }
 
@@ -135,8 +138,8 @@ export function ruinTip(sim: Sim, r: Ruin): Tip {
   if (RUIN_FINDS[r.kind].pry) return { more: `${head('wrench', 'Old charging dock')}${p('Use: pry its contacts loose, for the Princess.')}` };
   if (r.live) {
     return {
-      more: `${head('light-bulb', `${name} (live)`)}${p(`Use: decode, ${DECODE.time} s near it.`)}${p(`${ico('open-wound')} It wakes the nearest sleeping ${esc(sim.biome.talk.hive)}.`)}`,
-      full: p(dim(`Loud: every ${DECODE.ping} s it calls the foes within ${DECODE.pullTiles} tiles to you. A hit on you breaks the hold. Paid in insight.`)),
+      more: `${head('light-bulb', `${name} (live)`)}${p(`Use: decode, ${DECODE.time} s near it.`)}${p(`${ico('open-wound')} It wakes the nearest sleeping ${esc(sim.biome.talk.hive)}.`)}${p(esc(cardWords(sim)))}`,
+      full: p(dim(`Loud: every ${DECODE.ping} s it calls the foes within ${DECODE.pullTiles} tiles to you. A hit on you breaks the hold.`)),
     };
   }
   return { more: `${head('cog', name)}${p('Use: search it for scrap and old tech.')}`, full: p(dim('A gatherer strips it faster and richer, and the noise can wake a hive near it.')) };

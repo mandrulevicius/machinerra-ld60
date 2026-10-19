@@ -126,6 +126,8 @@ export interface CommState {
   turn: number;
   kneelT: number;
   cans: Img[];
+  /** The antenna's line, its own graphics at the shared lines' depth so an Oracle cutscene keeps it in colour with him (`cutview.ts`). */
+  antenna: G;
   spill: Spill | null;
 }
 

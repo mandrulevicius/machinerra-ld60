@@ -5,7 +5,7 @@
  */
 import { promptHtml } from '../../../harness/kit';
 import { ALARM, Fader, HOLD, chipWeight, oilAlarm, oracleHold } from './attention';
-import { OracleQueue } from './oraclequeue';
+import { OracleQueue, isSentence, readMs } from './oraclequeue';
 import type { HudId } from './sim/onboard';
 import { clockText, sky } from './sim/clock';
 import { ANOMALIES, BERSERK, BOSSES, bossOf, DAY, LOOT, REVIVE, SUPPORT, WEAPONS, type Role } from './sim/defs';
@@ -14,6 +14,7 @@ import type { Tip } from './manage/tooltip';
 import type { Leaving } from './downedcost';
 import type { Sim } from './sim/sim';
 import { css, DANGER } from './house';
+import { bind, type Bound } from './ui/bind';
 
 /** The day dial: a brass disc, noon at the top and midnight at the bottom; a sun or moon rides its rim. */
 const PHASE_ARCS: { from: number; to: number; color: string; name: string }[] = [
@@ -113,6 +114,8 @@ export class Hud {
    * or is hovered; it shows its numbers then. `data-w` on the element is `rest`, `up` or (the Oil bar low) `alarm`.
    */
   private fade = { oil: new Fader(), steam: new Fader(), cans: new Fader(), clock: new Fader(HOLD.line), stock: new Fader(), salvage: new Fader(), junk: new Fader(), obj: new Fader(HOLD.line) };
+  private bound = new Map<string, Bound>();
+  private cans: Bound[] | null = null;
   private hover = new Set<string>();
   private hoverT = 0;
   private oracleTone: 'calm' | 'warn' | 'urgent' = 'calm';
@@ -125,13 +128,14 @@ export class Hud {
   private weaponSig = '';
   private feeSig = '';
   private tollsSeen = 0;
-  private weatherSig = '';
   /** The Oracle's lines wait here for their turn (`oraclequeue.ts`). */
   private queue = new OracleQueue();
   /** Seconds a banner has left: it holds the screen, so a calm line waits. */
   private bannerLeft = 0;
   /** Something else holds the screen (a fight, a panel, a prompt): set by `Play`; a calm Oracle line waits while it is true. */
   holds: () => boolean = () => false;
+  /** The player cannot be reading (the map, the inventory, the quest log, the guide): the Oracle's read clock stands still. Set by `TeachView`. */
+  paused: () => boolean = () => false;
   /** A line starts to show (the antenna lights, a blip): set by `HudFx`. */
   onSpeak: (tone: 'calm' | 'warn' | 'urgent') => void = () => {};
   /** A line's `icon` as an element for the panel's icon slot (set by `HudFx`, which has the scene's textures). */
@@ -185,7 +189,7 @@ export class Hud {
         </div>
         <div class="mc-oracle" data-k="oracle">
           <div class="mc-oracle__eye"><i></i></div>
-          <div class="mc-oracle__col"><div class="mc-oracle__name">The Oracle</div><div class="mc-oracle__text" data-k="otext"></div></div>
+          <div class="mc-oracle__col"><div class="mc-oracle__name">The Oracle</div><div class="mc-oracle__text" data-k="otext"></div><div class="mc-oracle__more" data-k="omore" hidden>${promptHtml('{use} to go on')}</div></div>
           <div class="mc-oracle__icon" data-k="oicon"></div>
         </div>
         <div class="mc-support" data-k="support" data-hid="support" data-state="ready" data-tip="support">
@@ -200,7 +204,15 @@ export class Hud {
         <div class="mc-ask" data-k="ask"></div>
         <div class="mc-banner" data-k="banner"></div>
       </div>`;
-    this.q = (k) => root.querySelector(`[data-k="${k}"]`) as HTMLElement;
+    const found = new Map<string, HTMLElement>();
+    this.q = (k) => {
+      let el = found.get(k);
+      if (!el || !el.isConnected) {
+        el = root.querySelector(`[data-k="${k}"]`) as HTMLElement;
+        found.set(k, el);
+      }
+      return el;
+    };
     trackPointer();
     this.hids = Array.from(root.querySelectorAll<HTMLElement>('[data-hid]')).map((el) => ({ el, id: el.dataset.hid as HudId, on: true }));
     this.reveals(false);
@@ -217,6 +229,16 @@ export class Hud {
     const el = this.q('track');
     el.innerHTML = lines.map((l) => `<div class="mc-track__line">${promptHtml(l.replace(/[<>&]/g, ''))}</div>`).join('');
     el.classList.toggle('is-on', lines.length > 0);
+  }
+
+  /** The change-only writer for a `data-k` element (or, with `el`, for that element under `k`); only for fields nothing else in the Hud writes. */
+  private b(k: string, el?: HTMLElement): Bound {
+    let x = this.bound.get(k);
+    if (!x) {
+      x = bind(el ?? this.q(k));
+      this.bound.set(k, x);
+    }
+    return x;
   }
 
   /** Quiet or forward: sets `data-w` on the element only when it changes. */
@@ -246,6 +268,7 @@ export class Hud {
     const el = this.q('her');
     this.q('htext').textContent = text;
     el.classList.add('is-on');
+    el.classList.remove('is-quiet');
     this.herT = 0;
   }
   private herT = -1;
@@ -253,6 +276,20 @@ export class Hud {
   /** The Oracle says a line: it waits its turn, one at a time (`oraclequeue.ts`); `hold` keeps it up until he moves, `within` drops it if it waited longer than that. */
   oracle(text: string, tone: 'calm' | 'warn' | 'urgent', o: { hold?: boolean; within?: number; icon?: string } = {}) {
     this.queue.push({ text, tone, ...o });
+  }
+
+  /**
+   * A press in a moment that has stopped time (a lesson pause waiting for a read, `sim/lessons.ts`): it finishes the typing, else
+   * brings the next line. False when there is nothing left to show, so the press ends the moment.
+   */
+  advance(): boolean {
+    const t = this.typing;
+    if (t) {
+      this.b('otext').html(t.text);
+      this.typing = null;
+      return true;
+    }
+    return this.queue.advance();
   }
 
   private speak(text: string, tone: 'calm' | 'warn' | 'urgent', icon?: string) {
@@ -322,20 +359,40 @@ export class Hud {
     el.classList.add('is-empty');
   }
 
-  banner(text: string, ms = 2600) {
+  /** A banner: a label for a moment; a sentence (`isSentence`) stays at least its read time (`readMs`), never gone before it can be read. `sub` is one smaller line under it (a phase banner says what the phase means). */
+  banner(text: string, ms = 2600, tone?: string, sub?: string) {
+    const long = isSentence(text);
+    if (long) ms = Math.max(ms, readMs(text));
+    if (sub) ms = Math.max(ms, readMs(sub)); // the line under it is read too
     this.bannerLeft = ms / 1000;
     const el = this.q('banner');
     el.textContent = text;
+    if (sub) {
+      const line = document.createElement('small');
+      line.className = 'mc-banner-sub';
+      line.textContent = sub;
+      el.append(line);
+    }
+    if (tone) el.dataset.tone = tone;
+    else delete el.dataset.tone;
     el.classList.remove('is-on');
     void el.offsetWidth;
+    // A label keeps its own animation's length; a sentence's is stretched to its read time, a phase banner's is its `ms`.
+    if (long || tone) el.style.animationDuration = `${ms}ms`;
+    else el.style.removeProperty('animation-duration');
     el.classList.add('is-on');
-    setTimeout(() => el.classList.remove('is-on'), ms);
+    clearTimeout(this.bannerT);
+    this.bannerT = window.setTimeout(() => el.classList.remove('is-on'), ms);
   }
+  private bannerT: number | undefined;
 
-  /** A colour wash over the screen for a beat: dusk, midnight, the queen. */
-  wash(color: string) {
+  /** A colour wash over the screen for a beat: dusk, midnight, the queen. `ms` how long it lasts, `a` its peak, `throb` beats it with the bells instead of one fade. */
+  wash(color: string, o: { ms?: number; a?: number; throb?: boolean } = {}) {
     const el = this.q('wash');
     el.style.setProperty('--wash', color);
+    el.style.setProperty('--wash-ms', `${o.ms ?? 1600}ms`);
+    el.style.setProperty('--wash-a', String(o.a ?? 0.9));
+    el.classList.toggle('is-throb', !!o.throb);
     el.classList.remove('is-on');
     void el.offsetWidth;
     el.classList.add('is-on');
@@ -348,15 +405,17 @@ export class Hud {
     const hour = d.hour;
     const night = sky(hour).night;
     const p = dialPoint(hour, 47);
-    this.q('orb').setAttribute('transform', `translate(${p.x} ${p.y})`);
-    this.q('sun').setAttribute('opacity', String(+(1 - night).toFixed(2)));
-    this.q('moon').setAttribute('opacity', String(+night.toFixed(2)));
-    this.q('dusk').style.opacity = String(+(night * 0.9).toFixed(2));
+    this.b('orb').attr('transform', `translate(${p.x} ${p.y})`);
+    this.b('sun').attr('opacity', String(+(1 - night).toFixed(2)));
+    this.b('moon').attr('opacity', String(+night.toFixed(2)));
+    this.b('dusk').style('opacity', String(+(night * 0.9).toFixed(2)));
     const text = clockText(hour);
-    const left = Math.max(0, Math.ceil(d.at.midnight - s.dayT));
+    // The first missions' clock stops short of midnight (`clockhold.ts`): no countdown to a night that does not come; it says the clock holds once it does.
+    const capped = s.holdAt !== null, stopped = capped && s.dayT >= s.holdAt!;
+    const left = capped ? Infinity : Math.max(0, Math.ceil(d.at.midnight - s.dayT));
     const into = d.step % BERSERK.perLevel;
     // Past midnight the dial shows the menace level and, as pips, the steps into the next one (a step every `BERSERK.every` s).
-    const next = d.phase === 'midnight' ? `Menace ${d.level} ${'●'.repeat(into)}${'○'.repeat(BERSERK.perLevel - into)}` : `Midnight in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
+    const next = capped ? (stopped ? 'The clock holds' : '') : d.phase === 'midnight' ? `Menace ${d.level} ${'●'.repeat(into)}${'○'.repeat(BERSERK.perLevel - into)}` : `Midnight in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`;
     const tolls = s.places.find((pl) => pl.id === 'bell')?.v.tolls ?? 0;
     const sig = `${text}|${d.phase}|${next}|${tolls}`;
     if (sig !== this.clockSig) {
@@ -377,31 +436,27 @@ export class Hud {
     }
     // The dial rests through the quiet hours; evening and midnight are the danger, so it comes forward, and it pops on every change of phase.
     this.fade.clock.see(d.phase);
-    this.weigh('clock', this.fade.clock.forward(d.phase === 'evening' || d.phase === 'midnight' || d.at.midnight - s.dayT <= DAY.warn || s.fx.phase !== 'idle', this.hover.has('clock')) ? 'up' : 'rest');
+    this.weigh('clock', this.fade.clock.forward(d.phase === 'evening' || d.phase === 'midnight' || left <= DAY.warn || s.fx.phase !== 'idle', this.hover.has('clock')) ? 'up' : 'rest');
     this.weather();
     const boss = s.boss;
-    const bar = this.q('boss');
-    bar.classList.toggle('is-on', !!boss);
+    const bar = this.b('boss');
+    bar.cls('is-on', !!boss);
     if (boss) {
-      this.q('bossHp').style.width = `${Math.max(0, (boss.hp / boss.maxHp) * 100)}%`;
-      this.q('bossName').textContent = bossOf(boss.kind).name;
+      this.b('bossHp').style('width', `${Math.max(0, (boss.hp / boss.maxHp) * 100)}%`);
+      this.b('bossName').text(bossOf(boss.kind).name);
     }
-    bar.classList.toggle('is-rage', !!boss?.brain.rage);
+    bar.cls('is-rage', !!boss?.brain.rage);
   }
 
   /** A passing weather's bar (P54) under the dial: its name and the seconds to its start (amber) or end, the bar running down. */
   private weather() {
-    const f = this.sim.fx, el = this.q('weather');
+    const f = this.sim.fx, el = this.b('weather');
     const on = f.phase !== 'idle';
-    el.classList.toggle('is-on', on);
+    el.cls('is-on', on);
     if (!on) return;
-    el.dataset.phase = f.phase;
-    const text = `${ANOMALIES[f.id].name} ${f.phase === 'warn' ? 'in' : 'for'} ${Math.ceil(f.left)} s`;
-    if (text !== this.weatherSig) {
-      this.weatherSig = text;
-      this.q('wname').textContent = text;
-    }
-    this.q('wfill').style.width = `${Math.max(0, Math.min(1, f.bar)) * 100}%`;
+    el.attr('data-phase', f.phase);
+    this.b('wname').text(`${ANOMALIES[f.id].name} ${f.phase === 'warn' ? 'in' : 'for'} ${Math.ceil(f.left)} s`);
+    this.b('wfill').style('width', `${Math.max(0, Math.min(1, f.bar)) * 100}%`);
   }
 
   /** Which of the hover-revealing elements the pointer is over (tested a few times a second, not every frame). */
@@ -452,10 +507,16 @@ export class Hud {
     el.innerHTML = `<div class="mc-ask__head">${ico('hand-bandage')} Left on the sands</div><ul>${rows.slice(0, 6).map(row).join('')}</ul>${rows.length > 6 ? `<div class="mc-ask__more">+${rows.length - 6} more</div>` : ''}`;
   }
   private askSig = '';
+  private cutSig = '';
 
   /** A beat on the dial: a berserk step (small) or a new menace level (big). */
   dialBeat(big: boolean) {
     this.mark(this.q('clock'), big ? 'is-beat-big' : 'is-beat');
+  }
+
+  /** The dial strikes as the clock enters dusk (`dusk`) or midnight (`midnight`): the hand of the clock rings hard, longer for midnight. */
+  dialStrike(phase: 'dusk' | 'midnight') {
+    this.mark(this.q('clock'), `is-strike-${phase}`);
   }
 
   update(dt: number) {
@@ -470,36 +531,45 @@ export class Hud {
     if (s.stats.parts) s.onboard.gain('part');
     if (s.junk.length) s.onboard.gain('junk');
     this.reveals();
-    const next = this.queue.step(dt, { typed: !this.typing, busy: this.bannerLeft > 0 || this.holds(), at: c });
+    const manual = s.lessons.hush?.until === 'press';
+    const next = this.queue.step(dt, { typed: !this.typing, busy: this.bannerLeft > 0 || this.holds(), at: c, paused: this.paused(), manual });
+    this.q('omore').hidden = !manual;
+    // An Oracle pause is a cutscene (`cutview.ts`): her panel at centre, the rest of the HUD dimmed but the piece she names.
+    const cut = s.lessons.hush?.id ?? '';
+    if (cut !== this.cutSig) {
+      this.cutSig = cut;
+      this.root.classList.toggle('mc-cut', !!cut);
+      const focus = ({ clock: 'clock', map: 'map', barrage: 'support' } as Record<string, string>)[cut];
+      for (const h of this.hids) h.el.classList.toggle('is-cut-focus', h.id === focus);
+    }
     if (next) this.speak(next.text, next.tone, next.icon);
     this.hovering(dt);
     this.day();
     const hp = Math.max(0, c.hp / c.maxHp);
-    this.q('hp').style.width = `${hp * 100}%`;
-    this.q('hp').parentElement!.classList.toggle('is-low', hp < 0.5);
-    this.q('hpText').textContent = `${Math.ceil(c.hp)} / ${c.maxHp}`;
+    this.b('hp').style('width', `${hp * 100}%`);
+    this.b('hpWrap', this.q('hp').parentElement!).cls('is-low', hp < 0.5);
+    this.b('hpText').text(`${Math.ceil(c.hp)} / ${c.maxHp}`);
     // The Oil bar: a thin quiet line while full, forward with its number when it changes, is hovered or runs down; below
     // `ALARM.urgent` it grows and the screen edge reddens (the more, the lower it is).
     this.fade.oil.see(Math.ceil(c.hp));
     const alarm = oilAlarm(hp);
     this.weigh('hpBar', hp < ALARM.urgent ? 'alarm' : this.fade.oil.forward(hp < 0.5, this.hover.has('me')) ? 'up' : 'rest');
-    this.q('alarm').style.setProperty('--a', alarm.toFixed(2));
-    this.q('alarm').classList.toggle('is-urgent', hp < ALARM.urgent && !s.god);
+    this.b('alarm').style('--a', alarm.toFixed(2));
+    this.b('alarm').cls('is-urgent', hp < ALARM.urgent && !s.god);
     // Steam is a gun's ammunition: no bar until a gun is in a slot. The two slots show by name (L left click, R right click).
-    this.q('steamBar').hidden = !s.hasGun;
+    this.b('steamBar').hide(!s.hasGun);
     const wsig = s.secondary ? `${s.weapon}|${s.secondary}` : s.weapon;
     if (wsig !== this.weaponSig) {
       this.weaponSig = wsig;
       this.q('weapon').innerHTML = s.secondary ? `${ico('mouse-left')} ${WEAPONS[s.weapon].name} · ${ico('mouse-right')} ${WEAPONS[s.secondary].name}` : WEAPONS[s.weapon].name;
     }
-    this.q('steam').style.width = `${(c.steam / c.maxSteam) * 100}%`;
-    this.q('steamText').textContent = `${Math.floor(c.steam)}`;
+    this.b('steam').style('width', `${(c.steam / c.maxSteam) * 100}%`);
+    this.b('steamText').text(`${Math.floor(c.steam)}`);
     // Steam is spent by the player's own clicks, so a change never brings the bar forward (every shot would make it jump): only empty, a try with none left (`noSteam`) or the pointer does.
     this.weigh('steamBar', this.fade.steam.forward(c.steam < 1, this.hover.has('me')) ? 'up' : 'rest');
     // The spare oil: one can per `LOOT.oil` of oil, filling from the bottom.
-    this.q('reserve').querySelectorAll<HTMLElement>('.mc-can b').forEach((fill, i) => {
-      fill.style.height = `${Math.max(0, Math.min(1, (this.sim.spare - i * LOOT.oil) / LOOT.oil)) * 100}%`;
-    });
+    this.cans ??= Array.from(this.q('reserve').querySelectorAll<HTMLElement>('.mc-can b'), (el) => bind(el));
+    this.cans.forEach((fill, i) => fill.style('height', `${Math.max(0, Math.min(1, (this.sim.spare - i * LOOT.oil) / LOOT.oil)) * 100}%`));
     // No can left: the winch's fee shows here before a fall pays it (the Oracle hauls him to the lift for scrap and daylight).
     const fee = this.sim.spare < REVIVE.cost ? `${ico('wrench')} ${winchLine(this.sim)}` : '';
     if (fee !== this.feeSig) {
@@ -533,17 +603,17 @@ export class Hud {
       const val = el.lastElementChild!;
       if (val.textContent !== text) val.textContent = text;
     }
-    this.q('stock').classList.toggle('is-on', !!stock);
+    this.b('stock').cls('is-on', !!stock);
     this.fade.stock.see(stock);
     this.weigh('stock', this.fade.stock.forward(false, this.hover.has('stock')) ? 'up' : 'rest');
-    const sal = this.q('salvage');
-    sal.lastElementChild!.textContent = s.stats.parts ? `×${s.stats.parts}` : '';
-    sal.classList.toggle('is-on', s.stats.parts > 0 && s.onboard.shows('parts'));
+    const sal = this.b('salvage');
+    this.b('salvageVal', sal.el.lastElementChild as HTMLElement).text(s.stats.parts ? `×${s.stats.parts}` : '');
+    sal.cls('is-on', s.stats.parts > 0 && s.onboard.shows('parts'));
     this.fade.salvage.see(s.stats.parts);
     this.weigh('salvage', this.fade.salvage.forward() ? 'up' : 'rest');
-    const jk = this.q('junk');
-    jk.lastElementChild!.textContent = s.junk.length ? `${s.junk.length} / ${s.stripSize}` : '';
-    jk.classList.toggle('is-on', s.junk.length > 0 && s.onboard.shows('junk'));
+    const jk = this.b('junk');
+    this.b('junkVal', jk.el.lastElementChild as HTMLElement).text(s.junk.length ? `${s.junk.length} / ${s.stripSize}` : '');
+    jk.cls('is-on', s.junk.length > 0 && s.onboard.shows('junk'));
     this.fade.junk.see(s.junk.length);
     this.weigh('junk', this.fade.junk.forward() ? 'up' : 'rest');
     const obj = s.objective;
@@ -555,10 +625,10 @@ export class Hud {
     // A line of objective is read once; it rests until it changes (the midnight one never rests).
     this.fade.obj.see(obj);
     this.weigh('obj', this.fade.obj.forward(s.day.phase === 'midnight') ? 'up' : 'rest');
-    // The Princess's line holds a while, then fades (P58).
+    // The Princess's line holds a while, then dims; it stays until her next (P58).
     if (this.herT >= 0 && (this.herT += dt) > HER_HOLD) {
       this.herT = -1;
-      this.q('her').classList.remove('is-on');
+      this.q('her').classList.add('is-quiet');
     }
     // The Oracle types her lines out, then goes quiet.
     if (this.typing) {
@@ -566,9 +636,9 @@ export class Hud {
       t.shown += dt * 55;
       const plain = t.text.replace(/<[^>]+>/g, '');
       if (t.shown >= plain.length) {
-        this.q('otext').innerHTML = t.text;
+        this.b('otext').html(t.text);
         this.typing = null;
-      } else this.q('otext').textContent = plain.slice(0, Math.floor(t.shown));
+      } else this.b('otext').text(plain.slice(0, Math.floor(t.shown)));
     } else {
       this.oracleT += dt;
       // A calm line goes quiet sooner than a warning; hovering her panel reads it again.

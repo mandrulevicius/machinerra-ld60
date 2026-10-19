@@ -17,6 +17,7 @@ import { timeCommands } from './time';
 import { tipsCommands } from './tips';
 import { unitsCommands } from './units';
 import { worldCommands } from './world';
+import { buildingCommands } from './buildings';
 
 export function registerDev(play: Play) {
   commandCommands(play);
@@ -32,4 +33,5 @@ export function registerDev(play: Play) {
   tipsCommands(play);
   unitsCommands(play);
   worldCommands(play);
+  buildingCommands(play);
 }

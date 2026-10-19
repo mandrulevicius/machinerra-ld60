@@ -35,7 +35,7 @@ export interface Haul {
   gathered?: string[];
   /** The land's threat tier (`Sim.tier`): the hub's light on coming home (`hublight.ts` `moodOf`). */
   tier?: number;
-  /** The economy's share (`economy.ts` `bank`): scrap, insight and copper gathered, AI cores found, air support charges left. Oil never comes home: cans refill at the lift. */
+  /** The economy's share (`economy.ts` `bank`): scrap and copper gathered, AI cores found, air support charges left; `insight` is 0 or 1, the stage's one punch card earned (`research.ts` `bankPick`). Oil never comes home: cans refill at the lift. */
   scrap?: number;
   insight?: number;
   cores?: number;

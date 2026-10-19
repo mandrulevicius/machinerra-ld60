@@ -67,12 +67,11 @@ describe('the intro: the old works', () => {
     expect(s.intro!.stepNow).toBe('crash');
   });
 
-  it('brings the first Crawlcam back if it dies with the wall still up', () => {
+  it('brings the first wall down if its Crawlcam dies with the wall still up', () => {
     const s = intro();
     s.slay(s.intro!.key!);
-    run(s, INTRO.key + 0.5);
-    expect(s.intro!.key!.dead).toBe(false);
-    expect(s.intro!.key!.dazed).toBe(true);
+    run(s, 0.5);
+    expect(s.intro!.plug.every((p) => p.broken)).toBe(true);
   });
 
   it('crashes one dazed Crawlcam into the one behind it: both fall', () => {
@@ -117,31 +116,56 @@ describe('the intro: the old works', () => {
     run(s, 0.2);
     expect(s.intro!.rooms.tap).toBe(true);
     expect(s.intro!.open).toBe(false);
-    // Bellows, mended where he lies (his guards slain first).
+    // Room C's ruin, searched (its guards slain first).
     for (const g of s.intro!.guards) s.slay(g);
-    const b = s.intro!.bellows!;
-    stand(s, b.x + 20, b.y);
+    const ruin = s.intro!.ruin!;
+    expect(ruin).toBeTruthy();
+    stand(s, ruin.x + 20, ruin.y);
     tap(s);
-    run(s, 3.5);
-    expect(b.downed).toBeFalsy();
-    expect(s.intro!.rooms.bellows).toBe(true);
+    run(s, 1.5);
+    expect(ruin.searched).toBe(true);
+    expect(s.intro!.rooms.ruin).toBe(true);
     run(s, 0.1);
     expect(s.intro!.open).toBe(true);
     expect(den.every((p) => p.broken)).toBe(true);
     expect(s.intro!.stepNow).toBe('den');
   });
 
-  it("wakes the boss in the den; its fall opens the lift, and the lift ends the mission with Bellows sent home", () => {
+  it('lays Bellows in the den, unmendable until the boss is dead; then the objective is to mend him', () => {
     const s = intro();
     s.god = true;
-    s.intro!.go('bellows');
-    for (const g of s.intro!.guards) s.slay(g);
+    s.intro!.go('boss');
+    run(s, 0.2);
+    s.lessons.press(); // the boss's warning pause
     const b = s.intro!.bellows!;
+    expect(Math.abs(b.x - px(L.B[0]).x)).toBeLessThan(T);
     stand(s, b.x + 20, b.y);
     tap(s);
     run(s, 3.5);
+    expect(b.downed).toBeTruthy();
+    expect(s.intro!.stepNow).toBe('den');
+    s.slay(s.intro!.boss!);
+    run(s, 0.2);
+    expect(s.intro!.stepNow).toBe('mend');
+    expect(s.objective).toMatch(/Mend Bellows/);
+    stand(s, b.x + 20, b.y);
+    tap(s);
+    run(s, 3.5);
+    expect(b.downed).toBeFalsy();
+    expect(s.intro!.stepNow).toBe('lift');
+  });
+
+  it("wakes the boss in the den; its fall opens the lift, and the lift ends the mission with Bellows sent home", () => {
+    const s = intro();
+    s.god = true;
     s.intro!.go('boss');
     run(s, 0.2);
+    // The boss's warning is the intro's one Oracle pause: the world waits for a press.
+    expect(s.lessons.hush?.id).toBe('den');
+    const t0 = s.time;
+    run(s, 2);
+    expect(s.time).toBe(t0);
+    s.lessons.press();
     const boss = s.intro!.boss!;
     expect(boss.boss).toBe(true);
     expect(boss.kind).toBe('caterpillar');
@@ -149,6 +173,10 @@ describe('the intro: the old works', () => {
     expect(s.intro!.gate.every((p) => !p.broken)).toBe(true);
     s.slay(boss);
     run(s, 0.2);
+    const b = s.intro!.bellows!;
+    stand(s, b.x + 20, b.y);
+    tap(s);
+    run(s, 3.5);
     expect(s.intro!.gate.every((p) => p.broken)).toBe(true);
     expect(s.loot.some((l) => l.kind === 'part' && l.part?.startsWith('spider'))).toBe(true); // it drops a part
     expect(s.intro!.stepNow).toBe('lift');

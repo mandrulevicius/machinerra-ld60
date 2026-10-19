@@ -14,6 +14,7 @@ import Phaser from 'phaser';
 import { S } from './art';
 import { BIOMES } from './sim/defs';
 import { DANGER, DANGER_HOT, FRIEND, LINE, SOOT } from './house';
+import { stampBuildings } from './buildingview';
 import { GroundChunks } from './groundchunks';
 import { ViewBase, type G, type Img, type PlayHost } from './playhost';
 import { MAT, PROP_ATLAS, propKey } from './propart';
@@ -53,6 +54,8 @@ export class PropView extends ViewBase {
   private chunks: GroundChunks;
   private cans = new Map<number, Img>();
   private ground: Phaser.GameObjects.Graphics;
+  /** P47: the buildings whose floors are stamped (a dev command may add more). */
+  private floors = 0;
 
   constructor(host: PlayHost) {
     super(host);
@@ -60,6 +63,7 @@ export class PropView extends ViewBase {
     this.ground = host.scene.add.graphics().setDepth(-4);
     const b = host.w.bounds;
     this.chunks = new GroundChunks(host.scene, { width: b.width, height: b.height, key: PROP_ATLAS, depth: GROUND_DEPTH });
+    this.floors = stampBuildings(this.chunks, this.sim); // P47's floors, footings and overgrowth, under any rubble
   }
 
   destroy() {
@@ -160,6 +164,7 @@ export class PropView extends ViewBase {
   update(dt: number, g: G) {
     const sim = this.sim, now = this.scene.time.now, view = this.scene.cameras.main.worldView, list = sim.props.list;
     this.index(list);
+    if ((sim.map.buildings?.length ?? 0) > this.floors) this.floors = stampBuildings(this.chunks, sim, this.floors);
     const x0 = view.x - NEAR, x1 = view.right + NEAR, y0 = view.y - NEAR, y1 = view.bottom + NEAR;
     for (let i = 0; i < list.length; i++) {
       if (this.skip[i]) continue;

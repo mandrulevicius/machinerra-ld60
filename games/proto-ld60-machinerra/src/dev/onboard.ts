@@ -61,7 +61,7 @@ export function onboardCommands(play: Play) {
     return `${slot} +${amount} flies to its slot`;
   }, 'fanfare <scrap|copper|coal|parts> [n] | item [item id] [quality]: a gain flies to its slot, or an item hovers over him (`drop scrap` and `drop core` play the real thing)', { ...g, args: () => ['scrap', 'copper', 'coal', 'parts', 'item'] });
 
-  command('lessons', ([what, n]) => {
+  command('lessons', ([what, n, ...more]) => {
     const L = sim.lessons;
     if (what === 'flown' && n !== undefined) {
       L.flown = Math.max(0, Math.floor(Number(n)) || 0);
@@ -69,7 +69,12 @@ export function onboardCommands(play: Play) {
       if (L.open('map')) ob.reveal('map');
       if (L.open('barrage')) ob.reveal('support');
     } else if (what === 'go') L.hush = null;
-    else if (what) return 'error: lessons [flown <n>|go]';
+    else if (what === 'cut') {
+      // A dev cutscene (cutview.ts): an Oracle pause with one line, ended by a press as hers are.
+      if (sim.dungeon) return 'error: no Oracle pause in a dungeon (lessonStep clears it)';
+      L.hush = { id: 'dev-cut', until: 'press' };
+      sim.say(`dev-cut-${sim.time.toFixed(2)}`, [n, ...more].filter(Boolean).join(' ') || 'Stand still a moment, Communicator.', 'warn');
+    } else if (what) return 'error: lessons [flown <n>|go|cut [text]]';
     return JSON.stringify(L.summary());
-  }, 'lessons [flown <n>|go]: what is taught on this mission (missions flown: 2 opens the map and command mode, 3 the call; ?flown=<n> starts a mission so), `go` ends an Oracle pause', { ...g, args: () => ['flown', 'go'] });
+  }, 'lessons [flown <n>|go|cut [text]]: what is taught on this mission (missions flown: 2 opens the map and command mode, 3 the call; ?flown=<n> starts a mission so), `go` ends an Oracle pause, `cut` starts one (the cutscene look, `debugState().cut`)', { ...g, args: () => ['flown', 'go', 'cut'] });
 }

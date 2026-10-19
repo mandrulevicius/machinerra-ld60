@@ -11,6 +11,7 @@ import { ViewBase, type Light, type PlayHost } from './playhost';
 import { BIOMES, T } from './sim/defs';
 import { sky } from './sim/clock';
 import { KITS, ambientOf } from './sim/dungeon';
+import { landing, measureFrame, renderTier, tierState } from './tier';
 import { WeatherView } from './weatherview';
 import { TwistView } from './twistview';
 import type { SimEvent } from './sim/types';
@@ -32,10 +33,14 @@ export class LightView extends ViewBase {
   night = 0;
   /** Which lamp led each one's spot last frame (`lampPass`). */
   private lead = new Map<number, number>();
+  private mine = new Set<Light>();
+  private spotOf = new Map<number, Spot>();
+  private probe = { x: 0, y: 0, r: 0 };
 
   constructor(host: PlayHost) {
     super(host);
     const sim = host.sim, L = host.k.lights;
+    landing();
     this.live = new GroundLive(host.scene, { w: sim.W * T, h: sim.H * T, seed: host.land.seed, paint: BIOMES[host.land.biome].paint, below: !!host.down || !!sim.intro, depth: -9.5 });
     this.lift = L.add(sim.lift.x, sim.lift.y - 10, { color: 0xffd070, radius: 200, intensity: 0.5 });
     for (let i = 0; i < 3; i++) this.flashes.push(L.add(-999, -999, { color: 0xffc070, radius: 160, intensity: 0 }));
@@ -72,6 +77,8 @@ export class LightView extends ViewBase {
     lights.setAmbientColor(amb);
     this.weather?.update(dt, sim);
     this.twist?.update(dt, sim);
+    measureFrame(this.scene.game.loop.rawDelta);
+    this.live.detail = renderTier().detail;
     const cam = this.scene.cameras.main;
     this.live.update(dt, this.night, amb, cam.midPoint.x, cam.midPoint.y);
     const { glow, wide } = lampLook(this.night);
@@ -85,6 +92,9 @@ export class LightView extends ViewBase {
    * Runs after everything else has set its lights this frame, so it counts them: what they take, the crew cannot.
    */
   late(dt: number) {
+    // A slow machine's tier lowers the light cap below the player's own (live; the kit's refresh restores it on a quality change, and this runs again).
+    const cap = renderTier().lightCap, lm = this.scene.lights;
+    if (cap !== null && lm.maxLights > cap) (lm as { maxLights: number }).maxLights = cap;
     this.lampPass(dt);
   }
 
@@ -95,15 +105,25 @@ export class LightView extends ViewBase {
       for (const m of lamps) bots.get(m.id)?.light.setPosition(m.x, m.y).setRadius(m.r).setIntensity(m.i).setVisible(true);
       return;
     }
-    const mine = new Set<Light>();
+    const mine = this.mine, probe = this.probe, lead = this.spotOf;
+    mine.clear();
+    lead.clear();
     for (const v of bots.values()) mine.add(v.light);
     // Lights that burn at nothing take no slot of the cap.
-    for (const l of [...this.flashes, ...this.host.foeLights(), this.comm?.tip]) if (l) l.setVisible(l.intensity > LAMP_OFF);
+    for (const l of this.flashes) l.setVisible(l.intensity > LAMP_OFF);
+    for (const l of this.host.foeLights()) l.setVisible(l.intensity > LAMP_OFF);
+    const tip = this.comm?.tip;
+    if (tip) tip.setVisible(tip.intensity > LAMP_OFF);
     let others = 0;
-    for (const l of lm.lights) if (!mine.has(l) && l.visible && l.intensity > LAMP_OFF && inView({ x: l.x, y: l.y, r: l.radius }, view)) others++;
+    for (const l of lm.lights) {
+      if (mine.has(l) || !l.visible || l.intensity <= LAMP_OFF) continue;
+      probe.x = l.x;
+      probe.y = l.y;
+      probe.r = l.radius;
+      if (inView(probe, view)) others++;
+    }
     const budget = Math.max(1, cap - others - Math.ceil(cap * LAMP_SPARE));
     const { spots } = chooseSpots(lamps, { view, budget, focus: { x: view.centerX, y: view.centerY }, prev: this.lead });
-    const lead = new Map<number, Spot>();
     this.lead.clear();
     for (const s of spots) {
       lead.set(s.lead, s);
@@ -122,6 +142,6 @@ export class LightView extends ViewBase {
   }
 
   debug() {
-    return { night: +this.night.toFixed(2), live: this.live.state() };
+    return { night: +this.night.toFixed(2), live: this.live.state(), render: { ...tierState(), cap: this.scene.lights.maxLights } };
   }
 }

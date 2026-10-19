@@ -8,7 +8,7 @@
 import Phaser from 'phaser';
 import type { TitleArt } from '../../../harness/kit';
 import { audioFor } from '../../../harness/kit';
-import { GROUND_PX, paintGround } from './art';
+import { GROUND_PX, freeGround, paintGround } from './art';
 import { MesaShadows, fixedLean } from './mesashadow';
 import { PROP_CASTS, shadeOf } from './shadowview';
 import { sunLean } from './sun';
@@ -150,8 +150,9 @@ export const titleArt: TitleArt = {
 
     // The land far below, dimmed to dusk; it wanders slowly under the zeppelin.
     const map = generate(TITLE_LAND.seed, undefined, undefined, TITLE_LAND.biome);
-    const groundKey = paintGround(scene, map, GROUND_PX);
+    const groundKey = paintGround(scene, map, GROUND_PX, '-title');
     const ground = add(scene.add.image(W / 2, H / 2, groundKey).setScale(GROUND_PX * TITLE_LAND.scale).setTint(TITLE_LAND.tint).setDepth(1));
+    ground.once(Phaser.GameObjects.Events.DESTROY, () => freeGround(scene, groundKey));
     // The mesas' shadows ride over the ground (a container that follows it), dimmed with it.
     const lay = add(scene.add.container(0, 0).setDepth(1.1).setAlpha(0.75));
     const mesas = new MesaShadows(scene, groundKey, { depth: 0, tint: shadeOf(BIOMES[TITLE_LAND.biome].paint), parent: lay });

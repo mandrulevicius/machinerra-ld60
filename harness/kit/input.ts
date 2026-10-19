@@ -24,6 +24,7 @@
 import type Phaser from 'phaser';
 import { createSave, type Save } from '../save';
 import { esc, typing } from './menu-parts';
+import { ESC_ALT, escAltWorks } from './escape';
 import { transitionBusy } from './transition';
 import {
   actionLabel, checkDeclaration, displayToken, fillTemplate, keyName, mergeSaved, overrides, padToken, parseToken, rebind,
@@ -175,6 +176,11 @@ export class GameInput {
     this.listenCb = cb;
     this.listenAlive = alive;
     return () => this.cancelListen();
+  }
+  /** A key (`KeyboardEvent.code`) is bound to an action. */
+  bound(code: string): boolean {
+    const n = keyName(code);
+    return Object.values(this.parsed).some((ts) => ts.some((t) => t.kind === 'key' && t.name === n));
   }
   get listening() {
     return !!this.listenCb;
@@ -348,12 +354,20 @@ export const keyLabel = (action: string) => live().label(action);
 /** `<kbd class="ui-key">Space</kbd>` for an action. */
 export const keyHtml = (action: string) => `<kbd class="ui-key">${esc(keyLabel(action))}</kbd>`;
 
-/** Text with `{jump}` placeholders filled by key labels (plain text, e.g. for Phaser Text). */
-export const promptText = (text: string) => fillTemplate(text, (a) => live().has(a), keyLabel);
+/** What closes things: 'Esc / P' (the placeholder `{esc}`; just 'Esc' where P is bound or the game has no menu). */
+const escKeys = () => (escAltWorks(!!current?.bound(ESC_ALT)) ? ['Esc', 'P'] : ['Esc']);
 
-/** HTML with `{jump}` placeholders filled by `<kbd class="ui-key">` (the rest of the text is escaped). */
+/** Text with `{jump}` placeholders filled by key labels (plain text, e.g. for Phaser Text). `{esc}` is Esc and its second key. */
+export const promptText = (text: string) =>
+  fillTemplate(text, (a) => a === 'esc' || live().has(a), (a) => (a === 'esc' ? escKeys().join(' / ') : keyLabel(a)));
+
+/** HTML with `{jump}` placeholders filled by `<kbd class="ui-key">` (the rest of the text is escaped); `{esc}` is Esc and its second key. */
 export const promptHtml = (text: string) =>
-  text.split(/(\{\w+\})/).map((p) => { const a = /^\{(\w+)\}$/.exec(p)?.[1]; return a && live().has(a) ? keyHtml(a) : esc(p); }).join('');
+  text.split(/(\{\w+\})/).map((p) => {
+    const a = /^\{(\w+)\}$/.exec(p)?.[1];
+    if (a === 'esc') return escKeys().map((k) => `<kbd class="ui-key">${k}</kbd>`).join(' / ');
+    return a && live().has(a) ? keyHtml(a) : esc(p);
+  }).join('');
 
 /**
  * Keeps `el.innerHTML = promptHtml(text)` current as bindings or the device in use change. Stops by itself once `el` leaves

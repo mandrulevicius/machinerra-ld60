@@ -8,7 +8,7 @@ import { MODS, MOD_IDS, modFits, type ModId } from '../sim/defs/mods';
 import { rng } from '../../../../harness/kit/rng';
 import { grantBoost, profile } from './deeds';
 import { teacherOf } from './taught';
-import { REWARD_NAMES, RUSH_COPPER, type Job } from './repeats';
+import { REWARD_NAMES, RUSH_COPPER, TAP_SCRAP, type Job } from './repeats';
 import { questBook } from './talkslice';
 import { princessSave } from './princessslice';
 import type { Reward } from './dialog';
@@ -125,7 +125,7 @@ export function payJob(job: Job, seed: string): string {
   else if (r === 'copper') economy.set({ ...economy.get(), copper: economy.get().copper + RUSH_COPPER });
   else if (r === 'kickCard') extra.push(...payExtras({ card: 'bootPolish' }));
   else if (r === 'biscuits') questBook.set({ ...questBook.get(), pack: { ...questBook.get().pack, biscuits: (questBook.get().pack.biscuits ?? 0) + 1 } });
-  else if (r === 'pick') extra.push(...payExtras({ picks: 1 }));
+  else if (r === 'scrap') economy.set({ ...economy.get(), scrap: economy.get().scrap + TAP_SCRAP });
   else if (r === 'sweepings') princessSave.set({ ...princessSave.get(), double: true }); // her next pile is doubled (P58)
   return `Job done: ${job.task}. ${extra[0] ?? `You get ${REWARD_NAMES[r]}`}.`;
 }

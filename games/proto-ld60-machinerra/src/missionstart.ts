@@ -49,6 +49,8 @@ export interface DungeonCarry {
   steam: number;
   reserve: number;
   scrap: number;
+  /** The land already earned its punch card: nothing down there earns another (`Sim.cardHeld`). */
+  card?: boolean;
   hands?: Hands;
   /** The land's robots that ride down with him (D16), by their land id. */
   party?: (PartyBot & { id: number })[];
@@ -87,6 +89,8 @@ export interface Landing {
   down: DungeonCarry | null;
   /** Missions flown, if not the save's (dev: `?flown=`): what is taught by now (`sim/lessons.ts`). */
   flown?: number;
+  /** P47's buildings, if not by missions flown (dev: `?remnants=1` or `0`). */
+  remnants?: boolean;
 }
 
 type Args = ConstructorParameters<typeof Sim>;
@@ -115,6 +119,7 @@ const landOpts = (l: Landing): SimOptions => ({
   quest: questOpts(),
   onboard: { shown: onboardSave.get().shown },
   flown: l.flown ?? hub.get().missions,
+  ...(l.remnants !== undefined && { remnants: l.remnants }),
   dogName: dogNameOf(talkSave.get().flags),
   wife: hub.get().story?.wife, // P58: her voice on the antenna
 });
@@ -123,6 +128,7 @@ const landOpts = (l: Landing): SimOptions => ({
 const downOpts = (d: DungeonCarry): SimOptions => ({
   dungeon: d.spec ?? true,
   dayT: d.dayT,
+  cardHeld: d.card,
   party: d.party,
   followers: d.followers,
   onboard: { shown: onboardSave.get().shown },
